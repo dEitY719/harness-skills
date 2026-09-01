@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>harness-legacy-check — 하네스 읽기 전용 감사</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.07);
+      --text: #EDEDED; --text-secondary: #8B8B8B;
+      --accent: #38bdf8; --accent-secondary: #a78bfa;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0F1115; --rail: rgba(56,189,248,0.28);
+      --atmosphere: radial-gradient(1100px 520px at 50% -220px, rgba(56,189,248,0.13), transparent 70%);
+      --dotgrid: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
+      --shadow: 0 8px 24px rgba(0,0,0,0.45);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #0369a1; --accent-secondary: #6d28d9;
+      --positive: #059669; --negative: #e11d48; --warning: #b45309;
+      --code-bg: #F1F5F9; --rail: rgba(3,105,161,0.22);
+      --atmosphere: radial-gradient(1100px 520px at 50% -220px, rgba(3,105,161,0.10), transparent 70%);
+      --dotgrid: radial-gradient(rgba(15,23,42,0.055) 1px, transparent 1px);
+      --shadow: 0 8px 24px rgba(15,23,42,0.10);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.7; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em; font-feature-settings: 'cv11', 'ss01';
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+      word-break: keep-all;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image: var(--atmosphere), var(--dotgrid);
+      background-size: auto, 26px 26px;
+    }
+    h1,h2,h3,h4,h5,h6 { color: var(--text); letter-spacing: -0.03em; line-height: 1.18; text-wrap: balance; }
+    h1 { font-weight: 800; }
+    h2 { font-weight: 700; }
+    h3 { font-weight: 600; }
+    body, p, li, td, th, span, label { font-weight: 400; }
+    p,li,td,th,span,label { color: var(--text); }
+    .text-secondary { color: var(--text-secondary); }
+    code, kbd, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 16px rgba(0,0,0,0.08); }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 28px; }
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: none; }
+    .eyebrow {
+      font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+    }
+    h2 { font-size: clamp(2rem, 4vw, 2.35rem); margin-bottom: 10px; }
+    h3 { font-size: 1.5rem; margin-bottom: 8px; }
+    .lede { color: var(--text-secondary); font-size: 1.0625rem; max-width: 62ch; margin-bottom: 32px; }
+
+    /* ===== HERO ===== */
+    .hero { padding: 84px 0 60px; text-align: left; }
+    .hero h1 { font-size: clamp(3rem, 8vw, 4.25rem); margin: 14px 0 20px; }
+    .hero h1 .mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: -0.045em; }
+    .hero-sub {
+      font-size: 1.1875rem; color: var(--text-secondary); max-width: 60ch; margin-bottom: 28px;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 600; }
+    .badges { display: flex; flex-wrap: wrap; gap: 10px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 999px; font-size: 0.875rem; font-weight: 500;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary);
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+    .badge.ro .dot { background: var(--positive); }
+    .badge.warn .dot { background: var(--warning); }
+
+    /* ===== STATS ===== */
+    .stats { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+    .stat-value { font-size: 2.75rem; font-weight: 800; line-height: 1; letter-spacing: -0.04em; color: var(--accent); }
+    .stat-value.alt { color: var(--accent-secondary); }
+    .stat-label { margin-top: 10px; font-size: 0.9375rem; color: var(--text); font-weight: 500; }
+    .stat-note { font-size: 0.8125rem; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ===== USE / DON'T TABLE ===== */
+    .filterbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .filterbar button {
+      font-family: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      padding: 8px 16px; border-radius: 999px; color: var(--text-secondary);
+      background: var(--surface); border: 1px solid var(--border); transition: all 0.18s;
+    }
+    .filterbar button:hover { background: var(--surface-hover); color: var(--text); }
+    .filterbar button[aria-pressed="true"] { color: var(--bg); background: var(--text); border-color: var(--text); }
+    .uselist { display: grid; gap: 12px; }
+    .userow {
+      display: grid; grid-template-columns: 92px 1fr; gap: 18px; align-items: start;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--border); border-radius: 10px; padding: 18px 20px;
+      transition: box-shadow 0.2s ease;
+    }
+    .userow:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 16px rgba(0,0,0,0.08); }
+    .userow[data-use="yes"] { border-left-color: var(--positive); }
+    .userow[data-use="no"] { border-left-color: var(--negative); }
+    .userow[hidden] { display: none; }
+    .verdict { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 3px; }
+    .userow[data-use="yes"] .verdict { color: var(--positive); }
+    .userow[data-use="no"] .verdict { color: var(--negative); }
+    .userow p { font-size: 1rem; }
+    .userow .alt-skill { display: block; margin-top: 6px; font-size: 0.875rem; color: var(--text-secondary); }
+    .userow .alt-skill code { color: var(--accent); }
+
+    /* ===== CODE ===== */
+    .codeblock { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+    .codeblock pre { font-size: 0.9375rem; line-height: 2; overflow-x: auto; color: var(--text); }
+    .codeblock .cmt { color: var(--text-secondary); }
+    .copybtn {
+      position: absolute; top: 12px; right: 12px; font-family: inherit; font-size: 0.75rem; font-weight: 600;
+      padding: 6px 12px; border-radius: 7px; cursor: pointer;
+      background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border); transition: all 0.18s;
+    }
+    .copybtn:hover { background: var(--surface-hover); color: var(--text); }
+    .copybtn.done { color: var(--positive); border-color: var(--positive); }
+    code.inline {
+      font-size: 0.9em; padding: 2px 7px; border-radius: 5px;
+      background: var(--code-bg); border: 1px solid var(--border); color: var(--accent);
+    }
+
+    /* ===== STEPS ===== */
+    .steps { display: grid; gap: 14px; counter-reset: step; }
+    .step { display: grid; grid-template-columns: 40px 1fr; gap: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.0625rem; color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid var(--rail);
+    }
+    .step h3 { font-size: 1.1875rem; margin-bottom: 4px; }
+    .step p { font-size: 0.9688rem; color: var(--text-secondary); }
+    .step p code { color: var(--accent); }
+
+    /* ===== PIPELINE (focal point) ===== */
+    .pipe-hint { font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 18px; }
+    .pipeline { display: grid; gap: 10px; }
+    .phase {
+      display: grid; grid-template-columns: 54px 1fr auto; gap: 18px; align-items: center;
+      width: 100%; text-align: left; font-family: inherit; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 20px; transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .phase:hover { background: var(--surface-hover); }
+    .phase[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+    .phase-idx {
+      width: 54px; height: 54px; border-radius: 12px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; flex: none;
+      background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid var(--rail);
+    }
+    .phase-idx b { font-size: 1.25rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .phase-idx span { font-size: 0.5625rem; letter-spacing: 0.1em; color: var(--text-secondary); text-transform: uppercase; margin-top: 3px; }
+    .phase-name { font-size: 1.1875rem; font-weight: 600; letter-spacing: -0.02em; }
+    .phase-tag { font-size: 0.875rem; color: var(--text-secondary); margin-top: 2px; }
+    .phase-chev { color: var(--text-secondary); transition: transform 0.25s ease; flex: none; }
+    .phase[aria-pressed="true"] .phase-chev { transform: rotate(90deg); color: var(--accent); }
+    .connector { display: flex; justify-content: flex-start; padding-left: 46px; height: 16px; }
+    .connector i { display: block; width: 2px; height: 100%; background: var(--rail); border-radius: 2px; }
+    .phase-detail {
+      margin: 2px 0 6px 46px; padding: 0 20px; max-height: 0; opacity: 0; overflow: hidden;
+      border-left: 2px solid var(--rail);
+      transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    }
+    .phase-detail.open { max-height: 340px; opacity: 1; padding: 14px 20px; }
+    .phase-detail p { font-size: 0.9688rem; color: var(--text-secondary); }
+    .phase-detail p code { color: var(--accent); }
+
+    /* ===== CLASSIFICATION CHIPS ===== */
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .chip {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.03em;
+      padding: 9px 16px; border-radius: 8px; background: var(--surface);
+      border: 1px solid var(--border); color: var(--text);
+    }
+    .chip.keep { border-color: color-mix(in srgb, var(--positive) 55%, var(--border)); color: var(--positive); }
+    .chip.del { border-color: color-mix(in srgb, var(--negative) 55%, var(--border)); color: var(--negative); }
+
+    /* ===== CAUTIONS ===== */
+    .cautions { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .caution { border-top: 3px solid var(--warning); }
+    .caution.hard { border-top-color: var(--negative); }
+    .caution.pair { border-top-color: var(--accent-secondary); }
+    .caution h3 { font-size: 1.0625rem; margin-bottom: 8px; }
+    .caution p { font-size: 0.9375rem; color: var(--text-secondary); }
+    .caution p code { color: var(--accent); }
+    .caution.span2 { grid-column: span 2; }
+    @media (max-width: 700px) { .caution.span2 { grid-column: span 1; } }
+
+    /* ===== PAIR / FOOTER ===== */
+    .pairing { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
+    .pairing .pcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+    .pairing .pcard b { display: block; font-family: 'JetBrains Mono', monospace; font-size: 1rem; margin-bottom: 6px; }
+    .pairing .pcard.this { border-color: var(--accent); }
+    .pairing .pcard.this b { color: var(--accent); }
+    .pairing .pcard.next b { color: var(--accent-secondary); }
+    .pairing .pcard span { font-size: 0.875rem; color: var(--text-secondary); }
+    .pairing .arrow { color: var(--text-secondary); font-size: 1.5rem; text-align: center; }
+    @media (max-width: 700px) {
+      .pairing { grid-template-columns: 1fr; }
+      .pairing .arrow { transform: rotate(90deg); }
+    }
+    footer { padding: 40px 0 64px; border-top: 1px solid var(--border); }
+    footer p { font-size: 0.875rem; color: var(--text-secondary); }
+    footer code { color: var(--text); }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; }
+    .animate.delay-2 { animation-delay: 0.2s; }
+    .animate.delay-3 { animation-delay: 0.3s; }
+    .animate.delay-4 { animation-delay: 0.4s; }
+    .animate.delay-5 { animation-delay: 0.5s; }
+    .animate.delay-6 { animation-delay: 0.6s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .wrap { padding: 0 20px; }
+      section { padding: 44px 0; }
+      .hero { padding: 60px 0 44px; }
+      .userow { grid-template-columns: 1fr; gap: 8px; }
+      .phase { grid-template-columns: 44px 1fr auto; gap: 14px; padding: 16px; }
+      .phase-idx { width: 44px; height: 44px; }
+      .connector { padding-left: 37px; }
+      .phase-detail { margin-left: 37px; }
+    }
+    @media (max-width: 375px) {
+      .card, .stat, .step { padding: 16px; }
+      .stat-value { font-size: 2rem; }
+      .step { grid-template-columns: 1fr; gap: 12px; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      body::before { display: none; }
+      .viz-menu, .copybtn, .filterbar { display: none !important; }
+      .reveal { display: revert; opacity: 1 !important; transform: none !important; }
+      .userow[hidden] { display: grid !important; }
+      .phase-detail { max-height: none !important; opacity: 1 !important; padding: 12px 20px !important; }
+      .card, .stat, .step, .phase, .userow { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; @bottom-center { content: "Page " counter(page); font-size: 9pt; color: #666; } }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 200px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px); box-shadow: var(--shadow);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+
+    /* ===== SKIP TO CONTENT ===== */
+    .skip-to-content {
+      position: absolute; top: -40px; left: 6px; background: var(--accent);
+      color: white; padding: 8px 12px; text-decoration: none;
+      border-radius: 4px; opacity: 0; pointer-events: none;
+      transition: all 0.2s; z-index: 10000;
+    }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown">
+      <button onclick="cycleTheme()" aria-label="테마 전환"><span id="themeIcon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span><span id="themeLabel">Dark</span></button>
+      <button onclick="downloadImage()" aria-label="PNG 다운로드"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span><span>Download PNG</span></button>
+      <button onclick="window.print()" aria-label="인쇄 또는 PDF 저장"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span>Print / PDF</span></button>
+    </div>
+  </div>
+
+  <a href="#main-content" class="skip-to-content">본문으로 건너뛰기</a>
+
+  <main id="main-content" role="main">
+
+    <!-- ===== HERO ===== -->
+    <header class="hero">
+      <div class="wrap">
+        <p class="eyebrow animate">harness plugin · skill guide</p>
+        <h1 class="animate delay-1"><span class="mono">harness-legacy-check</span></h1>
+        <p class="hero-sub animate delay-2">
+          AI 코딩 하네스 전체를 <strong>읽기 전용</strong>으로 감사해
+          리포트 파일 <strong>하나</strong>를 산출한다.
+          CLAUDE.md · AGENTS.md · skills · workflows · settings · hooks · MCP —
+          쌓인 legacy 규칙, 중복, 비대화, 과도한 권한을 한 번에 훑는다.
+        </p>
+        <div class="badges animate delay-3">
+          <span class="badge ro"><span class="dot"></span>읽기 전용 — 파일을 수정·삭제하지 않는다</span>
+          <span class="badge"><span class="dot"></span>인자 없음</span>
+          <span class="badge warn"><span class="dot"></span>토큰 비용 높음</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== KEY NUMBERS ===== -->
+    <section aria-labelledby="numbers-h">
+      <div class="wrap">
+        <h2 id="numbers-h" class="sr-only" style="position:absolute;left:-9999px;">핵심 수치</h2>
+        <div class="stats" data-reveal>
+          <div class="stat">
+            <div class="stat-value" data-count="5">5</div>
+            <div class="stat-label">워크플로우 phase</div>
+            <div class="stat-note">Inventory → Final Report</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" data-count="5">5</div>
+            <div class="stat-label">병렬 specialist agent</div>
+            <div class="stat-note">Phase 2 에서 동시 실행</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value alt" data-count="6">6</div>
+            <div class="stat-label">리팩터 분류 라벨</div>
+            <div class="stat-note">KEEP … DELETE</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" data-count="1">1</div>
+            <div class="stat-label">유일한 쓰기</div>
+            <div class="stat-note">리포트 파일 생성</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== WHEN TO USE ===== -->
+    <section aria-labelledby="when-h">
+      <div class="wrap">
+        <p class="eyebrow">01 — Scope</p>
+        <h2 id="when-h">언제 쓰고, 언제 안 쓰는가</h2>
+        <p class="lede">
+          <code class="inline">ai-context check</code> 가 문서 <strong>한 개</strong>를 보는 데 비해,
+          이 스킬은 하네스 <strong>전체</strong>를 본다. 둘 다 읽기 전용이라는 점은 같다.
+        </p>
+
+        <div class="filterbar" role="group" aria-label="사용 여부로 필터">
+          <button type="button" onclick="filterUse('all', this)" aria-pressed="true">전체</button>
+          <button type="button" onclick="filterUse('yes', this)" aria-pressed="false">사용</button>
+          <button type="button" onclick="filterUse('no', this)" aria-pressed="false">사용 금지</button>
+        </div>
+
+        <div class="uselist" id="uselist" data-reveal>
+          <article class="userow" data-use="yes">
+            <div class="verdict">사용</div>
+            <p>하네스 전반에 쌓인 legacy 규칙·중복·비대화를 훑고 싶다.</p>
+          </article>
+          <article class="userow" data-use="yes">
+            <div class="verdict">사용</div>
+            <p><code class="inline">harness:harness-refactor</code> 를 돌리기 직전.
+              <span class="alt-skill">이 감사가 refactor 의 <strong>입력</strong>을 만든다.</span></p>
+          </article>
+          <article class="userow" data-use="no">
+            <div class="verdict">금지</div>
+            <p>감사 결과를 <strong>적용</strong>하고 싶다.
+              <span class="alt-skill">대신 <code>harness:harness-refactor</code></span></p>
+          </article>
+          <article class="userow" data-use="no">
+            <div class="verdict">금지</div>
+            <p>컨텍스트 문서 한 개만 점검하고 싶다.
+              <span class="alt-skill">대신 <code>harness:ai-context check</code></span></p>
+          </article>
+          <article class="userow" data-use="no">
+            <div class="verdict">금지</div>
+            <p>저장소 디렉터리 구조만 본다.
+              <span class="alt-skill">대신 <code>packaging:structure-check</code></span></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== INVOCATION ===== -->
+    <section aria-labelledby="call-h">
+      <div class="wrap">
+        <p class="eyebrow">02 — Invocation</p>
+        <h2 id="call-h">호출 형식</h2>
+        <p class="lede">
+          인자는 없다. 첫 인자가 <code class="inline">-h</code> /
+          <code class="inline">--help</code> / <code class="inline">help</code> 이면
+          <code class="inline">references/help.md</code> 를 그대로 출력하고 중단한다.
+        </p>
+        <div class="codeblock" data-reveal>
+          <button class="copybtn" type="button" onclick="copyCode(this)" aria-label="명령 복사">복사</button>
+<pre id="cmd">/harness:harness-legacy-check
+/harness:harness-legacy-check -h</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SKILL STEPS ===== -->
+    <section aria-labelledby="steps-h">
+      <div class="wrap">
+        <p class="eyebrow">03 — Skill behaviour</p>
+        <h2 id="steps-h">스킬이 하는 일은 세 가지</h2>
+        <p class="lede">
+          스킬 자체는 호출과 완료 보고가 전부다. 실제 분석은 워크플로우 안의 에이전트들이 수행한다.
+        </p>
+        <div class="steps" data-reveal>
+          <article class="step">
+            <div class="step-num">1</div>
+            <div>
+              <h3>워크플로우 실행</h3>
+              <p><code>Workflow({ name: 'harness-legacy-check' })</code> 를 한 번 호출한다.</p>
+            </div>
+          </article>
+          <article class="step">
+            <div class="step-num">2</div>
+            <div>
+              <h3>리포트 저장</h3>
+              <p>완료되면 <code>.claude/reports/harness-legacy-check.md</code> 에 리포트가 저장된다 (덮어쓰기).</p>
+            </div>
+          </article>
+          <article class="step">
+            <div class="step-num">3</div>
+            <div>
+              <h3>완료 보고</h3>
+              <p><code>[OK] harness:harness-legacy-check — 완료</code> 와 리포트 경로, 다음 단계
+                <code>/harness:harness-refactor</code> 를 출력한다. 실패 시
+                <code>[FAIL] … — &lt;이유&gt;</code> 를 출력하고 즉시 중단한다.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 5-PHASE PIPELINE (focal point) ===== -->
+    <section aria-labelledby="pipe-h">
+      <div class="wrap">
+        <p class="eyebrow">04 — Workflow</p>
+        <h2 id="pipe-h">워크플로우 5-phase 파이프라인</h2>
+        <p class="lede">
+          무거운 일은 전부 여기서 일어난다. 수집 → 병렬 분석 → 계획 → 자기반박 → 리포트.
+        </p>
+        <p class="pipe-hint">각 phase 를 눌러 상세를 펼친다.</p>
+
+        <div class="pipeline" data-reveal>
+          <button class="phase" type="button" aria-pressed="false" aria-controls="d1" onclick="togglePhase(this,'d1')">
+            <span class="phase-idx"><b>1</b><span>phase</span></span>
+            <span>
+              <span class="phase-name">Inventory</span>
+              <span class="phase-tag">하네스 자산 수집</span>
+            </span>
+            <svg class="phase-chev" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 4 13 10 7 16"/></svg>
+          </button>
+          <div class="phase-detail" id="d1">
+            <p>CLAUDE.md, AGENTS.md, skills, workflows, settings, hooks, MCP — 하네스를 구성하는 자산을 빠짐없이 목록화한다. 이후 phase 는 전부 이 목록 위에서 돈다.</p>
+          </div>
+          <div class="connector" aria-hidden="true"><i></i></div>
+
+          <button class="phase" type="button" aria-pressed="false" aria-controls="d2" onclick="togglePhase(this,'d2')">
+            <span class="phase-idx"><b>2</b><span>phase</span></span>
+            <span>
+              <span class="phase-name">Parallel Analysis</span>
+              <span class="phase-tag">5개 specialist agent 병렬 실행</span>
+            </span>
+            <svg class="phase-chev" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 4 13 10 7 16"/></svg>
+          </button>
+          <div class="phase-detail" id="d2">
+            <p>다섯 개의 전문 에이전트가 동시에 붙어 각자 영역을 분석한다. 이 병렬 구간이 토큰 비용의 대부분을 차지한다.</p>
+          </div>
+          <div class="connector" aria-hidden="true"><i></i></div>
+
+          <button class="phase" type="button" aria-pressed="false" aria-controls="d3" onclick="togglePhase(this,'d3')">
+            <span class="phase-idx"><b>3</b><span>phase</span></span>
+            <span>
+              <span class="phase-name">Refactor Planner</span>
+              <span class="phase-tag">6개 라벨로 분류</span>
+            </span>
+            <svg class="phase-chev" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 4 13 10 7 16"/></svg>
+          </button>
+          <div class="phase-detail" id="d3">
+            <p>분석 결과를 항목별 처분으로 환산한다. 이 분류가 그대로 <code>harness:harness-refactor</code> 의 작업 목록이 된다.</p>
+            <div class="chips">
+              <span class="chip keep">KEEP</span>
+              <span class="chip">SHRINK</span>
+              <span class="chip">MOVE</span>
+              <span class="chip">SPLIT</span>
+              <span class="chip">CONVERT</span>
+              <span class="chip del">DELETE</span>
+            </div>
+          </div>
+          <div class="connector" aria-hidden="true"><i></i></div>
+
+          <button class="phase" type="button" aria-pressed="false" aria-controls="d4" onclick="togglePhase(this,'d4')">
+            <span class="phase-idx"><b>4</b><span>phase</span></span>
+            <span>
+              <span class="phase-name">Adversarial Review</span>
+              <span class="phase-tag">잘라내면 무엇이 깨지는지 반박</span>
+            </span>
+            <svg class="phase-chev" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 4 13 10 7 16"/></svg>
+          </button>
+          <div class="phase-detail" id="d4">
+            <p>계획을 그대로 통과시키지 않는다. 각 DELETE·SHRINK 제안에 대해 "이걸 잘라내면 무엇이 깨지는가"를 반대편에서 따진다. 과감한 감사와 안전한 결과를 동시에 얻기 위한 장치다.</p>
+          </div>
+          <div class="connector" aria-hidden="true"><i></i></div>
+
+          <button class="phase" type="button" aria-pressed="false" aria-controls="d5" onclick="togglePhase(this,'d5')">
+            <span class="phase-idx"><b>5</b><span>phase</span></span>
+            <span>
+              <span class="phase-name">Final Report</span>
+              <span class="phase-tag">유일한 산출물</span>
+            </span>
+            <svg class="phase-chev" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 4 13 10 7 16"/></svg>
+          </button>
+          <div class="phase-detail" id="d5">
+            <p>살아남은 findings 를 <code>.claude/reports/harness-legacy-check.md</code> 한 파일에 정리한다. 이 스킬이 저장소에 남기는 흔적은 이것뿐이다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CAUTIONS ===== -->
+    <section aria-labelledby="caution-h">
+      <div class="wrap">
+        <p class="eyebrow">05 — Constraints</p>
+        <h2 id="caution-h">주의사항 / 제약</h2>
+        <p class="lede">실행 전에 알고 있어야 할 네 가지.</p>
+        <div class="cautions" data-reveal>
+          <article class="card caution hard">
+            <h3>파일을 수정·삭제하지 않는다</h3>
+            <p>유일한 쓰기는 리포트 파일 생성이다. 감사 결과의 <strong>적용</strong>은 이 스킬의 일이 아니다.</p>
+          </article>
+          <article class="card caution">
+            <h3>리포트는 매 실행마다 덮어쓰기</h3>
+            <p>이전 리포트를 보존하려면 실행 <strong>전에</strong> 따로 복사해 두어야 한다.</p>
+          </article>
+          <article class="card caution">
+            <h3>Claude Code <code class="inline">Workflow</code> 도구 의존</h3>
+            <p>실행되지 않으면 <code>/config</code> 에서 <code>Dynamic workflows</code> 와
+              <code>Ultracode keyword trigger</code> 가 모두 <code>true</code> 인지 확인한다.
+              다른 하네스에서는 <code>references/*-tools.md</code> 의 대체 경로를 따른다.</p>
+          </article>
+          <article class="card caution">
+            <h3>토큰 비용이 작지 않다</h3>
+            <p>워크플로우가 다수의 에이전트를 띄운다. 가볍게 반복 호출할 스킬이 아니다.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAIRING ===== -->
+    <section aria-labelledby="pair-h">
+      <div class="wrap">
+        <p class="eyebrow">06 — Pairing</p>
+        <h2 id="pair-h">refactor 와 한 쌍</h2>
+        <p class="lede">저장된 리포트가 그대로 refactor 의 입력이 된다.</p>
+        <div class="pairing" data-reveal>
+          <div class="pcard this">
+            <b>harness:harness-legacy-check</b>
+            <span>읽기 전용 감사 · 리포트 산출</span>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="pcard next">
+            <b>harness:harness-refactor</b>
+            <span>리포트의 low-risk findings 적용</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <p>출처: <code>docs/skill-guides/harness-legacy-check.md</code> — harness-skills 저장소 스킬 가이드.</p>
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      if (dropdown) dropdown.classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+
+    // === Theme ===
+    var savedTheme = localStorage.getItem('viz-theme');
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      document.getElementById('themeIcon').innerHTML = t === 'dark' ? `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>` : `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+      document.getElementById('themeLabel').textContent = t === 'dark' ? 'Dark' : 'Light';
+      localStorage.setItem('viz-theme', t);
+      currentTheme = t;
+      if (typeof onThemeChange === 'function') onThemeChange();
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Number Counter ===
+    function animateCounters() {
+      document.querySelectorAll('[data-count]').forEach(function(el) {
+        if (el.dataset.counted) return;
+        el.dataset.counted = '1';
+        var target = parseFloat(el.dataset.count), prefix = el.dataset.prefix || '', suffix = el.dataset.suffix || '';
+        var start = performance.now(), duration = 1000;
+        (function tick(now) {
+          var p = Math.min((now - start) / duration, 1), eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = prefix + Math.round(target * eased).toLocaleString() + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        })(start);
+      });
+    }
+    var counterEl = document.querySelector('[data-count]');
+    if (counterEl) {
+      var cObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { animateCounters(); cObs.disconnect(); } });
+      }, { threshold: 0.3 });
+      cObs.observe(counterEl);
+    }
+
+    // === Interaction 1: 사용 / 사용 금지 필터 ===
+    function filterUse(mode, btn) {
+      document.querySelectorAll('.filterbar button').forEach(function(b) { b.setAttribute('aria-pressed', 'false'); });
+      if (btn) btn.setAttribute('aria-pressed', 'true');
+      document.querySelectorAll('#uselist .userow').forEach(function(row) {
+        row.hidden = (mode !== 'all' && row.dataset.use !== mode);
+      });
+    }
+
+    // === Interaction 2: phase 상세 펼침 ===
+    function togglePhase(btn, id) {
+      var panel = document.getElementById(id);
+      var isOpen = panel.classList.contains('open');
+      document.querySelectorAll('.phase-detail').forEach(function(p) { p.classList.remove('open'); });
+      document.querySelectorAll('.phase').forEach(function(p) { p.setAttribute('aria-pressed', 'false'); });
+      if (!isOpen) {
+        panel.classList.add('open');
+        btn.setAttribute('aria-pressed', 'true');
+      }
+    }
+
+    // === Interaction 3: 명령 복사 ===
+    function copyCode(btn) {
+      var text = document.getElementById('cmd').textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = '복사됨';
+        btn.classList.add('done');
+        setTimeout(function() { btn.textContent = '복사'; btn.classList.remove('done'); }, 1600);
+      }).catch(function(e) { console.error('copy failed:', e); });
+    }
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, { quality: 1, pixelRatio: 2, filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); } });
+        var a = document.createElement('a'); a.href = url;
+        a.download = document.title.replace(/\s+/g, '-').toLowerCase() + '.png'; a.click();
+      } catch(e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

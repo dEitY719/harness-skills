@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ai-context 사용 결과</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.09);
+      --text: #EDEDED; --text-secondary: #8b8b8b;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --positive-bg: rgba(16,185,129,0.13); --negative-bg: rgba(244,63,94,0.14);
+      --warning-bg: rgba(245,158,11,0.14); --neutral-bg: rgba(255,255,255,0.05);
+      --code-bg: #0f0f0f;
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #b45309;
+      --positive-bg: rgba(5,150,105,0.10); --negative-bg: rgba(225,29,72,0.10);
+      --warning-bg: rgba(180,83,9,0.11); --neutral-bg: rgba(15,23,42,0.05);
+      --code-bg: #f4f4f2;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em; font-feature-settings: 'cv11', 'ss01';
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+      font-size: 16px;
+    }
+    h1,h2,h3,h4,h5,h6 { color: var(--text); letter-spacing: -0.03em; line-height: 1.12; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.1rem, 6vw, 3.1rem); }
+    h2 { font-weight: 700; font-size: clamp(1.5rem, 4vw, 2.05rem); }
+    h3 { font-weight: 600; font-size: 1.5rem; }
+    body, p, li, td, th, span, label { font-weight: 400; }
+    p,li,td,th,span,label { color: var(--text); }
+    .text-secondary { color: var(--text-secondary); }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 16px rgba(0,0,0,0.08); }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    header.doc-head { padding: 72px 0 44px; border-bottom: 1px solid var(--border); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px;
+    }
+    .lede {
+      margin-top: 20px; font-size: 1.12rem; color: var(--text-secondary);
+      border-left: 3px solid var(--accent); padding-left: 16px; max-width: 62ch;
+    }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 7px 14px; font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .chip b { color: var(--text); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+
+    section { padding: 52px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    .sec-title { display: flex; align-items: baseline; gap: 14px; margin-bottom: 26px; }
+    .sec-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700;
+      color: var(--accent); background: var(--neutral-bg);
+      border: 1px solid var(--border); border-radius: 8px; padding: 3px 10px;
+      flex: none;
+    }
+
+    /* ===== FLOW STRIP ===== */
+    .flow {
+      display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px;
+      margin-top: 34px;
+    }
+    .flow-node {
+      flex: 1 1 220px; min-width: 200px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .flow-node .k { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; }
+    .flow-node .v { margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.98rem; font-weight: 600; word-break: break-word; }
+    .flow-node.is-cmd { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+    .flow-node.is-cmd .v { color: var(--accent); }
+    .flow-arrow {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); flex: none; padding: 0 2px; font-size: 1.3rem;
+    }
+
+    /* ===== CODE BLOCK ===== */
+    pre.code {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px; overflow-x: auto;
+      font-size: 0.9rem; line-height: 1.75; color: var(--text);
+    }
+    pre.code .cmt { color: var(--text-secondary); }
+    pre.code .hl { color: var(--accent); font-weight: 600; }
+
+    /* ===== STATS ===== */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 20px; }
+    .stat .num { font-size: 2.1rem; font-weight: 800; letter-spacing: -0.04em; font-family: 'JetBrains Mono', monospace; }
+    .stat .lbl { margin-top: 4px; font-size: 0.86rem; color: var(--text-secondary); }
+
+    /* ===== RESULTS TABLE (centerpiece) ===== */
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .filter-btn {
+      font-family: inherit; font-size: 0.84rem; font-weight: 600;
+      background: var(--surface); color: var(--text-secondary);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 7px 15px; cursor: pointer; transition: all 0.18s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .filter-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .filter-btn[aria-pressed="true"] { color: var(--text); border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
+    .filter-btn .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    .filter-btn .cnt { font-family: 'JetBrains Mono', monospace; opacity: 0.75; }
+    .dot-pass { background: var(--positive); } .dot-warn { background: var(--warning); }
+    .dot-fail { background: var(--negative); } .dot-na { background: var(--text-secondary); }
+    .filter-btn.f-pass[aria-pressed="true"] { color: var(--positive); }
+    .filter-btn.f-warn[aria-pressed="true"] { color: var(--warning); }
+    .filter-btn.f-fail[aria-pressed="true"] { color: var(--negative); }
+    .filter-btn.f-na[aria-pressed="true"]   { color: var(--text-secondary); }
+
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    table.results { width: 100%; border-collapse: collapse; min-width: 660px; }
+    table.results thead th {
+      text-align: left; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.11em;
+      text-transform: uppercase; color: var(--text-secondary);
+      padding: 14px 18px; border-bottom: 1px solid var(--border); white-space: nowrap;
+      background: var(--surface);
+    }
+    table.results tbody td { padding: 15px 18px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 0.95rem; }
+    table.results tbody tr:last-child td { border-bottom: none; }
+    table.results tbody tr { transition: background 0.15s; }
+    table.results tbody tr:hover { background: var(--surface-hover); }
+    table.results tbody tr[hidden] { display: none; }
+    td.c-id { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+    td.c-check { font-weight: 600; }
+    td.c-notes { color: var(--text-secondary); font-size: 0.9rem; }
+    td.c-notes code { background: var(--neutral-bg); border-radius: 4px; padding: 1px 5px; font-size: 0.85em; }
+    td.c-result { white-space: nowrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.79rem; font-weight: 700;
+      letter-spacing: 0.04em; padding: 5px 11px; border-radius: 6px; border: 1px solid transparent;
+    }
+    .badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+    .badge-pass { color: var(--positive); background: var(--positive-bg); border-color: var(--positive); }
+    .badge-warn { color: var(--warning); background: var(--warning-bg); border-color: var(--warning); }
+    .badge-fail { color: var(--negative); background: var(--negative-bg); border-color: var(--negative); }
+    .badge-na   { color: var(--text-secondary); background: var(--neutral-bg); border-color: var(--border); }
+    tr.row-fail td.c-id { color: var(--negative); }
+    tr.row-fail { box-shadow: inset 3px 0 0 var(--negative); }
+    tr.row-warn { box-shadow: inset 3px 0 0 var(--warning); }
+    tr.row-pass { box-shadow: inset 3px 0 0 var(--positive); }
+    tr.row-na   { box-shadow: inset 3px 0 0 var(--border); }
+
+    /* ===== VERDICT ===== */
+    .verdict {
+      margin-top: 26px; border: 1px solid var(--negative); border-radius: 12px;
+      background: var(--negative-bg); padding: 26px 28px;
+      display: flex; flex-wrap: wrap; gap: 24px; align-items: center;
+    }
+    .verdict .v-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 800;
+      color: var(--negative); border: 2px solid var(--negative); border-radius: 8px;
+      padding: 8px 16px; background: var(--surface); flex: none;
+    }
+    .verdict .v-score { font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.04em; }
+    .verdict .v-score small { font-size: 1rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0; }
+    .verdict .v-text { flex: 1 1 260px; min-width: 240px; }
+    .bar { height: 10px; border-radius: 999px; background: var(--neutral-bg); overflow: hidden; display: flex; margin-top: 12px; }
+    .bar span { display: block; height: 100%; }
+    .bar .s-pass { background: var(--positive); }
+    .bar .s-warn { background: var(--warning); }
+    .bar .s-fail { background: var(--negative); }
+
+    .callout {
+      margin-top: 16px; border: 1px solid var(--border); border-left: 3px solid var(--warning);
+      border-radius: 8px; background: var(--surface); padding: 16px 20px; font-size: 0.94rem;
+    }
+    .callout.next { border-left-color: var(--accent); }
+    .callout .ct { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 5px; }
+
+    .readonly-note {
+      display: flex; gap: 14px; align-items: center;
+      border: 1px dashed var(--border); border-radius: 12px;
+      padding: 18px 22px; background: var(--surface); margin-top: 8px;
+    }
+    .readonly-note .ic { font-size: 1.4rem; flex: none; }
+
+    footer.doc-foot { padding: 40px 0 64px; color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; }
+    .animate.delay-2 { animation-delay: 0.2s; }
+    .animate.delay-3 { animation-delay: 0.3s; }
+    .animate.delay-4 { animation-delay: 0.4s; }
+    .animate.delay-5 { animation-delay: 0.5s; }
+    .animate.delay-6 { animation-delay: 0.6s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu { display: none !important; }
+      .reveal { display: revert; opacity: 1 !important; transform: none !important; }
+      .card, .table-scroll { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      table.results tbody tr[hidden] { display: table-row !important; }
+      section { break-inside: avoid; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 200px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+
+    .skip-to-content {
+      position: absolute; top: -40px; left: 6px; background: var(--accent);
+      color: white; padding: 8px 12px; text-decoration: none;
+      border-radius: 4px; opacity: 0; pointer-events: none;
+      transition: all 0.2s; z-index: 10000;
+    }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+
+    @media (max-width: 640px) {
+      .wrap { padding: 0 16px; }
+      header.doc-head { padding: 56px 0 34px; }
+      .verdict { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">본문으로 건너뛰기</a>
+
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown">
+      <button onclick="cycleTheme()" aria-label="테마 전환"><span id="themeIcon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span><span id="themeLabel">Dark</span></button>
+      <button onclick="downloadImage()" aria-label="PNG 다운로드"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span><span>Download PNG</span></button>
+      <button onclick="window.print()" aria-label="인쇄 또는 PDF 저장"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span>Print / PDF</span></button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+
+    <!-- ===== HEADER ===== -->
+    <header class="doc-head">
+      <div class="wrap">
+        <div class="eyebrow animate"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg> harness · skill output</div>
+        <h1 class="animate delay-1">ai-context 사용 결과</h1>
+        <p class="lede animate delay-2">
+          <b>한 줄 요약</b> — 컨텍스트 문서 한 개(<code>CLAUDE.md</code>)를 받아
+          core + 어댑터 체크 감사 리포트를 생성합니다.
+        </p>
+
+        <div class="meta-row animate delay-3">
+          <span class="chip">File <b>CLAUDE.md</b></span>
+          <span class="chip">Kind <b>claude</b></span>
+          <span class="chip">Baseline <b>2026-05-11</b></span>
+          <span class="chip">Mode <b>read-only</b></span>
+        </div>
+
+        <div class="flow animate delay-4" role="group" aria-label="실행 흐름">
+          <div class="flow-node">
+            <div class="k">입력</div>
+            <div class="v">CLAUDE.md</div>
+          </div>
+          <div class="flow-arrow" aria-hidden="true">▶</div>
+          <div class="flow-node is-cmd">
+            <div class="k">실행</div>
+            <div class="v">/harness:ai-context check</div>
+          </div>
+          <div class="flow-arrow" aria-hidden="true">▶</div>
+          <div class="flow-node">
+            <div class="k">출력</div>
+            <div class="v">감사 리포트 (읽기 전용)</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== 1. 실행한 명령 ===== -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="sec-title"><span class="sec-num">01</span><h2>실행한 명령</h2></div>
+        <pre class="code"><code>/harness:ai-context [check|create|refactor] [path]      <span class="cmt"># 범용 형식</span>
+<span class="hl">/harness:ai-context check CLAUDE.md</span>                     <span class="cmt"># 이번에 실행한 명령</span></code></pre>
+      </div>
+    </section>
+
+    <!-- ===== 2. 입력 ===== -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="sec-title"><span class="sec-num">02</span><h2>입력</h2></div>
+        <p><code>CLAUDE.md</code> — 이 저장소의 기여자 가이드라인 겸 AI 컨텍스트 문서.</p>
+        <p class="text-secondary"><code>AGENTS.md</code> 는 이 파일을 가리키는 심볼릭 링크이고, <code>GEMINI.md</code> 는 별도 파일로 함께 존재한다.</p>
+
+        <div class="stats">
+          <article class="card stat">
+            <div class="num" data-count="106" data-suffix="">0</div>
+            <div class="lbl">CLAUDE.md 줄 수</div>
+          </article>
+          <article class="card stat">
+            <div class="num" data-count="5297" data-suffix=" B">0</div>
+            <div class="lbl">CLAUDE.md 크기</div>
+          </article>
+          <article class="card stat">
+            <div class="num" data-count="3116" data-suffix=" B">0</div>
+            <div class="lbl">GEMINI.md 크기</div>
+          </article>
+          <article class="card stat">
+            <div class="num"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+            <div class="lbl">AGENTS.md — CLAUDE.md 심볼릭 링크</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3. 결과 ===== -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="sec-title"><span class="sec-num">03</span><h2>결과</h2></div>
+
+        <div class="legend" role="group" aria-label="결과 상태로 표 필터링">
+          <button class="filter-btn f-all" data-filter="ALL" aria-pressed="true" onclick="setFilter(this)">전체 <span class="cnt">11</span></button>
+          <button class="filter-btn f-pass" data-filter="PASS" aria-pressed="false" onclick="setFilter(this)"><span class="dot dot-pass"></span>PASS <span class="cnt">6</span></button>
+          <button class="filter-btn f-warn" data-filter="WARN" aria-pressed="false" onclick="setFilter(this)"><span class="dot dot-warn"></span>WARN <span class="cnt">2</span></button>
+          <button class="filter-btn f-fail" data-filter="FAIL" aria-pressed="false" onclick="setFilter(this)"><span class="dot dot-fail"></span>FAIL <span class="cnt">1</span></button>
+          <button class="filter-btn f-na" data-filter="N/A" aria-pressed="false" onclick="setFilter(this)"><span class="dot dot-na"></span>N/A <span class="cnt">2</span></button>
+        </div>
+
+        <div class="table-scroll">
+          <table class="results" id="resultsTable" aria-label="ai-context check 결과 표">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Check</th>
+                <th scope="col">Result</th>
+                <th scope="col">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-pass" data-status="PASS">
+                <td class="c-id">C1</td>
+                <td class="c-check">Role / Purpose</td>
+                <td class="c-result"><span class="badge badge-pass">PASS</span></td>
+                <td class="c-notes">L3-5 "This file is the AI context document"</td>
+              </tr>
+              <tr class="row-fail" data-status="FAIL">
+                <td class="c-id">C2</td>
+                <td class="c-check">Operational Commands</td>
+                <td class="c-result"><span class="badge badge-fail">FAIL</span></td>
+                <td class="c-notes">명령 섹션 없음 — 유일한 코드블록(L35-45)은 트리</td>
+              </tr>
+              <tr class="row-warn" data-status="WARN">
+                <td class="c-id">C3</td>
+                <td class="c-check">Loading &amp; Scope Model</td>
+                <td class="c-result"><span class="badge badge-warn">WARN</span></td>
+                <td class="c-notes">독자는 명시, 로드 시점은 미기재</td>
+              </tr>
+              <tr class="row-pass" data-status="PASS">
+                <td class="c-id">C4</td>
+                <td class="c-check">Modular References</td>
+                <td class="c-result"><span class="badge badge-pass">PASS</span></td>
+                <td class="c-notes"><code>references/README.md</code> 로 라우팅, 인라인 11줄</td>
+              </tr>
+              <tr class="row-pass" data-status="PASS">
+                <td class="c-id">C5</td>
+                <td class="c-check">Naming Conventions</td>
+                <td class="c-result"><span class="badge badge-pass">PASS</span></td>
+                <td class="c-notes">L76-79 "Skill directory name is the identity"</td>
+              </tr>
+              <tr class="row-pass" data-status="PASS">
+                <td class="c-id">C6</td>
+                <td class="c-check">Constraints / Rules</td>
+                <td class="c-result"><span class="badge badge-pass">PASS</span></td>
+                <td class="c-notes">L74-93 Rules, L104 No emojis</td>
+              </tr>
+              <tr class="row-pass" data-status="PASS">
+                <td class="c-id">C7</td>
+                <td class="c-check">Size / Context Budget</td>
+                <td class="c-result"><span class="badge badge-pass">PASS</span></td>
+                <td class="c-notes">106 lines — 400 한도 내</td>
+              </tr>
+              <tr class="row-pass" data-status="PASS">
+                <td class="c-id">A-CL1</td>
+                <td class="c-check">Reference-by-path</td>
+                <td class="c-result"><span class="badge badge-pass">PASS</span></td>
+                <td class="c-notes">매니페스트 7개를 경로로 참조</td>
+              </tr>
+              <tr class="row-warn" data-status="WARN">
+                <td class="c-id">A-CL2</td>
+                <td class="c-check">Permission Control</td>
+                <td class="c-result"><span class="badge badge-warn">WARN</span></td>
+                <td class="c-notes">2단계는 있으나 외부 부작용 규칙 없음</td>
+              </tr>
+              <tr class="row-na" data-status="N/A">
+                <td class="c-id">A-CL3</td>
+                <td class="c-check">Thin Orchestrator</td>
+                <td class="c-result"><span class="badge badge-na">N/A</span></td>
+                <td class="c-notes">오케스트레이터 문서가 아님</td>
+              </tr>
+              <tr class="row-na" data-status="N/A">
+                <td class="c-id">A-CL4</td>
+                <td class="c-check">Local + rules layout</td>
+                <td class="c-result"><span class="badge badge-na">N/A</span></td>
+                <td class="c-notes"><code>.claude/</code> 트리와 <code>CLAUDE.local.md</code> 없음</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-secondary" id="filterStatus" style="margin-top:10px;font-size:0.85rem;" aria-live="polite">11개 항목 모두 표시 중</p>
+
+        <div class="verdict" role="status" aria-label="최종 판정: FAIL, 9개 중 6개 통과, 경고 2건">
+          <div class="v-tag">Verdict · [FAIL]</div>
+          <div class="v-text">
+            <div class="v-score">6<small> / 9 passed</small></div>
+            <div class="text-secondary" style="font-size:0.92rem;">2 warnings · N/A 2건은 채점 제외</div>
+            <div class="bar" aria-hidden="true">
+              <span class="s-pass" style="width:66.7%"></span>
+              <span class="s-warn" style="width:22.2%"></span>
+              <span class="s-fail" style="width:11.1%"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <span class="ct">WARN (Step 2)</span>
+          <code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>GEMINI.md</code> 3개 발견 — 최우선 파일만 감사
+        </div>
+
+        <div class="callout next">
+          <span class="ct">Next</span>
+          <b>C2</b> 를 먼저 고치고 <code>harness:ai-context check</code> 재실행
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 안전 계약 ===== -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="readonly-note">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <p>파일은 하나도 변경되지 않았다 — <code>check</code> 는 감사 전용이다.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="doc-foot">
+      <div class="wrap">
+        harness · ai-context 스킬 실행 기록 1건 · 표의 판정은 원본 리포트 그대로다.
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      if (dropdown) dropdown.classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+
+    // === Theme ===
+    var savedTheme = localStorage.getItem('viz-theme');
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      document.getElementById('themeIcon').innerHTML = t === 'dark' ? `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>` : `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+      document.getElementById('themeLabel').textContent = t === 'dark' ? 'Dark' : 'Light';
+      localStorage.setItem('viz-theme', t);
+      currentTheme = t;
+      if (typeof onThemeChange === 'function') onThemeChange();
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Table filter (meaningful interaction) ===
+    var activeFilter = 'ALL';
+    function setFilter(btn) {
+      activeFilter = btn.getAttribute('data-filter');
+      document.querySelectorAll('.filter-btn').forEach(function(b) {
+        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+      });
+      var shown = 0;
+      document.querySelectorAll('#resultsTable tbody tr').forEach(function(tr) {
+        var match = (activeFilter === 'ALL' || tr.getAttribute('data-status') === activeFilter);
+        tr.hidden = !match;
+        if (match) shown++;
+      });
+      var msg = document.getElementById('filterStatus');
+      if (msg) msg.textContent = activeFilter === 'ALL'
+        ? shown + '개 항목 모두 표시 중'
+        : activeFilter + ' 항목 ' + shown + '개 표시 중 (전체 11개)';
+    }
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Number Counters ===
+    function animateCounters() {
+      document.querySelectorAll('[data-count]').forEach(function(el) {
+        if (el.dataset.counted) return;
+        el.dataset.counted = '1';
+        var target = parseFloat(el.dataset.count), prefix = el.dataset.prefix || '', suffix = el.dataset.suffix || '';
+        var start = performance.now(), duration = 1200;
+        (function tick(now) {
+          var p = Math.min((now - start) / duration, 1), eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = prefix + Math.round(target * eased).toLocaleString() + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        })(start);
+      });
+    }
+    var counterEl = document.querySelector('[data-count]');
+    if (counterEl) {
+      var cObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { animateCounters(); cObs.disconnect(); } });
+      }, { threshold: 0.3 });
+      cObs.observe(counterEl);
+    }
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, { quality: 1, pixelRatio: 2, filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); } });
+        var a = document.createElement('a'); a.href = url;
+        a.download = 'ai-context-usage.png'; a.click();
+      } catch(e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

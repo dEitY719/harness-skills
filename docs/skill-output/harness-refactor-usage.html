@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>harness-refactor 사용 결과</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8A8A8A;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0F0F0F; --rule: rgba(255,255,255,0.06);
+      --grid: rgba(255,255,255,0.035);
+      --halo: rgba(245,158,11,0.14);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #b45309;
+      --code-bg: #F4F4F2; --rule: rgba(0,0,0,0.07);
+      --grid: rgba(0,0,0,0.035);
+      --halo: rgba(180,83,9,0.10);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.7; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em; font-feature-settings: 'cv11', 'ss01';
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+      background-image:
+        radial-gradient(ellipse 900px 520px at 78% -6%, var(--halo), transparent 70%),
+        radial-gradient(var(--grid) 1px, transparent 1px);
+      background-size: auto, 22px 22px;
+      background-attachment: fixed, fixed;
+    }
+    h1,h2,h3,h4,h5,h6 { color: var(--text); letter-spacing: -0.03em; line-height: 1.18; text-wrap: balance; }
+    h1 { font-weight: 700; }
+    h2 { font-weight: 600; }
+    body, p, li, td, th, span, label { font-weight: 400; }
+    p,li,td,th,span,label { color: var(--text); }
+    .text-secondary { color: var(--text-secondary); }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 16px rgba(0,0,0,0.08); }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes dashPulse { to { stroke-dashoffset: -24; } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; }
+    .animate.delay-2 { animation-delay: 0.2s; }
+    .animate.delay-3 { animation-delay: 0.3s; }
+    .animate.delay-4 { animation-delay: 0.4s; }
+    .animate.delay-5 { animation-delay: 0.5s; }
+    .animate.delay-6 { animation-delay: 0.6s; }
+
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; background-image: none !important; }
+      .viz-menu { display: none !important; }
+      .reveal { display: revert; opacity: 1 !important; transform: none !important; }
+      .card, .step-row, .flow { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .copy-btn { display: none !important; }
+      details ::details-content { block-size: auto !important; opacity: 1 !important; }
+    }
+    @page { margin: 1in; @bottom-center { content: "Page " counter(page); font-size: 9pt; color: #666; } }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 200px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+
+    /* ===== SKIP TO CONTENT ===== */
+    .skip-to-content {
+      position: absolute; top: -40px; left: 6px; background: var(--accent);
+      color: white; padding: 8px 12px; text-decoration: none;
+      border-radius: 4px; opacity: 0; pointer-events: none;
+      transition: all 0.2s; z-index: 10000;
+    }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+
+    /* ===== DETAILS ===== */
+    details { overflow: hidden; }
+    details summary { cursor: pointer; list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    ::details-content { transition: block-size 0.3s ease, opacity 0.3s ease; block-size: 0; opacity: 0; overflow: hidden; }
+    details[open]::details-content { block-size: auto; opacity: 1; }
+
+    [popover] {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: var(--text);
+    }
+    [popover]::backdrop { background: rgba(0,0,0,0.3); }
+
+    /* ===== DOCUMENT LAYOUT ===== */
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px 96px; }
+
+    header.doc-head { padding: 72px 0 40px; border-bottom: 1px solid var(--rule); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-secondary);
+      margin-bottom: 18px;
+    }
+    .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warning); }
+    h1 { font-size: 3.25rem; margin-bottom: 18px; }
+    .lede { font-size: 1.125rem; color: var(--text-secondary); max-width: 62ch; line-height: 1.75; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.8125rem; font-weight: 500;
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-secondary);
+    }
+    .badge.warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
+    .badge.ok { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 40%, transparent); }
+
+    section { padding-top: 56px; }
+    .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; }
+    .sec-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem; font-weight: 600;
+      color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 6px; padding: 2px 8px; flex: none;
+    }
+    h2 { font-size: 2rem; }
+    h3 { font-size: 1.5rem; font-weight: 600; }
+    section > p { max-width: 68ch; }
+    section > p + p { margin-top: 14px; }
+
+    /* ===== STAT STRIP ===== */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 34px; }
+    .stat .num { font-size: 2.75rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1.05; }
+    .stat .num.warn { color: var(--warning); }
+    .stat .num.neutral { color: var(--text); }
+    .stat .label { font-size: 0.875rem; color: var(--text-secondary); margin-top: 8px; }
+
+    /* ===== FLOW ===== */
+    .flow {
+      margin-top: 30px; padding: 30px 24px;
+      border: 1px solid var(--border); border-radius: 14px;
+      background: var(--surface);
+      display: flex; align-items: stretch; gap: 0; flex-wrap: wrap;
+    }
+    .flow-node { flex: 1 1 200px; min-width: 200px; padding: 4px 10px; }
+    .flow-node .kicker { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-secondary); }
+    .flow-node .body { font-size: 0.9375rem; margin-top: 8px; word-break: break-word; }
+    .flow-node .body code { font-size: 0.8125rem; }
+    .flow-node.blocked .body { color: var(--text-secondary); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--warning) 70%, transparent); text-decoration-thickness: 1.5px; }
+    .flow-arrow { flex: 0 0 56px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+    .flow-arrow svg { display: block; }
+    .flow-arrow.stop { color: var(--warning); }
+    .flow-arrow.stop .dashline { stroke-dasharray: 5 7; animation: dashPulse 1.4s linear infinite; }
+
+    /* ===== LOOKUP STEPS ===== */
+    .steps { margin-top: 26px; display: flex; flex-direction: column; gap: 0; }
+    .step-row {
+      display: grid; grid-template-columns: 46px 1fr auto; gap: 18px; align-items: center;
+      padding: 20px 22px; border: 1px solid var(--border); background: var(--surface);
+      transition: box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .step-row:first-child { border-radius: 12px 12px 0 0; }
+    .step-row:last-child { border-radius: 0 0 12px 12px; }
+    .step-row + .step-row { border-top: none; }
+    .step-row:hover { background: var(--surface-hover); }
+    .step-row.final { border-color: color-mix(in srgb, var(--warning) 42%, var(--border)); background: color-mix(in srgb, var(--warning) 7%, var(--surface)); }
+    .step-n {
+      width: 46px; height: 46px; border-radius: 10px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1rem;
+      border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg);
+    }
+    .step-row.final .step-n { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
+    .step-what { font-size: 1rem; }
+    .step-what .sub { display: block; font-size: 0.8125rem; color: var(--text-secondary); margin-top: 4px; }
+    .step-result { font-size: 0.875rem; font-weight: 600; white-space: nowrap; color: var(--text-secondary); }
+    .step-row.final .step-result { color: var(--warning); }
+
+    /* ===== CODE ===== */
+    .codeblock { position: relative; margin-top: 22px; }
+    .codeblock pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 56px 20px 20px;
+      overflow-x: auto; font-size: 0.875rem; line-height: 1.85;
+      color: var(--text); white-space: pre;
+    }
+    .codeblock .cmt { color: var(--text-secondary); }
+    .copy-btn {
+      position: absolute; top: 10px; right: 10px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-secondary); border-radius: 8px;
+      padding: 6px 10px; font-size: 0.75rem; font-family: inherit;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .copy-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .copy-btn.done { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 45%, transparent); }
+
+    /* ===== CALLOUT ===== */
+    .callout {
+      margin-top: 26px; padding: 22px 24px;
+      border: 1px solid var(--border); border-left: 3px solid var(--warning);
+      border-radius: 4px 12px 12px 4px; background: var(--surface);
+    }
+    .callout.good { border-left-color: var(--positive); }
+    .callout .ct { font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 9px; }
+    .callout p { color: var(--text-secondary); max-width: 66ch; }
+    .guard-msg {
+      margin-top: 18px; padding: 16px 18px; border-radius: 10px;
+      background: var(--code-bg); border: 1px dashed color-mix(in srgb, var(--warning) 45%, var(--border));
+      font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; line-height: 1.7;
+      color: var(--warning);
+    }
+
+    /* ===== NOT-HAPPENED LIST ===== */
+    .nots { list-style: none; margin-top: 22px; display: grid; gap: 12px; }
+    .nots li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px;
+      background: var(--surface); font-size: 0.9375rem;
+    }
+    .nots .mark { flex: none; color: var(--text-secondary); font-size: 0.9375rem; line-height: 1.7; }
+    .nots code { font-size: 0.8125rem; background: var(--code-bg); padding: 2px 6px; border-radius: 5px; }
+
+    /* ===== RECOVERY ===== */
+    .recovery { margin-top: 26px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
+    .recovery summary {
+      padding: 20px 22px; font-weight: 600; font-size: 1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      transition: background 0.15s;
+    }
+    .recovery summary:hover { background: var(--surface-hover); }
+    .recovery summary .chev { transition: transform 0.3s ease; color: var(--text-secondary); flex: none; }
+    .recovery[open] summary .chev { transform: rotate(90deg); }
+    .recovery .rbody { padding: 0 22px 24px; border-top: 1px solid var(--rule); }
+    .recovery ol { margin: 20px 0 0 20px; display: grid; gap: 14px; }
+    .recovery li { padding-left: 4px; }
+    .recovery li code { font-size: 0.8125rem; background: var(--code-bg); padding: 2px 7px; border-radius: 5px; border: 1px solid var(--border); }
+
+    footer.doc-foot {
+      margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--rule);
+      font-size: 0.8125rem; color: var(--text-secondary);
+      display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between;
+    }
+
+    @media (max-width: 720px) {
+      .wrap { padding: 0 18px 72px; }
+      header.doc-head { padding-top: 56px; }
+      h1 { font-size: 2.25rem; }
+      h2 { font-size: 1.75rem; }
+      .flow { flex-direction: column; gap: 6px; }
+      .flow-arrow { flex: none; height: 40px; transform: rotate(90deg); }
+      .step-row { grid-template-columns: 40px 1fr; row-gap: 10px; }
+      .step-n { width: 40px; height: 40px; }
+      .step-result { grid-column: 2; text-align: left; white-space: normal; }
+      .stat .num { font-size: 2.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">본문으로 건너뛰기</a>
+
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" aria-label="테마 전환"><span id="themeIcon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span><span id="themeLabel">Dark</span></button>
+      <button onclick="downloadImage()" aria-label="PNG 내려받기"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span><span>Download PNG</span></button>
+      <button onclick="window.print()" aria-label="인쇄 또는 PDF 저장"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span>Print / PDF</span></button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+    <div class="wrap">
+
+      <header class="doc-head animate">
+        <div class="eyebrow"><span class="dot"></span>스킬 실행 기록 · harness plugin</div>
+        <h1>harness-refactor 사용 결과</h1>
+        <p class="lede">
+          감사 리포트를 입력으로 받아 low-risk 개선 워크플로우와 실제 하네스 변경을 생성하는 스킬이다.
+          이번 실행에서는 입력 리포트가 없었고, 스킬은 설계된 가드에 걸려 Step&nbsp;1 에서 스스로 멈췄다.
+        </p>
+        <div class="meta-row">
+          <span class="badge warn">가드 발동 · Step 1 중단</span>
+          <span class="badge ok">파일 변경 0건</span>
+          <span class="badge">설계된 동작 · 오류 아님</span>
+        </div>
+      </header>
+
+      <!-- STATS -->
+      <section aria-label="실행 요약 지표">
+        <div class="stats">
+          <article class="card stat animate delay-1">
+            <div class="num neutral" data-count="3">3</div>
+            <div class="label">입력 탐색 순서 (Step 1)</div>
+          </article>
+          <article class="card stat animate delay-2">
+            <div class="num warn" data-count="1" data-prefix="Step ">Step 1</div>
+            <div class="label">중단 지점</div>
+          </article>
+          <article class="card stat animate delay-3">
+            <div class="num neutral" data-count="0">0</div>
+            <div class="label">변경된 하네스 파일</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 0. FLOW -->
+      <section data-reveal aria-labelledby="h-flow">
+        <div class="sec-head">
+          <span class="sec-num">FLOW</span>
+          <h2 id="h-flow">설계된 흐름과 이번 실행</h2>
+        </div>
+        <p class="text-secondary">
+          정상 경로에서는 감사 리포트가 스킬로 들어가고, 워크플로우 파일과 하네스 변경이 나온다.
+          이번 실행은 첫 화살표부터 성립하지 않았다.
+        </p>
+        <div class="flow">
+          <div class="flow-node">
+            <div class="kicker">입력</div>
+            <div class="body"><code>.claude/reports/harness-legacy-check.md</code></div>
+            <div class="body text-secondary" style="font-size:0.8125rem;">— 존재하지 않음</div>
+          </div>
+          <div class="flow-arrow stop" aria-hidden="true">
+            <svg width="44" height="26" viewBox="0 0 44 26" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path class="dashline" d="M2 13 H30" stroke-linecap="round"/>
+              <path d="M33 5 L33 21" stroke-linecap="round" stroke-width="2.4"/>
+              <path d="M39 5 L39 21" stroke-linecap="round" stroke-width="2.4"/>
+            </svg>
+          </div>
+          <div class="flow-node">
+            <div class="kicker">스킬</div>
+            <div class="body"><code>/harness:harness-refactor</code></div>
+            <div class="body text-secondary" style="font-size:0.8125rem;">— Step 1 에서 정지</div>
+          </div>
+          <div class="flow-arrow" aria-hidden="true">
+            <svg width="44" height="26" viewBox="0 0 44 26" fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.45">
+              <path d="M2 13 H36" stroke-linecap="round" stroke-dasharray="4 6"/>
+              <path d="M30 7 L37 13 L30 19" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="flow-node blocked">
+            <div class="kicker">산출물</div>
+            <div class="body"><code>claude/workflows/harness-refactor.js</code> + 하네스 파일 변경</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 1. COMMAND -->
+      <section data-reveal aria-labelledby="h-cmd">
+        <div class="sec-head">
+          <span class="sec-num">01</span>
+          <h2 id="h-cmd">실행한 명령</h2>
+        </div>
+        <p class="text-secondary">인자를 받지 않는 범용 형식이다. 이번에도 인자 없이 그대로 실행했다.</p>
+        <div class="codeblock">
+          <pre id="code-cmd">/harness:harness-refactor        <span class="cmt"># 범용 형식 — 인자 없음</span>
+/harness:harness-refactor        <span class="cmt"># 이번에 실행한 명령</span></pre>
+          <button class="copy-btn" onclick="copyCode('code-cmd', this)" aria-label="명령 복사">복사</button>
+        </div>
+      </section>
+
+      <!-- 2. INPUT -->
+      <section data-reveal aria-labelledby="h-input">
+        <div class="sec-head">
+          <span class="sec-num">02</span>
+          <h2 id="h-input">입력 — 세 순서의 탐색</h2>
+        </div>
+        <p class="text-secondary">
+          Step 1 은 감사 리포트를 세 순서로 찾는다. 아래는 이번 실행에서 실제로 관측한 상태다.
+        </p>
+        <div class="steps" role="list">
+          <div class="step-row" role="listitem">
+            <div class="step-n">1</div>
+            <div class="step-what">
+              <code>.claude/reports/harness-legacy-check.md</code>
+              <span class="sub">디스크에 저장된 감사 리포트 파일</span>
+            </div>
+            <div class="step-result">없음 · <span class="mono">No such file or directory</span></div>
+          </div>
+          <div class="step-row" role="listitem">
+            <div class="step-n">2</div>
+            <div class="step-what">
+              현재 세션의 harness-legacy-check 출력
+              <span class="sub">세션 안에서 방금 만들어진 리포트가 있는지</span>
+            </div>
+            <div class="step-result">없음 · help 경로만 실행됨</div>
+          </div>
+          <div class="step-row final" role="listitem">
+            <div class="step-n">3</div>
+            <div class="step-what">
+              둘 다 없음
+              <span class="sub">진행에 필요한 입력이 확보되지 않음</span>
+            </div>
+            <div class="step-result">가드 발동 → 중단</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. RESULT -->
+      <section data-reveal aria-labelledby="h-result">
+        <div class="sec-head">
+          <span class="sec-num">03</span>
+          <h2 id="h-result">결과</h2>
+        </div>
+        <p>
+          입력이 없으므로 스킬은 Step 2 이후로 진행하지 않고 Step 1 에서 멈췄다.
+          사용자에게는 다음 안내가 그대로 출력됐다.
+        </p>
+        <div class="guard-msg">harness-legacy-check 결과가 없습니다. 먼저 /harness-legacy-check 를 실행해 주세요.</div>
+
+        <h3 style="margin-top:34px; font-size:1.125rem;">일어나지 않은 일</h3>
+        <ul class="nots">
+          <li><span class="mark" aria-hidden="true">—</span><span><code>claude/workflows/harness-refactor.js</code> 는 생성되지 않았다.</span></li>
+          <li><span class="mark" aria-hidden="true">—</span><span>하네스 파일은 어느 것도 변경되지 않았다.</span></li>
+          <li><span class="mark" aria-hidden="true">—</span><span>Step 2 이후의 어떤 단계도 실행되지 않았다.</span></li>
+        </ul>
+
+        <div class="callout good">
+          <div class="ct"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>이것은 오류가 아니라 설계된 가드 경로다</div>
+          <p>
+            감사 없이 하네스를 고치는 일을 막기 위한 장치다. 근거가 되는 리포트가 없는 상태에서
+            멈춘 것은 스킬이 자신의 안전 계약을 지킨 결과이며, 관측된 그대로가 정상 동작이다.
+          </p>
+        </div>
+      </section>
+
+      <!-- 4. RECOVERY -->
+      <section data-reveal aria-labelledby="h-recovery">
+        <div class="sec-head">
+          <span class="sec-num">04</span>
+          <h2 id="h-recovery">정상 경로로 가려면</h2>
+        </div>
+        <details class="recovery">
+          <summary>
+            <span>리포트를 만든 뒤 다시 실행하는 두 단계</span>
+            <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3 L11 8 L6 13"/></svg>
+          </summary>
+          <div class="rbody">
+            <ol>
+              <li><code>/harness:harness-legacy-check</code> 로 감사 리포트를 만든다 — 읽기 전용 감사이며 <code>.claude/reports/harness-legacy-check.md</code> 를 남긴다.</li>
+              <li><code>/harness:harness-refactor</code> 를 다시 실행한다 — Step 1 이 리포트를 찾아내면 이후 단계가 이어진다.</li>
+            </ol>
+            <div class="codeblock">
+              <pre id="code-recovery">/harness:harness-legacy-check    <span class="cmt"># 1) 감사 리포트 생성</span>
+/harness:harness-refactor        <span class="cmt"># 2) 다시 실행 — 이번엔 입력이 있다</span></pre>
+              <button class="copy-btn" onclick="copyCode('code-recovery', this)" aria-label="복구 명령 복사">복사</button>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <footer class="doc-foot">
+        <span>harness plugin · harness-refactor 실행 기록</span>
+        <span>입력 없음 → Step 1 가드 중단 · 파일 변경 0건</span>
+      </footer>
+
+    </div>
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var toggle = document.querySelector('.viz-menu-toggle');
+      if (dropdown) {
+        dropdown.classList.toggle('open');
+        if (toggle) toggle.setAttribute('aria-expanded', dropdown.classList.contains('open') ? 'true' : 'false');
+      }
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        var toggle = document.querySelector('.viz-menu-toggle');
+        if (dropdown) dropdown.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        var toggle = document.querySelector('.viz-menu-toggle');
+        if (dropdown) dropdown.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // === Theme ===
+    var savedTheme = localStorage.getItem('viz-theme');
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      document.getElementById('themeIcon').innerHTML = t === 'dark' ? `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>` : `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+      document.getElementById('themeLabel').textContent = t === 'dark' ? 'Dark' : 'Light';
+      localStorage.setItem('viz-theme', t);
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Copy to clipboard (meaningful interaction) ===
+    function copyCode(id, btn) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var text = el.innerText.replace(/[ \t]+#[^\n]*/g, '').split('\n').map(function(l) { return l.trim(); }).filter(Boolean).join('\n');
+      var done = function() {
+        var prev = btn.textContent;
+        btn.textContent = '복사됨';
+        btn.classList.add('done');
+        setTimeout(function() { btn.textContent = prev; btn.classList.remove('done'); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function() { fallbackCopy(text, done); });
+      } else {
+        fallbackCopy(text, done);
+      }
+    }
+    function fallbackCopy(text, cb) {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); cb(); } catch (e) { console.error(e); }
+      document.body.removeChild(ta);
+    }
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Number Counter ===
+    function animateCounters() {
+      document.querySelectorAll('[data-count]').forEach(function(el) {
+        if (el.dataset.counted) return;
+        el.dataset.counted = '1';
+        var target = parseFloat(el.dataset.count), prefix = el.dataset.prefix || '', suffix = el.dataset.suffix || '';
+        var start = performance.now(), duration = 1100;
+        (function tick(now) {
+          var p = Math.min((now - start) / duration, 1), eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = prefix + Math.round(target * eased).toLocaleString() + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        })(start);
+      });
+    }
+    var counterEl = document.querySelector('[data-count]');
+    if (counterEl) {
+      var cObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { animateCounters(); cObs.disconnect(); } });
+      }, { threshold: 0.3 });
+      cObs.observe(counterEl);
+    }
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, { quality: 1, pixelRatio: 2, filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); } });
+        var a = document.createElement('a'); a.href = url;
+        a.download = document.title.replace(/\s+/g, '-').toLowerCase() + '.png'; a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

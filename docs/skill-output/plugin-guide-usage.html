@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>plugin-guide 사용 결과 — packaging@packaging-skills</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8b8b8b;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0F1115; --dot: rgba(255,255,255,0.06);
+      --tint: rgba(59,130,246,0.10);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #d97706;
+      --code-bg: #F1F5F9; --dot: rgba(0,0,0,0.07);
+      --tint: rgba(37,99,235,0.07);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+      background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+      background-size: 22px 22px;
+      background-attachment: fixed;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.14; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: 3rem; }
+    h2 { font-weight: 700; font-size: 2rem; }
+    h3 { font-weight: 600; font-size: 1.5rem; }
+    body, p, li, td, th, span, label { font-weight: 400; font-size: 1rem; }
+    .text-secondary { color: var(--text-secondary); }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px 96px; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 16px rgba(0,0,0,0.08); }
+
+    /* ===== HEADER ===== */
+    .hero { padding: 88px 0 20px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--accent);
+      background: var(--tint); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .hero h1 { margin-bottom: 20px; }
+    .hero .lede {
+      font-size: 1.1875rem; color: var(--text-secondary); max-width: 62ch;
+      border-left: 3px solid var(--accent); padding-left: 18px;
+    }
+    .meta-row {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px;
+    }
+    .chip {
+      font-size: 0.8125rem; color: var(--text-secondary);
+      border: 1px solid var(--border); background: var(--surface);
+      border-radius: 8px; padding: 6px 12px;
+    }
+    .chip b { color: var(--text); font-weight: 600; }
+
+    /* ===== PIPELINE ===== */
+    .pipeline {
+      display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap;
+      margin-top: 40px;
+    }
+    .pipe-node {
+      flex: 1 1 260px; min-width: 260px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 22px;
+    }
+    .pipe-node.is-core { border-color: var(--accent); background: var(--tint); }
+    .pipe-node .k {
+      font-size: 0.75rem; letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; display: block;
+    }
+    .pipe-node .v { font-size: 1.0625rem; font-weight: 600; word-break: break-all; }
+    .pipe-node .s { font-size: 0.875rem; color: var(--text-secondary); margin-top: 6px; }
+    .pipe-arrow {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); flex: 0 0 28px;
+    }
+    @media (max-width: 900px) { .pipe-arrow { transform: rotate(90deg); height: 28px; } }
+
+    /* ===== SECTIONS ===== */
+    section { margin-top: 72px; scroll-margin-top: 24px; }
+    .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 28px; }
+    .sec-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 700;
+      color: var(--accent); background: var(--tint);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 5px 10px; flex: 0 0 auto;
+    }
+    .sec-sub { color: var(--text-secondary); font-size: 0.9375rem; margin-top: 6px; }
+
+    /* ===== STATS ===== */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat { text-align: left; }
+    .stat .num {
+      font-size: 2.75rem; font-weight: 800; letter-spacing: -0.045em;
+      line-height: 1; display: block; margin-bottom: 10px;
+    }
+    .stat .num.acc { color: var(--accent); }
+    .stat .lbl { font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; }
+    .stat .unit { font-size: 1.125rem; font-weight: 600; color: var(--text-secondary); margin-left: 4px; }
+
+    /* ===== CODE ===== */
+    .code-block { position: relative; margin: 0; }
+    .code-block pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 20px; overflow-x: auto;
+      font-size: 0.875rem; line-height: 1.8; color: var(--text);
+    }
+    .code-block .cmt { color: var(--text-secondary); }
+    .code-block .ok { color: var(--positive); font-weight: 700; }
+    .code-block .hl { color: var(--accent); font-weight: 600; }
+    .copy-btn {
+      position: absolute; top: 10px; right: 10px;
+      background: var(--surface); color: var(--text-secondary);
+      border: 1px solid var(--border); border-radius: 7px;
+      font-family: inherit; font-size: 0.75rem; font-weight: 600;
+      padding: 6px 10px; cursor: pointer; transition: all 0.15s; opacity: 0.75;
+    }
+    .copy-btn:hover { opacity: 1; color: var(--text); background: var(--surface-hover); }
+    .copy-btn.done { color: var(--positive); border-color: var(--positive); opacity: 1; }
+
+    /* ===== FILE GRID ===== */
+    .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 18px; }
+    .file {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.875rem;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+      word-break: break-all;
+    }
+    .file:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .file svg { flex: 0 0 auto; color: var(--accent); }
+
+    /* ===== TABLE ===== */
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    table { border-collapse: collapse; width: 100%; min-width: 560px; }
+    th, td { text-align: left; padding: 16px 18px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; }
+    tr:last-child td { border-bottom: none; }
+    td.path { font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem; color: var(--text-secondary); word-break: break-all; }
+    td.path b { color: var(--text); font-weight: 600; }
+    .badge {
+      display: inline-block; font-size: 0.8125rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--tint); color: var(--accent); border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .badge.pos { background: transparent; color: var(--positive); border-color: var(--positive); }
+
+    /* ===== DETAILS ===== */
+    details {
+      overflow: hidden; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 12px;
+    }
+    details summary {
+      cursor: pointer; list-style: none; padding: 18px 22px;
+      display: flex; align-items: center; gap: 12px;
+      font-weight: 600; font-size: 1.0625rem;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary .idx {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem;
+      color: var(--accent); background: var(--tint);
+      border-radius: 6px; padding: 3px 8px; font-weight: 700;
+    }
+    details summary .caret { margin-left: auto; color: var(--text-secondary); transition: transform 0.25s; }
+    details[open] summary .caret { transform: rotate(180deg); }
+    .details-body { padding: 0 22px 20px; color: var(--text-secondary); }
+    ::details-content { transition: block-size 0.3s ease, opacity 0.3s ease; block-size: 0; opacity: 0; overflow: hidden; }
+    details[open]::details-content { block-size: auto; opacity: 1; }
+
+    .note {
+      border-left: 3px solid var(--warning); background: var(--surface);
+      border-radius: 0 10px 10px 0; padding: 16px 20px; margin-top: 18px;
+      color: var(--text-secondary); font-size: 0.9375rem;
+    }
+    .note b { color: var(--text); }
+
+    footer.foot { margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 0.875rem; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; }
+    .animate.delay-2 { animation-delay: 0.2s; }
+    .animate.delay-3 { animation-delay: 0.3s; }
+    .animate.delay-4 { animation-delay: 0.4s; }
+    .animate.delay-5 { animation-delay: 0.5s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; background-image: none; }
+      .viz-menu, .copy-btn { display: none !important; }
+      .reveal { display: revert; opacity: 1 !important; transform: none !important; }
+      .card, .file, .table-scroll, details { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      details ::details-content { block-size: auto !important; opacity: 1 !important; }
+      section { margin-top: 36px; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; @bottom-center { content: "Page " counter(page); font-size: 9pt; color: #666; } }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 200px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+
+    .skip-to-content {
+      position: absolute; top: -40px; left: 6px; background: var(--accent);
+      color: white; padding: 8px 12px; text-decoration: none;
+      border-radius: 4px; opacity: 0; pointer-events: none;
+      transition: all 0.2s; z-index: 10000;
+    }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 2.25rem; }
+      h2 { font-size: 1.625rem; }
+      h3 { font-size: 1.25rem; }
+      .hero { padding-top: 64px; }
+      .stat .num { font-size: 2.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">Skip to content</a>
+
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" aria-label="테마 전환"><span id="themeIcon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span><span id="themeLabel">Dark</span></button>
+      <button onclick="downloadImage()" aria-label="PNG 다운로드"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span><span>Download PNG</span></button>
+      <button onclick="window.print()" aria-label="인쇄 또는 PDF 저장"><span><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span>Print / PDF</span></button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+    <div class="wrap">
+
+      <!-- HERO -->
+      <header class="hero">
+        <span class="eyebrow animate"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Skill Run Report</span>
+        <h1 class="animate delay-1">plugin-guide 사용 결과</h1>
+        <p class="lede animate delay-2">
+          설치된 플러그인의 캐시된 SKILL.md 들을 받아 한국어 가이드 문서 한 개와
+          인덱스 한 줄을 생성합니다.
+        </p>
+        <div class="meta-row animate delay-3">
+          <span class="chip">대상 <b>packaging@packaging-skills</b></span>
+          <span class="chip">마켓플레이스 <b>dEitY719/packaging-skills</b> (github)</span>
+          <span class="chip">버전 디렉터리 <b>0.1.0</b></span>
+          <span class="chip">커밋 <b>하지 않음</b></span>
+        </div>
+
+        <!-- PIPELINE -->
+        <div class="pipeline animate delay-4" role="img" aria-label="파이프라인: 캐시된 SKILL.md 4개를 harness:plugin-guide 가 읽어 packaging.md 와 인덱스 1줄을 생성한다">
+          <div class="pipe-node">
+            <span class="k">Input</span>
+            <span class="v">캐시된 SKILL.md × 4</span>
+            <span class="s">installed_plugins.json 정확 일치 매칭</span>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+          <div class="pipe-node is-core">
+            <span class="k">Skill</span>
+            <span class="v">/harness:plugin-guide</span>
+            <span class="s">템플릿 3절로 한국어 문서 작성</span>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+          <div class="pipe-node">
+            <span class="k">Output</span>
+            <span class="v">packaging.md + 인덱스 갱신</span>
+            <span class="s">51줄 / 2,708 bytes · 인덱스 1줄</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- STATS -->
+      <section aria-labelledby="stats-h" data-reveal>
+        <h2 id="stats-h" style="position:absolute;left:-9999px;">실행 결과 요약 수치</h2>
+        <div class="stats">
+          <article class="card stat">
+            <span class="num acc" data-count="4">4</span>
+            <span class="lbl">발견한 SKILL.md</span>
+          </article>
+          <article class="card stat">
+            <span class="num"><span data-count="51">51</span><span class="unit">줄</span></span>
+            <span class="lbl">생성된 packaging.md 분량</span>
+          </article>
+          <article class="card stat">
+            <span class="num"><span data-count="2708">2,708</span><span class="unit">bytes</span></span>
+            <span class="lbl">생성된 packaging.md 크기</span>
+          </article>
+          <article class="card stat">
+            <span class="num"><span data-count="1">1</span><span class="unit">줄</span></span>
+            <span class="lbl">인덱스 README.md 삽입</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- 1. COMMAND -->
+      <section aria-labelledby="h-cmd" data-reveal>
+        <div class="sec-head">
+          <span class="sec-num">01</span>
+          <div>
+            <h2 id="h-cmd">실행한 명령</h2>
+            <p class="sec-sub">범용 형식과, 이번 실행에 실제로 사용한 인자</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <button class="copy-btn" type="button" onclick="copyCode(this)" aria-label="명령 복사">Copy</button>
+          <pre id="cmd-1"><code>/harness:plugin-guide &lt;plugin&gt;[@&lt;marketplace&gt;] [--force]   <span class="cmt"># 범용 형식</span>
+<span class="hl">/harness:plugin-guide packaging@packaging-skills</span>           <span class="cmt"># 이번에 실행한 명령</span></code></pre>
+        </div>
+      </section>
+
+      <!-- 2. INPUT -->
+      <section aria-labelledby="h-in" data-reveal>
+        <div class="sec-head">
+          <span class="sec-num">02</span>
+          <div>
+            <h2 id="h-in">입력</h2>
+            <p class="sec-sub">플러그인 해석부터 SKILL.md 수집까지</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Step 2 · 플러그인 매칭</h3>
+          <p class="text-secondary" style="margin-top:10px;">
+            <code>installed_plugins.json</code> 을 <b>정확 일치</b>로 매칭해
+            <code>packaging@packaging-skills</code> <b>1건</b>을 확인했다.
+          </p>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h3>Step 3 · SKILL.md 탐색</h3>
+          <p class="text-secondary" style="margin:10px 0 16px;">
+            <code>find ... -maxdepth 4 -iname SKILL.md</code> 가 버전 디렉터리
+            <code>0.1.0</code> 아래에서 <b>SKILL.md 4개</b>를 찾았다.
+          </p>
+          <div class="files">
+            <div class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>skills/create/SKILL.md</div>
+            <div class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>skills/structure-check/SKILL.md</div>
+            <div class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>skills/rename-repo/SKILL.md</div>
+            <div class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>skills/structure-refactor/SKILL.md</div>
+          </div>
+          <div class="note">
+            마켓플레이스 소스는 <b>dEitY719/packaging-skills</b> (github).
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. RESULT -->
+      <section aria-labelledby="h-out" data-reveal>
+        <div class="sec-head">
+          <span class="sec-num">03</span>
+          <div>
+            <h2 id="h-out">결과</h2>
+            <p class="sec-sub">Step 4 멱등 스킵 검사에서 대상 파일이 없어 생성으로 진행</p>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <caption style="position:absolute;left:-9999px;">산출물 경로와 결과</caption>
+            <thead>
+              <tr><th scope="col">산출물</th><th scope="col">경로</th><th scope="col">결과</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge">가이드</span></td>
+                <td class="path">…/scratchpad/plugin-guide-run/docs/guide/plugins/<b>packaging.md</b></td>
+                <td><b>51줄</b> / <b>2,708 bytes</b></td>
+              </tr>
+              <tr>
+                <td><span class="badge">인덱스</span></td>
+                <td class="path">…/scratchpad/plugin-guide-run/docs/guide/plugins/<b>README.md</b></td>
+                <td><code>## Index</code> 안에 <b>1줄 삽입</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          출력 루트는 dotfiles 저장소 대신 <b>이번 실행용 샌드박스</b>를 썼다.
+          전체 경로 접두사는
+          <code style="word-break:break-all;">/tmp/claude-1000/-home-bwyoon-para-project-skills-harness-skills-feat-1/2b41ddbe-5bd8-4644-9057-9695525651e0/</code>
+        </div>
+      </section>
+
+      <!-- 4. GENERATED DOC -->
+      <section aria-labelledby="h-doc" data-reveal>
+        <div class="sec-head">
+          <span class="sec-num">04</span>
+          <div>
+            <h2 id="h-doc">생성된 문서 구성</h2>
+            <p class="sec-sub">템플릿대로 3절 — 항목을 눌러 펼쳐 보세요</p>
+          </div>
+        </div>
+
+        <details name="doc" open>
+          <summary><span class="idx">1</span>설치 방법
+            <svg class="caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="details-body">
+            마켓플레이스 <code>dEitY719/packaging-skills</code> 기준의 설치 절차 절.
+          </div>
+        </details>
+
+        <details name="doc">
+          <summary><span class="idx">2</span>스킬 설명 — 표 4행
+            <svg class="caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="details-body">
+            스킬 설명 표는 4행이다.
+            <div class="files" style="margin-top:14px;">
+              <div class="file">create</div>
+              <div class="file">structure-check</div>
+              <div class="file">structure-refactor</div>
+              <div class="file">rename-repo</div>
+            </div>
+          </div>
+        </details>
+
+        <details name="doc">
+          <summary><span class="idx">3</span>사용법 예제
+            <svg class="caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="details-body">
+            각 스킬의 호출 예시를 담는 마지막 절.
+          </div>
+        </details>
+      </section>
+
+      <!-- 5. CONSOLE -->
+      <section aria-labelledby="h-log" data-reveal>
+        <div class="sec-head">
+          <span class="sec-num">05</span>
+          <div>
+            <h2 id="h-log">실행 로그</h2>
+            <p class="sec-sub">스킬이 마지막에 출력한 요약</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <button class="copy-btn" type="button" onclick="copyCode(this)" aria-label="로그 복사">Copy</button>
+          <pre id="cmd-2"><code><span class="ok">[OK]</span> harness:plugin-guide — packaging@packaging-skills
+  스킬 <span class="hl">4개</span>  |  생성: <span class="hl">packaging.md</span>  |  인덱스: <span class="hl">1줄</span> 추가
+  다음: 문서 검토 후 수동 커밋 (이 스킬은 커밋하지 않는다)</code></pre>
+        </div>
+      </section>
+
+      <footer class="foot">
+        출처 · <code>docs/skill-output/plugin-guide-usage.md</code> — 실제 1회 실행 기록.
+        모든 수치(SKILL.md 4개, 51줄 / 2,708 bytes, 인덱스 1줄)는 측정값이다.
+      </footer>
+
+    </div>
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      if (dropdown) dropdown.classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+
+    // === Theme ===
+    var savedTheme = localStorage.getItem('viz-theme');
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      document.getElementById('themeIcon').innerHTML = t === 'dark' ? `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>` : `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+      document.getElementById('themeLabel').textContent = t === 'dark' ? 'Dark' : 'Light';
+      localStorage.setItem('viz-theme', t);
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Copy code (meaningful interaction) ===
+    function copyCode(btn) {
+      var pre = btn.parentElement.querySelector('pre');
+      if (!pre) return;
+      var text = pre.innerText;
+      var done = function() {
+        btn.textContent = 'Copied';
+        btn.classList.add('done');
+        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopy(text, done); });
+      } else {
+        fallbackCopy(text, done);
+      }
+    }
+    function fallbackCopy(text, cb) {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); cb(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Number Counters ===
+    function animateCounters() {
+      document.querySelectorAll('[data-count]').forEach(function(el) {
+        if (el.dataset.counted) return;
+        el.dataset.counted = '1';
+        var target = parseFloat(el.dataset.count), prefix = el.dataset.prefix || '', suffix = el.dataset.suffix || '';
+        var start = performance.now(), duration = 1200;
+        (function tick(now) {
+          var p = Math.min((now - start) / duration, 1), eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = prefix + Math.round(target * eased).toLocaleString() + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        })(start);
+      });
+    }
+    var counterEl = document.querySelector('[data-count]');
+    if (counterEl) {
+      var cObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { animateCounters(); cObs.disconnect(); } });
+      }, { threshold: 0.3 });
+      cObs.observe(counterEl);
+    }
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, { quality: 1, pixelRatio: 2, filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); } });
+        var a = document.createElement('a'); a.href = url;
+        a.download = 'plugin-guide-usage.png'; a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>
