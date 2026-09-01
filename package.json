@@ -1,0 +1,21 @@
+{
+  "name": "harness-skills",
+  "version": "0.1.0",
+  "description": "Skills for auditing, refactoring, and documenting an AI coding harness",
+  "type": "module",
+  "main": ".opencode/plugins/harness.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dEitY719/harness-skills.git"
+  },
+  "keywords": [
+    "skills",
+    "plugin",
+    "marketplace",
+    "harness",
+    "agents-md",
+    "claude-md",
+    "audit"
+  ]
+}

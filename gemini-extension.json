@@ -1,0 +1,6 @@
+{
+  "name": "harness",
+  "description": "Audit, refactor, and document your AI coding harness",
+  "version": "0.1.0",
+  "contextFileName": "GEMINI.md"
+}

@@ -1,0 +1,21 @@
+name: validate
+
+# This repo eats its own dog food: it owns the reusable workflow (dotfiles
+# #1410 D-10) and validates itself through the same call the other fourteen
+# *-skills repos make. A local `./` reference means a change to skill-check.yml
+# is proven here, on its own PR, before any sibling repo picks it up.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: ./.github/workflows/skill-check.yml
+    with:
+      plugin-name: harness

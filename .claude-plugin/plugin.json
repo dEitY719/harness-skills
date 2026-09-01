@@ -1,0 +1,21 @@
+{
+  "name": "harness",
+  "description": "Manage the AI coding harness itself: check and author CLAUDE.md/AGENTS.md/GEMINI.md context docs, audit and refactor harness config, dissect built-in skills, and document installed plugins",
+  "version": "0.1.0",
+  "author": {
+    "name": "dEitY719",
+    "url": "https://github.com/dEitY719"
+  },
+  "homepage": "https://github.com/dEitY719/harness-skills",
+  "repository": "https://github.com/dEitY719/harness-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "plugin",
+    "marketplace",
+    "harness",
+    "agents-md",
+    "claude-md",
+    "audit"
+  ]
+}

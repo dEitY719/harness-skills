@@ -1,0 +1,34 @@
+{
+  "name": "harness",
+  "version": "0.1.0",
+  "description": "Audit, refactor, and document your AI coding harness: context docs, harness config, built-in skills, installed plugins.",
+  "author": {
+    "name": "dEitY719",
+    "url": "https://github.com/dEitY719"
+  },
+  "homepage": "https://github.com/dEitY719/harness-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "plugin",
+    "marketplace",
+    "harness",
+    "agents-md",
+    "claude-md",
+    "audit"
+  ],
+  "skills": "./skills/",
+  "skillInstructions": "Kimi Code tool mapping for the harness skills.\n\nThe authoritative mapping lives in this repo at `references/kimi-tools.md` — read it when a skill names a tool you do not recognise. It is the single source of truth for every repo in the `dEitY719/*-skills` family; do not copy it elsewhere. Summary:\n\n- \"Ask the user\" -> `AskUserQuestion`. Every destructive step (`harness:harness-refactor` execution, `harness:ai-context refactor`, `--force` overwrite) must confirm through it first.\n- `TodoWrite` -> Kimi Code's `TodoList` tool.\n- \"Dispatch a subagent\" -> `Agent` with `subagent_type: \"coder\"` (implementation) or `\"explore\"` (read-only). Never pass `general-purpose`.\n- Read / Write / Edit / Bash / Grep / Glob keep their exposed Kimi names. Search contents with `Grep`; match paths with `Glob`.\n- Kimi Code has no `Workflow` tool. `harness:harness-legacy-check` and `harness:harness-refactor` must run their steps inline or fan them out with `Agent` instead of calling a workflow runtime.\n- `harness:harness-legacy-check` is read-only: never call `Write`, `Edit`, or a mutating `Bash` command from it.",
+  "interface": {
+    "displayName": "Harness",
+    "shortDescription": "Audit, refactor, and document your AI coding harness",
+    "longDescription": "Harness bundles the five skills that keep an AI coding harness healthy: ai-context, harness-legacy-check, harness-refactor, dissect-builtin, and plugin-guide.",
+    "developerName": "dEitY719",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/dEitY719/harness-skills"
+  }
+}

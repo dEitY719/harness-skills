@@ -1,0 +1,42 @@
+{
+  "name": "harness",
+  "version": "0.1.0",
+  "description": "Manage the AI coding harness itself: check and author CLAUDE.md/AGENTS.md/GEMINI.md context docs, audit and refactor harness config, dissect built-in skills, and document installed plugins.",
+  "author": {
+    "name": "dEitY719",
+    "url": "https://github.com/dEitY719"
+  },
+  "homepage": "https://github.com/dEitY719/harness-skills",
+  "repository": "https://github.com/dEitY719/harness-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "plugin",
+    "marketplace",
+    "harness",
+    "agents-md",
+    "claude-md",
+    "audit"
+  ],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "Harness",
+    "shortDescription": "Audit, refactor, and document your AI coding harness",
+    "longDescription": "Harness bundles the five skills used to keep an AI coding harness healthy: ai-context checks or authors CLAUDE.md / AGENTS.md / GEMINI.md, harness-legacy-check audits the whole harness read-only, harness-refactor applies that audit's low-risk findings, dissect-builtin documents a built-in skill, and plugin-guide documents an installed plugin. This repo also owns the shared per-harness tool-mapping references that the sibling skill repos depend on.",
+    "developerName": "dEitY719",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Audit my AI coding harness.",
+      "Check my AGENTS.md."
+    ],
+    "websiteURL": "https://github.com/dEitY719/harness-skills",
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}
