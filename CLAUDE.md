@@ -1,8 +1,16 @@
 # harness-skills — Contributor Guidelines
 
-This file is the AI context document for this repo. `AGENTS.md` is a symlink to
-it, so Claude Code, Codex, Gemini CLI, and every other harness read the same
-text. Edit `CLAUDE.md`; never replace the symlink with a second copy.
+This file is the AI context document for this repo. Edit `CLAUDE.md`; never
+replace the symlink with a second copy.
+
+**When it loads, and who reads it.** Claude Code loads `CLAUDE.md` automatically
+at session start as project memory — it is always in context, not fetched on
+demand. `AGENTS.md` is a symlink to this same file, so Codex and the other
+AGENTS.md-reading harnesses auto-discover it at the repo root and get identical
+text, with no second copy to drift. Gemini CLI is the exception:
+`gemini-extension.json` sets `"contextFileName": "GEMINI.md"`, and that file is a
+separate, shorter skill index rather than a symlink. There are no nested
+`AGENTS.md` files, so nothing overrides this one for a subtree.
 
 ## What this repo is
 
@@ -25,6 +33,35 @@ The skills were extracted from `dEitY719/dotfiles` (`claude/skills/devx-*`) as a
 snapshot — see the first commit for the source SHA. The dotfiles copies remain
 in place for now; they are removed in a later phase of that repo's migration
 plan.
+
+## Verifying a change locally
+
+`validate.yml` calls the shared `skill-check` workflow, so CI is the real gate.
+These four commands run its main assertions first, and all four are read-only.
+
+```bash
+# Every JSON manifest parses
+git ls-files '*.json' | xargs -r -n1 jq empty
+
+# The seven manifests agree on one version (prints exactly one line)
+git ls-files '*.json' '*.yaml' \
+  | xargs -r grep -hoE '"?version"?: *"?[0-9]+\.[0-9]+\.[0-9]+' \
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u
+
+# Every SKILL.md stays under the 100-line progressive-disclosure limit
+wc -l skills/*/SKILL.md | sort -rn
+
+# No emoji in tracked text, over the same codepoint range CI rejects
+git ls-files -z | xargs -0 grep -lP '[\x{1F000}-\x{10FFFF}\x{FE0F}]' \
+  || echo "ok  no emojis"
+```
+
+Then run the gate itself and watch it:
+
+```bash
+gh workflow run validate --ref "$(git branch --show-current)"
+gh run watch
+```
 
 ## Layout: root manifests, one flat `skills/`
 
