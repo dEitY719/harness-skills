@@ -1,4 +1,5 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "harness-skills",
   "description": "AI coding harness management skills — audit context docs, audit and refactor the harness, dissect built-ins, document plugins",
   "owner": {
@@ -11,6 +12,7 @@
       "description": "Manage the AI coding harness itself: check and author CLAUDE.md/AGENTS.md/GEMINI.md context docs, audit and refactor harness config, dissect built-in skills, and document installed plugins",
       "version": "0.1.0",
       "source": "./",
+      "homepage": "https://github.com/dEitY719/harness-skills",
       "author": {
         "name": "dEitY719",
         "url": "https://github.com/dEitY719"
