@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>harness-legacy-check — 스킬 설명서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based only) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8b8b8b;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0F0F0F; --grid: rgba(255,255,255,0.03);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #d97706;
+      --code-bg: #F4F4F5; --grid: rgba(0,0,0,0.03);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.15; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.4rem, 6vw, 3.6rem); }
+    h2 { font-weight: 700; font-size: clamp(1.7rem, 3.6vw, 2.1rem); }
+    h3 { font-weight: 650; font-size: 1.5rem; }
+    h4 { font-weight: 600; font-size: 1.05rem; }
+    p, li, td, th, span, label { font-weight: 400; font-size: 1rem; }
+    .text-secondary { color: var(--text-secondary); }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+    code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 0.86em; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; overflow-x: auto; font-size: 0.9rem; line-height: 1.75; }
+    pre code { background: none; border: none; padding: 0; font-size: inherit; }
+    a { color: var(--accent); }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: none; }
+    .eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+
+    /* ===== CARD ===== */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: box-shadow 0.2s ease; }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 20px rgba(0,0,0,0.10); }
+    .grid { display: grid; gap: 18px; }
+    @media (min-width: 760px) { .grid-2 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+
+    /* ===== HERO ===== */
+    header.hero {
+      padding: 88px 0 60px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 70%),
+        repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 32px),
+        repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 32px);
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; font-size: 0.78rem; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); }
+    .badge svg { flex: none; }
+    .badge.ro { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 40%, var(--border)); }
+    .lede { font-size: clamp(1.05rem, 2.2vw, 1.22rem); color: var(--text-secondary); max-width: 62ch; margin-top: 20px; line-height: 1.7; }
+    .lede strong { color: var(--text); font-weight: 650; }
+
+    /* ===== PIPELINE ===== */
+    .pipe { display: grid; gap: 14px; align-items: stretch; margin-top: 8px; }
+    @media (min-width: 900px) { .pipe { grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; } }
+    .pipe-node { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .pipe-node.self { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+    .pipe-node .k { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; }
+    .pipe-node .v { font-weight: 650; margin-top: 6px; font-size: 1.02rem; }
+    .pipe-node .d { color: var(--text-secondary); font-size: 0.9rem; margin-top: 6px; }
+    .pipe-arrow { display: flex; align-items: center; justify-content: center; color: var(--accent); }
+    .pipe-arrow svg { width: 34px; height: 34px; }
+    @media (max-width: 899px) { .pipe-arrow svg { transform: rotate(90deg); } }
+
+    /* ===== BOUNDARY LIST ===== */
+    ul.clean { list-style: none; display: grid; gap: 12px; }
+    ul.clean li { display: flex; gap: 11px; align-items: flex-start; color: var(--text-secondary); line-height: 1.6; }
+    ul.clean li strong { color: var(--text); font-weight: 600; }
+    .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: 9px; background: var(--accent); }
+    .dot.no { background: var(--warning); }
+
+    /* ===== TABLE ===== */
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; background: var(--surface); }
+    th, td { text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    thead th { font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; background: var(--surface-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* ===== STEPS ===== */
+    .step { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; }
+    .step + .step { margin-top: 18px; }
+    .step-num { width: 40px; height: 40px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border)); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 750; font-size: 1rem; }
+
+    /* ===== ACCORDION ===== */
+    details.note { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    details.note + details.note { margin-top: 12px; }
+    details.note summary { cursor: pointer; list-style: none; padding: 18px 22px; display: flex; align-items: center; gap: 12px; font-weight: 650; transition: background 0.15s; }
+    details.note summary::-webkit-details-marker { display: none; }
+    details.note summary:hover { background: var(--surface-hover); }
+    .chev { flex: none; margin-left: auto; color: var(--text-secondary); transition: transform 0.25s ease; }
+    details.note[open] .chev { transform: rotate(90deg); }
+    .note-body { padding: 0 22px 20px; color: var(--text-secondary); line-height: 1.72; }
+    .note-body strong { color: var(--text); font-weight: 600; }
+    .tag { flex: none; width: 8px; height: 22px; border-radius: 3px; background: var(--accent); }
+    .tag.warn { background: var(--warning); }
+    .tag.ok { background: var(--positive); }
+    ::details-content { transition: block-size 0.3s ease, opacity 0.3s ease; block-size: 0; opacity: 0; overflow: hidden; }
+    details[open]::details-content { block-size: auto; opacity: 1; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.08s; }
+    .animate.delay-2 { animation-delay: 0.16s; }
+    .animate.delay-3 { animation-delay: 0.24s; }
+    .animate.delay-4 { animation-delay: 0.32s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .reveal { opacity: 1; transform: none; } }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      header.hero { background: none; padding-top: 0; }
+      .card, .pipe-node, details.note { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      details.note ::details-content, details.note[open] ::details-content { block-size: auto !important; opacity: 1 !important; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle { width: 44px; height: 44px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(12px); transition: all 0.2s; }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown { position: absolute; top: 52px; right: 0; min-width: 210px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; opacity: 0; visibility: hidden; transform: translateY(-8px); transition: all 0.2s; backdrop-filter: blur(16px); box-shadow: 0 12px 30px rgba(0,0,0,0.18); }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button { width: 100%; padding: 10px 14px; border: none; border-radius: 8px; background: transparent; color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown button svg { flex: none; color: var(--text-secondary); }
+
+    .skip-to-content { position: absolute; top: -60px; left: 6px; background: var(--accent); color: #fff; padding: 8px 14px; text-decoration: none; border-radius: 6px; z-index: 10000; transition: top 0.2s; }
+    .skip-to-content:focus { top: 6px; }
+
+    footer.foot { border-top: 1px solid var(--border); padding: 30px 0 60px; color: var(--text-secondary); font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">본문으로 건너뛰기</a>
+
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" role="menuitem" aria-label="테마 전환">
+        <span id="themeIcon" aria-hidden="true"></span><span id="themeLabel">Dark</span>
+      </button>
+      <button onclick="downloadImage()" role="menuitem" aria-label="PNG 내려받기">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8"/><path d="M4.5 7.5 8 11l3.5-3.5"/><path d="M2.5 13h11"/></svg>
+        <span>Download PNG</span>
+      </button>
+      <button onclick="window.print()" role="menuitem" aria-label="인쇄 또는 PDF 저장">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6V2.5h7V6"/><rect x="2.5" y="6" width="11" height="5" rx="1.2"/><path d="M4.5 9.5h7v4h-7z"/></svg>
+        <span>Print / PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+
+    <header class="hero">
+      <div class="wrap">
+        <div class="badge-row animate">
+          <span class="badge ro">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S3.9 3.5 8 3.5 14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></svg>
+            읽기 전용 감사
+          </span>
+          <span class="badge">plugin: harness</span>
+          <span class="badge">model tier: haiku</span>
+          <span class="badge">Workflow 도구 필요</span>
+        </div>
+        <h1 class="animate delay-1">harness-legacy-check</h1>
+        <p class="lede animate delay-2">
+          AI 코딩 하네스 전체(CLAUDE.md, AGENTS.md, skills, workflows, settings, hooks, MCP)를
+          <strong>읽기 전용으로 감사</strong>해 <code>.claude/reports/harness-legacy-check.md</code> 에
+          <strong>감사 리포트 1개</strong>를 저장한다. 어떤 파일도 고치거나 지우지 않는다.
+        </p>
+        <pre class="animate delay-3" style="margin-top:28px;"><code>/harness:harness-legacy-check</code></pre>
+      </div>
+    </header>
+
+    <section data-reveal>
+      <div class="wrap">
+        <p class="eyebrow">파이프라인</p>
+        <h2>리포트가 두 스킬을 잇는 인터페이스다</h2>
+        <p class="text-secondary" style="margin:12px 0 26px; max-width:66ch;">
+          이 스킬은 감사만 하고 멈춘다. 사람이 리포트를 먼저 읽고 무엇을 적용할지 판단한 뒤에야
+          하네스에 쓰기가 일어나도록 하기 위한 의도된 분리선이다.
+        </p>
+        <div class="pipe">
+          <div class="pipe-node">
+            <div class="k">입력</div>
+            <div class="v">하네스 전체</div>
+            <div class="d">CLAUDE.md · AGENTS.md · skills · workflows · settings · hooks · MCP</div>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h22"/><path d="M23 13l7 7-7 7"/></svg>
+          </div>
+          <div class="pipe-node self">
+            <div class="k">이 스킬 (읽기 전용)</div>
+            <div class="v mono">/harness:harness-legacy-check</div>
+            <div class="d">Workflow 호출 1건 · 내부 병렬 specialist agent 5개가 분석</div>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h22"/><path d="M23 13l7 7-7 7"/></svg>
+          </div>
+          <div class="pipe-node">
+            <div class="k">산출물</div>
+            <div class="v mono" style="font-size:0.9rem;">.claude/reports/<br>harness-legacy-check.md</div>
+            <div class="d">그대로 <strong>/harness:harness-refactor</strong> 의 입력이 된다</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <p class="eyebrow">범위</p>
+        <h2>언제 쓰고 언제 안 쓰는가</h2>
+        <div class="grid grid-2" style="margin-top:26px;">
+          <article class="card">
+            <h3 style="display:flex;align-items:center;gap:10px;">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 8 14.5 16 6"/></svg>
+              쓸 때
+            </h3>
+            <p class="text-secondary" style="margin-top:14px;">
+              하네스가 오래돼 <strong style="color:var(--text)">무엇이 남아 있는지부터</strong> 알고 싶을 때.
+              예전 CLAUDE.md 규칙이 아직 유효한지, 안 쓰는 skill 이나 workflow 가 쌓였는지,
+              settings / hooks / MCP 설정이 실제 동작과 어긋나는지를 한 번에 훑는다.
+            </p>
+            <p class="text-secondary" style="margin-top:12px;">
+              정리 작업의 <strong style="color:var(--text)">첫 단계</strong>이며, 그 자체로는 아무것도 바꾸지 않으므로
+              부담 없이 돌려 현황만 확보하는 용도로 쓸 수 있다.
+            </p>
+          </article>
+          <article class="card">
+            <h3 style="display:flex;align-items:center;gap:10px;">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M5 15 15 5"/></svg>
+              안 쓸 때 — 형제 스킬로 가는 경계
+            </h3>
+            <ul class="clean" style="margin-top:16px;">
+              <li><span class="dot no"></span><span>리포트를 읽고 <strong>실제로 고쳐야 할 때는 <code>/harness:harness-refactor</code></strong>. 이 스킬은 절대 쓰지 않는다.</span></li>
+              <li><span class="dot no"></span><span>감사 범위를 <strong>AI 컨텍스트 문서 하나</strong>(CLAUDE.md / AGENTS.md / GEMINI.md)로 좁히려면 <code>/harness:ai-context check</code> 가 더 정밀하다.</span></li>
+              <li><span class="dot no"></span><span>개별 <code>SKILL.md</code> 구조 점검은 <code>skill:check</code>, 셸 스크립트는 <code>sh:check</code>. 이 스킬은 스킬 하나를 파고들지 않고 <strong>하네스라는 집합</strong>을 본다.</span></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <p class="eyebrow">인터페이스</p>
+        <h2>호출 형식과 인자</h2>
+        <pre style="margin:22px 0 20px;"><code>/harness:harness-legacy-check
+/harness:harness-legacy-check -h | --help | help</code></pre>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th style="width:26%">인자</th><th style="width:22%">기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>(없음)</td>
+                <td class="text-secondary">—</td>
+                <td>위치 인자를 받지 않는다. 감사 범위와 출력 경로는 워크플로우가 고정한다</td>
+              </tr>
+              <tr>
+                <td><code>-h</code> / <code>--help</code> / <code>help</code></td>
+                <td class="text-secondary">—</td>
+                <td><code>references/help.md</code> 를 그대로 출력하고 중단. 워크플로우 실행 없음</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <p class="eyebrow">동작</p>
+        <h2>단계 요약</h2>
+        <div style="margin-top:26px;">
+          <div class="step card">
+            <div class="step-num">1</div>
+            <div>
+              <h4>워크플로우 실행</h4>
+              <p class="text-secondary" style="margin-top:8px;">스킬 본체가 하는 일은 사실상 이 호출 1건이다.</p>
+              <pre style="margin:14px 0;"><code>Workflow({ name: 'harness-legacy-check' })</code></pre>
+              <p class="text-secondary">
+                실제 감사는 이 워크플로우 <strong style="color:var(--text)">내부의 병렬 specialist agent 5개</strong>가 수행한다.
+                감사 로직이 스킬이 아니라 워크플로우 쪽에 있기 때문에 SKILL.md 는 100줄 규칙 안에서 얇게 유지되고,
+                모델 티어도 haiku 로 충분하다는 메타데이터가 붙어 있다. 워크플로우가 끝나면 리포트가
+                <code>.claude/reports/harness-legacy-check.md</code> 에 저장된다(같은 경로 <strong style="color:var(--text)">덮어쓰기</strong>).
+                실패하면 즉시 <code class="mono">[FAIL] harness:harness-legacy-check — &lt;이유&gt;</code> 를 출력하고 중단한다.
+              </p>
+            </div>
+          </div>
+          <div class="step card">
+            <div class="step-num">2</div>
+            <div>
+              <h4>완료 보고</h4>
+              <p class="text-secondary" style="margin-top:8px;">리포트 경로와 다음 단계를 함께 출력한다.</p>
+              <pre style="margin-top:14px;"><code>[OK] harness:harness-legacy-check — 완료
+  리포트: .claude/reports/harness-legacy-check.md
+  다음: /harness:harness-refactor 로 low-risk 개선 적용</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <p class="eyebrow">제약</p>
+        <h2>주의사항과 제약</h2>
+        <p class="text-secondary" style="margin:12px 0 24px;">항목을 눌러 펼친다.</p>
+
+        <details class="note" open>
+          <summary><span class="tag ok" aria-hidden="true"></span>읽기 전용 계약
+            <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>
+          </summary>
+          <div class="note-body">
+            이 스킬은 파일을 수정하지도 삭제하지도 않는다. 유일한 쓰기는
+            <code>.claude/reports/harness-legacy-check.md</code> 한 개를 만드는 것뿐이고, 그마저도 분석 결과를 담는 리포트다.
+            저장소 CLAUDE.md 가 이 계약을 명시적으로 보호하므로(<strong>harness-legacy-check</strong> 와
+            <strong>ai-context check</strong> 는 read-only), 여기에 "찾은 김에 고치기" 를 추가하면 안 된다.
+          </div>
+        </details>
+
+        <details class="note">
+          <summary><span class="tag warn" aria-hidden="true"></span>리포트는 덮어쓰기다
+            <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>
+          </summary>
+          <div class="note-body">
+            실행할 때마다 같은 경로를 갈아쓴다. 이전 감사 결과를 비교용으로 남기고 싶다면
+            실행 전에 따로 복사해 두거나, 리포트를 커밋해 git 히스토리에 남긴다.
+          </div>
+        </details>
+
+        <details class="note">
+          <summary><span class="tag warn" aria-hidden="true"></span>Workflow 도구 의존
+            <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>
+          </summary>
+          <div class="note-body">
+            내부적으로 Claude Code 의 <code>Workflow</code> 도구를 쓴다. 실행되지 않거나 오류가 나면
+            <code>/config</code> 에서 아래 두 항목이 모두 <code>true</code> 인지 확인한다. 두 항목은
+            <code>/config</code> 에서 직접 바꿀 수 있다. 다른 하네스에서는 이 도구가 없어 advisory-only 로 취급된다.
+            <pre style="margin-top:14px;"><code>Dynamic workflows          → true 여야 함
+Ultracode keyword trigger  → true 여야 함</code></pre>
+          </div>
+        </details>
+
+        <details class="note">
+          <summary><span class="tag" aria-hidden="true"></span>짝 스킬로 이어지는 계약
+            <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>
+          </summary>
+          <div class="note-body">
+            저장된 리포트가 그대로 <code>harness:harness-refactor</code> 의 입력이 된다. 순서는 아래와 같고,
+            refactor 는 리포트를 못 찾으면 "먼저 /harness-legacy-check 를 실행해 주세요" 로 중단한다.
+            <ol style="margin:14px 0 14px 20px; display:grid; gap:8px;">
+              <li><code>/harness:harness-legacy-check</code> — 감사 실행 + 리포트 저장</li>
+              <li><code>/harness:harness-refactor</code> — 리포트를 읽고 low-risk 항목만 적용</li>
+            </ol>
+            따라서 리포트 경로와 형식은 두 스킬 사이의 인터페이스다. <strong>경로를 바꾸려면 양쪽을 함께 고쳐야 한다.</strong>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div class="wrap">
+        출처: <code>skills/harness-legacy-check/SKILL.md</code> · <code>skills/harness-legacy-check/references/help.md</code>
+        — harness-skills 플러그인 문서.
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      if (dropdown) dropdown.classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+
+    // === Theme (class-based, OS detection on first visit) ===
+    var ICON_DARK = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 9.8A5.6 5.6 0 0 1 6.2 2.8a5.8 5.8 0 1 0 7 7Z"/></svg>';
+    var ICON_LIGHT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.2"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.1 3.1l1.1 1.1M11.8 11.8l1.1 1.1M12.9 3.1l-1.1 1.1M4.2 11.8l-1.1 1.1"/></svg>';
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('viz-theme'); } catch (err) { savedTheme = null; }
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      var icon = document.getElementById('themeIcon');
+      var label = document.getElementById('themeLabel');
+      if (icon) icon.innerHTML = t === 'dark' ? ICON_DARK : ICON_LIGHT;
+      if (label) label.textContent = t === 'dark' ? 'Dark' : 'Light';
+      try { localStorage.setItem('viz-theme', t); } catch (err) {}
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, { quality: 1, pixelRatio: 2, backgroundColor: getComputedStyle(document.body).backgroundColor });
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'harness-legacy-check.png';
+        a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

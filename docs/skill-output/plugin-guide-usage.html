@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>plugin-guide 사용 결과</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8A8A8A;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0F1115; --code-text: #C7D2E0;
+      --rail: rgba(255,255,255,0.09);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #5b6472;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #b45309;
+      --code-bg: #F4F5F7; --code-text: #253044;
+      --rail: rgba(0,0,0,0.10);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.72; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+      word-break: keep-all;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.15; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.5rem, 5.8vw, 3.4rem); }
+    h2 { font-weight: 700; font-size: clamp(1.7rem, 3.4vw, 2.05rem); }
+    h4 { font-weight: 600; font-size: 1.02rem; }
+    p, li, td, th, span, label { color: var(--text); font-weight: 400; font-size: 1rem; }
+    .text-secondary { color: var(--text-secondary); }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+    code { background: var(--code-bg); color: var(--code-text); padding: 0.14em 0.42em; border-radius: 5px; font-size: 0.87em; }
+    strong { font-weight: 700; }
+
+    .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px; }
+
+    /* ===== HERO ===== */
+    .hero { padding: 80px 0 44px; border-bottom: 1px solid var(--border); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px;
+    }
+    .eyebrow svg { width: 15px; height: 15px; }
+    .lede { margin-top: 20px; font-size: 1.12rem; line-height: 1.78; max-width: 62ch; color: var(--text-secondary); }
+    .lede strong { color: var(--text); }
+
+    /* ===== NOT-RUN BANNER ===== */
+    .notrun {
+      margin-top: 26px; display: flex; gap: 14px; align-items: flex-start;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--warning); border-radius: 10px; padding: 18px 20px;
+    }
+    .notrun svg { width: 20px; height: 20px; flex: none; color: var(--warning); margin-top: 3px; }
+    .notrun .tag {
+      display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--warning); border: 1px solid var(--warning); border-radius: 999px;
+      padding: 2px 9px; margin-bottom: 8px;
+    }
+    .notrun p { color: var(--text-secondary); font-size: 0.96rem; }
+    .notrun p strong { color: var(--text); }
+
+    /* ===== PIPELINE ===== */
+    .pipeline { margin-top: 30px; display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+    .pipe-node {
+      flex: 1 1 200px; min-width: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .pipe-node .k { display: block; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 5px; }
+    .pipe-node .v { font-size: 0.95rem; font-weight: 600; }
+    .pipe-node.is-skill { border-color: var(--accent); }
+    .pipe-node.is-skill .v { color: var(--accent); }
+    .pipe-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 1.3rem; font-weight: 300; padding: 0 2px; }
+
+    /* ===== SECTIONS ===== */
+    section { padding: 54px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 24px; }
+    .sec-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600;
+      color: var(--accent); border: 1px solid var(--border); border-radius: 6px;
+      padding: 3px 8px; flex: none;
+    }
+
+    /* ===== CODE ===== */
+    pre {
+      background: var(--code-bg); color: var(--code-text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px 20px; overflow-x: auto; font-size: 0.88rem; line-height: 1.8;
+      margin: 0;
+    }
+    pre .cm { color: var(--text-secondary); }
+    pre .hl { color: var(--accent); font-weight: 600; }
+
+    /* ===== ITEM LIST ===== */
+    .items { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .items > li {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px 20px; transition: box-shadow 0.2s ease;
+    }
+    .items > li:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 18px rgba(0,0,0,0.10); }
+    .items h4 { margin-bottom: 7px; display: flex; align-items: center; gap: 9px; }
+    .items h4 svg { width: 17px; height: 17px; flex: none; color: var(--accent); }
+    .items p { color: var(--text-secondary); }
+    .items p code { color: var(--code-text); }
+    .items > li.gate { border-left: 3px solid var(--warning); }
+    .items > li.gate h4 svg { color: var(--warning); }
+    .items > li.none { border-left: 3px solid var(--negative); }
+    .items > li.none h4 svg { color: var(--negative); }
+
+    footer.docfoot { padding: 38px 0 62px; color: var(--text-secondary); font-size: 0.88rem; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.08s; }
+    .animate.delay-2 { animation-delay: 0.16s; }
+    .animate.delay-3 { animation-delay: 0.24s; }
+    .animate.delay-4 { animation-delay: 0.32s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .items > li, pre, .notrun { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      section { border-bottom: 1px solid #ddd; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 210px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown button svg { width: 16px; height: 16px; flex: none; }
+
+    .skip-to-content {
+      position: absolute; top: -40px; left: 6px; background: var(--accent);
+      color: #fff; padding: 8px 12px; text-decoration: none;
+      border-radius: 4px; opacity: 0; pointer-events: none;
+      transition: all 0.2s; z-index: 10000;
+    }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+
+    @media (max-width: 560px) {
+      .hero { padding: 62px 0 34px; }
+      section { padding: 42px 0; }
+      .pipe-arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">Skip to content</a>
+
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-expanded="false" aria-controls="vizMenuDropdown">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown">
+      <button onclick="cycleTheme()" aria-label="테마 전환">
+        <span id="themeIcon" aria-hidden="true"></span><span id="themeLabel">Dark</span>
+      </button>
+      <button onclick="downloadImage()" aria-label="PNG 내려받기">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 3v9"/><path d="M6.5 8.5 10 12l3.5-3.5"/><path d="M3.5 14v2.5h13V14"/>
+        </svg><span>Download PNG</span>
+      </button>
+      <button onclick="window.print()" aria-label="인쇄 또는 PDF 저장">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5.5 8V3.5h9V8"/><rect x="3" y="8" width="14" height="6" rx="1.5"/><path d="M5.5 12.5h9v4h-9z"/>
+        </svg><span>Print / PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="wrap">
+        <div class="eyebrow animate">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 10h4l2.5 5 3-11 2 6H17"/>
+          </svg>
+          harness-skills / 사용 결과
+        </div>
+        <h1 class="animate delay-1">plugin-guide 사용 결과</h1>
+        <p class="lede animate delay-2">
+          <strong>한 줄 요약</strong> — 설치된 플러그인 이름 하나를 받아 캐시된 <code>SKILL.md</code> 들을 읽고
+          한국어 가이드 문서 1개를 쓴 뒤 plugins 인덱스를 갱신합니다.
+        </p>
+
+        <div class="notrun animate delay-3" role="note">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 2.6 18 16.4H2z"/><path d="M10 8v3.4"/><path d="M10 13.8v.01"/>
+          </svg>
+          <div>
+            <span class="tag">미실행 예시</span>
+            <p>이 스킬은 사용자 dotfiles 저장소에 가이드 문서를 쓰고 plugins 인덱스를 갱신하므로
+            <strong>문서화 목적으로 실행하지 않았습니다.</strong> 명령·경로·출력 형식은
+            <code>skills/plugin-guide/SKILL.md</code> 인용이며 실행 로그가 아닙니다.</p>
+          </div>
+        </div>
+
+        <div class="pipeline animate delay-4" role="group" aria-label="입력에서 산출물까지의 흐름">
+          <div class="pipe-node"><span class="k">입력</span><span class="v">설치된 플러그인 이름</span></div>
+          <div class="pipe-arrow" aria-hidden="true">→</div>
+          <div class="pipe-node is-skill"><span class="k">스킬</span><span class="v mono">/harness:plugin-guide</span></div>
+          <div class="pipe-arrow" aria-hidden="true">→</div>
+          <div class="pipe-node"><span class="k">산출물</span><span class="v">한국어 가이드 문서 1개 + 인덱스 한 줄</span></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 1. COMMAND -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="sec-head"><span class="sec-num">01</span><h2>실행할 명령</h2></div>
+<pre><code><span class="hl">/harness:plugin-guide</span> &lt;plugin&gt;[@&lt;marketplace&gt;] [--force]
+<span class="hl">/harness:plugin-guide</span> ponytail@ponytail        <span class="cm"># marketplace 명시</span>
+<span class="hl">/harness:plugin-guide</span> andrej-karpathy-skills  <span class="cm"># plugins.json 에서 marketplace 추론</span>
+<span class="hl">/harness:plugin-guide</span> -h                      <span class="cm"># references/help.md 출력 후 중단</span></code></pre>
+      </div>
+    </section>
+
+    <!-- 2. INPUT -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="sec-head"><span class="sec-num">02</span><h2>입력</h2></div>
+        <ul class="items">
+          <li>
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M3 8h14"/></svg>
+              플러그인 이름 (필수)
+            </h4>
+            <p><code>&lt;plugin&gt;@&lt;marketplace&gt;</code> 또는 <code>&lt;plugin&gt;</code> 단독. <code>@</code> 로 쪼개며
+            출력 파일명은 언제나 <code>PLUGIN.md</code> 다. 인자가 없으면 usage 한 줄만 출력하고 중단.</p>
+          </li>
+          <li>
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.5h6l4 4v9a1.5 1.5 0 0 1-1.5 1.5h-8.5A1.5 1.5 0 0 1 3.5 16.5v-11A2 2 0 0 1 5 3.5z"/><path d="M10.5 3.5V8H15"/></svg>
+              <code>claude/plugin/plugins.json</code>
+            </h4>
+            <p>설치 여부의 SSOT. <code>plugins</code> 배열의 <code>@</code> 앞 세그먼트를 정확히 비교한다
+            (<strong>substring grep 금지</strong>). 미설치면 설치 안내만 출력하고 중단하고, 같은 이름이 여러
+            marketplace 에 있으면 추측 없이 후보 목록을 내고 중단한다.</p>
+          </li>
+          <li>
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5 4 4.2h5l1.4 2.3h7.1V15A1.5 1.5 0 0 1 16 16.5H4A1.5 1.5 0 0 1 2.5 15z"/></svg>
+              캐시된 <code>SKILL.md</code> 들
+            </h4>
+            <p><code>$CLAUDE_CONFIG_DIR/plugins/cache/&lt;marketplace&gt;/&lt;plugin&gt;/</code> 아래를
+            <code>find -maxdepth 4 -iname SKILL.md</code>, 버전 디렉터리가 여럿이면 최고 버전만.</p>
+          </li>
+          <li class="gate">
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="1.5"/><path d="M6.8 9V6.6a3.2 3.2 0 0 1 6.4 0V9"/></svg>
+              게이트
+            </h4>
+            <p><code>SKILL.md</code> 0개면 <code>스킬 없음, 문서화 대상 아님</code> 으로 중단.
+            대상 문서가 이미 있고 <code>--force</code> 가 없으면 <code>이미 문서화됨 — 재생성하려면 --force</code> 로 중단.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3. RESULT -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="sec-head"><span class="sec-num">03</span><h2>결과 <span class="text-secondary" style="font-weight:400;font-size:1rem">(실행 시)</span></h2></div>
+        <ul class="items">
+          <li>
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h6l4 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M10.5 2.5V7H15"/><path d="M6.8 11h6.4M6.8 14h4.4"/></svg>
+              가이드 문서 1개
+            </h4>
+            <p><code>docs/guide/plugins/&lt;PLUGIN&gt;.md</code>. <code>references/doc-template.md</code> 가 규정한
+            한국어 3섹션 골격(설치 방법 → 스킬 설명 → 사용법 예제)이고, 스킬 설명은 스킬 1개당 한 행
+            (스킬 / 성격 / 하는 일)의 표다. <code>--force</code> 는 병합이 아니라 파일 전체를 덮어쓴다.</p>
+          </li>
+          <li>
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h1.5M4 10h1.5M4 14.5h1.5"/><path d="M8.5 5.5H16M8.5 10H16M8.5 14.5H13"/></svg>
+              인덱스 한 줄
+            </h4>
+            <p><code>docs/guide/plugins/README.md</code> 의 <code>## Index</code> 목록 안, 마지막 <code>- [...]</code> 뒤이자
+            다음 <code>##</code> 헤더 앞에 <code>- [&lt;PLUGIN&gt;](./&lt;PLUGIN&gt;.md) — &lt;한 줄 요약&gt;</code> 삽입.
+            같은 링크가 이미 있으면 스킵.</p>
+          </li>
+          <li>
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M5.6 8.4 8 10.6l-2.4 2.2"/><path d="M10 13h4.4"/></svg>
+              stdout 보고
+            </h4>
+            <p><code>references/help.md</code> 의 "출력 형식"대로
+            <code>[OK] docs/guide/plugins/&lt;plugin&gt;.md 생성 (스킬 N개)</code>, 인덱스 갱신 줄,
+            문서 검토 후 수동 커밋하라는 Next 줄. 스킵 시에는 <code>[SKIP] ... 이미 존재</code>.</p>
+          </li>
+          <li class="none">
+            <h4>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><line x1="5.4" y1="14.6" x2="14.6" y2="5.4"/></svg>
+              남지 않는 것
+            </h4>
+            <p>플러그인 설치도, 커밋도, PR 도 없다. 스킬을 실행해 보지도 않는다.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="docfoot">
+      <div class="wrap">
+        <p>출처: <code>skills/plugin-guide/SKILL.md</code> · <code>references/help.md</code> · <code>references/doc-template.md</code> · <code>references/marketplace-resolution.md</code></p>
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var btn = document.querySelector('.viz-menu-toggle');
+      if (!dropdown) return;
+      dropdown.classList.toggle('open');
+      if (btn) btn.setAttribute('aria-expanded', dropdown.classList.contains('open') ? 'true' : 'false');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var d = document.getElementById('vizMenuDropdown');
+        var b = document.querySelector('.viz-menu-toggle');
+        if (d) d.classList.remove('open');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var d = document.getElementById('vizMenuDropdown');
+        var b = document.querySelector('.viz-menu-toggle');
+        if (d) d.classList.remove('open');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // === Theme (class-based, SVG icons — no emoji) ===
+    var ICON_MOON = '<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9z"/></svg>';
+    var ICON_SUN = '<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M15.8 4.2l-1.4 1.4M5.6 14.4l-1.4 1.4"/></svg>';
+    var savedTheme = localStorage.getItem('viz-theme');
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      var icon = document.getElementById('themeIcon');
+      var label = document.getElementById('themeLabel');
+      if (icon) icon.innerHTML = (t === 'dark') ? ICON_MOON : ICON_SUN;
+      if (label) label.textContent = (t === 'dark') ? 'Dark' : 'Light';
+      try { localStorage.setItem('viz-theme', t); } catch (e) {}
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, {
+          quality: 1, pixelRatio: 2,
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); }
+        });
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'plugin-guide-usage.png';
+        a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>harness-refactor — 스킬 설명서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based ONLY) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8b8b8b;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0f0f0f; --grid: rgba(255,255,255,0.03);
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.08);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #d97706;
+      --code-bg: #f6f6f5; --grid: rgba(0,0,0,0.03);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.75; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.035em; line-height: 1.15; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.4rem, 6vw, 3.6rem); }
+    h2 { font-weight: 700; font-size: clamp(1.7rem, 3.6vw, 2.1rem); }
+    h3 { font-weight: 650; font-size: 1.5rem; }
+    body, p, li, td, th, span, label { font-weight: 400; font-size: 1rem; }
+    p, li, td, th { color: var(--text); }
+    .text-secondary { color: var(--text-secondary); }
+    code, kbd, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; letter-spacing: 0; }
+    :not(pre) > code {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 5px; padding: 1px 6px; color: var(--accent);
+      white-space: nowrap;
+    }
+    strong { font-weight: 700; }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: none; }
+    .eyebrow {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ===== HERO ===== */
+    header.hero {
+      padding: 84px 0 56px;
+      background:
+        radial-gradient(900px 380px at 12% -8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+        linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 44px;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.76rem; font-weight: 600; letter-spacing: 0.02em;
+      padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    }
+    .badge.hot { color: var(--negative); border-color: color-mix(in srgb, var(--negative) 40%, transparent); }
+    .badge.acc { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+    .lede {
+      font-size: clamp(1.05rem, 2.1vw, 1.28rem); line-height: 1.7;
+      max-width: 74ch; margin-top: 20px; color: var(--text);
+    }
+    .lede b { color: var(--accent); font-weight: 700; }
+
+    /* pipeline */
+    .pipe {
+      display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 36px;
+    }
+    .pipe-node {
+      flex: 1 1 200px; min-width: 190px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px;
+    }
+    .pipe-node .k { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); }
+    .pipe-node .v { font-size: 0.95rem; font-weight: 600; margin-top: 5px; line-height: 1.5; word-break: break-word; }
+    .pipe-node.out { border-color: color-mix(in srgb, var(--negative) 45%, transparent); }
+    .pipe-node.out .v { color: var(--negative); }
+    .pipe-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 1.3rem; font-weight: 300; }
+    @media (max-width: 640px) { .pipe-arrow { transform: rotate(90deg); justify-content: center; width: 100%; } }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 20px rgba(0,0,0,0.10); }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    .card h3 { font-size: 1.12rem; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .card ul { margin: 0; padding-left: 0; list-style: none; }
+    .card li { position: relative; padding-left: 22px; margin-bottom: 11px; line-height: 1.65; }
+    .card li::before {
+      content: ''; position: absolute; left: 4px; top: 0.72em;
+      width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary);
+    }
+    .card.use { border-left: 3px solid var(--positive); }
+    .card.use li::before { background: var(--positive); }
+    .card.avoid { border-left: 3px solid var(--warning); }
+    .card.avoid li::before { background: var(--warning); }
+    .ico { width: 20px; height: 20px; flex: none; }
+
+    .note {
+      border-left: 3px solid var(--accent); background: var(--surface);
+      border-radius: 0 10px 10px 0; padding: 18px 22px; margin-top: 22px;
+      color: var(--text-secondary); line-height: 1.7;
+    }
+
+    /* ===== CODE BLOCK ===== */
+    pre.code {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px; overflow-x: auto;
+      font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.88rem;
+      line-height: 1.85; color: var(--text); margin: 18px 0;
+    }
+    pre.code .cm { color: var(--text-secondary); }
+    pre.code .fn { color: var(--accent); }
+
+    /* ===== TABLE ===== */
+    .tw { overflow-x: auto; margin-top: 18px; border: 1px solid var(--border); border-radius: 10px; }
+    table { border-collapse: collapse; width: 100%; min-width: 560px; background: var(--surface); }
+    th, td { text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); background: var(--surface-hover); }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); }
+
+    /* ===== STEPS ===== */
+    .steps { position: relative; margin-top: 26px; padding-left: 8px; }
+    .step { position: relative; padding-left: 60px; padding-bottom: 30px; }
+    .step:last-child { padding-bottom: 0; }
+    .step::before {
+      content: ''; position: absolute; left: 19px; top: 34px; bottom: -6px;
+      width: 1px; background: var(--border);
+    }
+    .step:last-child::before { display: none; }
+    .step .n {
+      position: absolute; left: 0; top: 0; width: 39px; height: 39px;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      background: var(--surface); border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.92rem;
+      color: var(--accent);
+    }
+    .step h4 { font-size: 1.05rem; font-weight: 650; margin-bottom: 7px; padding-top: 6px; }
+    .step p { color: var(--text-secondary); line-height: 1.72; }
+    .step p b { color: var(--text); font-weight: 650; }
+
+    /* ===== SPLIT RULES (allow vs forbid) ===== */
+    .rule { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+    .rule-head { padding: 15px 20px; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .rule.ok .rule-head { color: var(--positive); background: color-mix(in srgb, var(--positive) 8%, transparent); }
+    .rule.no .rule-head { color: var(--negative); background: color-mix(in srgb, var(--negative) 8%, transparent); }
+    .rule ul { list-style: none; padding: 14px 20px 18px; margin: 0; }
+    .rule li { position: relative; padding-left: 24px; margin: 9px 0; line-height: 1.6; font-size: 0.95rem; }
+    .rule li .mk { position: absolute; left: 0; top: 0; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .rule.ok li .mk { color: var(--positive); }
+    .rule.no li .mk { color: var(--negative); }
+
+    .warn-list { display: grid; gap: 14px; margin-top: 22px; }
+    .warn {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px 22px; transition: box-shadow 0.2s ease;
+    }
+    .warn:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 20px rgba(0,0,0,0.10); }
+    .warn h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; color: var(--warning); }
+    .warn p { color: var(--text-secondary); line-height: 1.72; }
+    .warn.crit h4 { color: var(--negative); }
+
+    footer { padding: 40px 0 64px; color: var(--text-secondary); font-size: 0.87rem; border-top: 1px solid var(--border); }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.08s; }
+    .animate.delay-2 { animation-delay: 0.16s; }
+    .animate.delay-3 { animation-delay: 0.24s; }
+    .animate.delay-4 { animation-delay: 0.32s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu { display: none !important; }
+      .reveal { display: revert; opacity: 1 !important; transform: none !important; }
+      .card, .rule, .warn { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      header.hero { background: none !important; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 208px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown button svg { width: 17px; height: 17px; flex: none; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" aria-label="테마 전환">
+        <span id="themeIcon" aria-hidden="true"></span><span id="themeLabel">Dark</span>
+      </button>
+      <button onclick="downloadImage()" aria-label="PNG 내려받기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg><span>Download PNG</span>
+      </button>
+      <button onclick="window.print()" aria-label="인쇄 또는 PDF 저장">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+        </svg><span>Print / PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="wrap">
+        <div class="badge-row animate">
+          <span class="badge acc">harness plugin</span>
+          <span class="badge">스킬 설명서</span>
+          <span class="badge hot">하네스를 실제로 변경함</span>
+        </div>
+        <h1 class="animate delay-1">harness-refactor</h1>
+        <p class="lede animate delay-2">
+          <code>harness-legacy-check</code> 감사 리포트를 읽어 항목을 <b>risk 로 분류</b>한 뒤,
+          low-risk 항목만 담은 <b>워크플로우 파일 1개</b>(<code>claude/workflows/harness-refactor.js</code>)를
+          새로 작성해 실행한다. 위험한 항목은 실행하지 않고 Final Report 의
+          <b>"Human Approval Required"</b> 섹션에만 남긴다.
+          읽기 전용이 아니라 <b>실제로 하네스 파일을 고친다</b>.
+        </p>
+
+        <div class="pipe animate delay-3" role="group" aria-label="스킬 파이프라인">
+          <div class="pipe-node">
+            <div class="k">입력</div>
+            <div class="v">.claude/reports/<br>harness-legacy-check.md</div>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">──▶</div>
+          <div class="pipe-node">
+            <div class="k">분류</div>
+            <div class="v">허용 변경 / 절대 금지<br>(classification-rules.md)</div>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">──▶</div>
+          <div class="pipe-node out">
+            <div class="k">산출물</div>
+            <div class="v">harness-refactor.js<br>생성 + 실행</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- WHEN TO USE -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">01 — 경계</div>
+        <h2>언제 쓰고, 언제 안 쓰는가</h2>
+
+        <div class="grid2" style="margin-top:26px">
+          <div class="card use">
+            <h3>
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              쓸 때
+            </h3>
+            <ul>
+              <li><code>/harness:harness-legacy-check</code> 를 이미 돌려 감사 리포트를 받았고, 지적된 것 중 안전하게 자동화할 수 있는 부분을 실제로 적용하려 할 때.</li>
+              <li>CLAUDE.md / AGENTS.md 의 중복 섹션 정리.</li>
+              <li>전역 지침에 눌러앉은 절차를 skill 로 이관.</li>
+              <li>비대해진 SKILL.md 를 <code>SKILL.md + references/</code> 로 분리.</li>
+              <li>skill description / trigger 문구 정리.</li>
+              <li><code>settings.json</code> 의 stale 권한 항목 제거.</li>
+            </ul>
+          </div>
+
+          <div class="card avoid">
+            <h3>
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16.5" x2="12" y2="16.6"/></svg>
+              안 쓸 때 — 형제 스킬로 가는 경계
+            </h3>
+            <ul>
+              <li><b>감사 자체가 아직 없다면</b> <code>/harness:harness-legacy-check</code> 가 먼저다. 이 스킬은 감사를 대신 수행하지 않고, 리포트를 못 찾으면 Step 1 에서 그냥 중단한다.</li>
+              <li><b>읽기만 하고 싶다면</b> 이 스킬이 아니다. legacy-check 는 read-only 지만 이 스킬은 파일을 옮기고 고친다.</li>
+              <li><b>hooks · MCP · 권한 확대 · 애플리케이션 코드</b>는 분류 규칙이 영구 금지 목록에 두고 있어 리포트에 있어도 워크플로우에 들어가지 않는다.</li>
+              <li><code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>GEMINI.md</code> 문서 하나를 점검하거나 새로 만드는 일은 <code>harness:ai-context</code> 의 몫이다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note">
+          이 <b>check / refactor 분리는 의도된 것</b>이다. 감사는 아무것도 안 바꾸므로 마음 놓고 자주 돌릴 수 있고,
+          변경은 사람이 리포트를 읽고 납득한 뒤에만 별도 호출로 일어난다.
+        </div>
+      </div>
+    </section>
+
+    <!-- INVOCATION -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">02 — 인터페이스</div>
+        <h2>호출 형식과 인자</h2>
+
+        <pre class="code"><span class="fn">/harness:harness-refactor</span>
+<span class="fn">/harness:harness-refactor</span> -h | --help | help</pre>
+
+        <p class="text-secondary">인자를 받지 않는 스킬이다. 대상 리포트도, 적용 범위도 위치 인자로 지정하지 않는다.</p>
+
+        <div class="tw">
+          <table>
+            <thead><tr><th>인자</th><th>기본값</th><th>설명</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>(없음)</td>
+                <td class="text-secondary">—</td>
+                <td>리포트 경로는 고정 탐색 순서로 결정된다(아래 Step 1). 사용자가 지정하지 않는다.</td>
+              </tr>
+              <tr>
+                <td>-h / --help / help</td>
+                <td class="text-secondary">—</td>
+                <td><code>references/help.md</code> 를 그대로 출력하고 중단. 파일 변경 없음.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEPS -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">03 — 동작</div>
+        <h2>동작 단계</h2>
+
+        <div class="steps">
+          <article class="step">
+            <div class="n">1</div>
+            <h4>감사 리포트 확인</h4>
+            <p>
+              고정된 순서로 찾는다: (1) <code>.claude/reports/harness-legacy-check.md</code> 파일이 있으면 읽어서 사용,
+              (2) 없으면 현재 세션에 남은 <code>harness-legacy-check</code> 출력을 찾는다,
+              (3) 둘 다 없으면 "harness-legacy-check 결과가 없습니다. 먼저 /harness-legacy-check 를 실행해 주세요." 를
+              출력하고 <b>중단한다</b>. 리포트를 지어내거나 감사를 즉석에서 대신 하지 않는다.
+            </p>
+          </article>
+
+          <article class="step">
+            <div class="n">2</div>
+            <h4>risk 분류</h4>
+            <p>
+              리포트의 각 항목을 <code>references/classification-rules.md</code> 기준으로 워크플로우에 넣을 것(허용 변경)과
+              넣지 않을 것(절대 금지)으로 가른다. <b>이 분류가 이 스킬의 안전 계약 전부다</b> — 두 목록은 아래 05 절에 그대로 있다.
+            </p>
+          </article>
+
+          <article class="step">
+            <div class="n">3</div>
+            <h4>harness-refactor.js 생성</h4>
+            <p>
+              <code>claude/workflows/harness-refactor.js</code> 를 <b>새로</b> 작성한다. 이전 파일은 덮어쓴다(이전 계획은 git log 에 남는다).
+              파일 구조는 <code>references/workflow-template.md</code> 가 규정한다: <code>export const meta</code> 에 4개 phase
+              (Pre-flight → Apply Changes → Verify → Final Report), <code>HOME</code> / <code>ARCHIVE</code> / <code>SKILLS</code> / <code>ROOT</code> 상수,
+              아카이브 경로의 <code>YYYY-MM-DD</code> 는 오늘 날짜로 고정.
+              Step 2 에서 금지로 분류된 항목은 워크플로우 본문이 아니라 Final Report 의 "Human Approval Required" 섹션에만 기록한다.
+            </p>
+          </article>
+
+          <article class="step">
+            <div class="n">4</div>
+            <h4>워크플로우 실행</h4>
+            <p>
+              <code>Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })</code>.
+              Pre-flight 가 대상 파일 존재 확인과 archive 디렉토리 생성만 하고(파일 수정 없음), Apply Changes 가 <code>parallel()</code> 로
+              비중첩 파일 그룹을 나눠 맡은 에이전트들을 돌리며, 각 에이전트는 아카이브 후 수정하고 <code>CHANGE_SCHEMA</code> 로
+              구조화된 결과를 돌려준다. Verify 가 <code>wc -l</code> 비교와 <code>references/</code> 파일 생성 여부를 확인한다.
+            </p>
+          </article>
+
+          <article class="step">
+            <div class="n">5</div>
+            <h4>완료 보고</h4>
+            <p>
+              <code>[OK] harness:harness-refactor — 완료</code> 아래에 변경 파일 수, 생성된 <code>references/</code> 수, 아카이브 수,
+              human review 필요 항목 수, 그리고 다음 행동(<code>git diff</code> 확인 후 <code>/gh:commit</code>)을 적는다.
+              실패 시 <code>[FAIL] harness:harness-refactor — &lt;이유&gt;</code>.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLASSIFICATION -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">04 — 안전 계약</div>
+        <h2>risk 분류: 자동 적용과 사람 판단 사이의 선</h2>
+        <p class="text-secondary" style="margin-top:10px;max-width:74ch">
+          리포트가 아무리 강하게 권해도 오른쪽 여섯은 워크플로우에 들어가지 않는다.
+          Final Report 의 "Human Approval Required" 섹션에 기록될 뿐이다.
+        </p>
+
+        <div class="grid2" style="margin-top:24px">
+          <div class="rule ok">
+            <div class="rule-head">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              허용 변경 — 워크플로우에 포함
+            </div>
+            <ul>
+              <li><span class="mk">+</span>CLAUDE.md / AGENTS.md 의 중복 · 일반론 섹션 제거</li>
+              <li><span class="mk">+</span>특정 작업 절차를 전역 지침에서 skill 로 이동</li>
+              <li><span class="mk">+</span>긴 SKILL.md 를 SKILL.md + references/ 구조로 분리</li>
+              <li><span class="mk">+</span>skill description / trigger 명확화</li>
+              <li><span class="mk">+</span>settings.json 의 stale 권한 항목 제거</li>
+              <li><span class="mk">+</span>삭제 대상은 영구 삭제 없이 <code>.claude/archive/harness-refactor-YYYY-MM-DD/</code> 로 이동</li>
+            </ul>
+          </div>
+
+          <div class="rule no">
+            <div class="rule-head">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
+              절대 금지 — Human Approval Required 로만 기록
+            </div>
+            <ul>
+              <li><span class="mk">x</span>hooks 수정</li>
+              <li><span class="mk">x</span>MCP 설정 변경</li>
+              <li><span class="mk">x</span>allowed-tools 권한 확대</li>
+              <li><span class="mk">x</span>프로젝트 애플리케이션 코드 수정</li>
+              <li><span class="mk">x</span>테스트 · 빌드 · 배포 명령 실행</li>
+              <li><span class="mk">x</span>리포트가 신뢰도 <b>low</b> 로 표시한 모든 항목</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAVEATS -->
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">05 — 주의사항</div>
+        <h2>주의사항과 제약</h2>
+
+        <div class="warn-list">
+          <article class="warn crit">
+            <h4>이 스킬은 파일을 바꾼다</h4>
+            <p>
+              짝 스킬과 헷갈리기 쉬운 지점이다. <code>harness-legacy-check</code> 는 read-only 이지만
+              <code>harness-refactor</code> 는 워크플로우 스크립트를 새로 쓰고, 그 워크플로우가
+              CLAUDE.md / AGENTS.md / SKILL.md / settings.json 을 실제로 수정한다.
+              호출 전에 작업 트리가 깨끗한지 확인하고, 호출 후에는 <code>git diff</code> 를 사람이 읽는 것이 전제다.
+            </p>
+          </article>
+
+          <article class="warn">
+            <h4>삭제는 영구 삭제가 아니다</h4>
+            <p>
+              제거 대상은 지우는 대신 <code>.claude/archive/harness-refactor-YYYY-MM-DD/</code> 로 옮긴다.
+              잘못 판단한 삭제를 되돌릴 수 있게 하려는 것이므로, 워크플로우를 손볼 때도 이 아카이브 단계를 건너뛰지 않는다.
+            </p>
+          </article>
+
+          <article class="warn">
+            <h4>이전 워크플로우 파일은 덮어써진다</h4>
+            <p>
+              <code>claude/workflows/harness-refactor.js</code> 는 매 호출마다 새로 생성된다.
+              손으로 고친 내용이 그 파일에 있다면 호출 전에 커밋해 두어야 git log 로만이라도 남는다.
+            </p>
+          </article>
+
+          <article class="warn">
+            <h4>중단 조건</h4>
+            <p>
+              감사 리포트를 어느 경로로도 찾지 못하면 아무것도 하지 않고 멈춘다.
+              이때 스킬은 감사를 대신 실행하지 않으며, <code>/harness-legacy-check</code> 를 먼저 돌리라고만 안내한다.
+            </p>
+          </article>
+
+          <article class="warn">
+            <h4>하네스 의존성</h4>
+            <p>
+              Step 4 는 Claude Code 의 <code>Workflow</code> 도구를, 병렬 적용은 서브에이전트 오케스트레이션을 전제한다.
+              다른 하네스에서는 해당 기능의 대응 도구를 <code>references/*-tools.md</code> 매핑에서 찾아야 하고,
+              metadata 상 non-Claude 하네스에서는 advisory-only 다.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        근거: <code>skills/harness-refactor/SKILL.md</code> ·
+        <code>references/classification-rules.md</code> ·
+        <code>references/workflow-template.md</code> ·
+        <code>references/help.md</code><br>
+        짝 스킬: <code>harness:harness-legacy-check</code> — 이 스킬의 입력인 감사 리포트를 생성한다.
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      if (dropdown) dropdown.classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
+    });
+
+    // === Theme icons (inline SVG — this repo forbids emoji) ===
+    var ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var ICON_SUN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="3.5" y1="3.5" x2="5.3" y2="5.3"/><line x1="18.7" y1="18.7" x2="20.5" y2="20.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="3.5" y1="20.5" x2="5.3" y2="18.7"/><line x1="18.7" y1="5.3" x2="20.5" y2="3.5"/></svg>';
+
+    // === Theme (class-based, OS detection on first visit) ===
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('viz-theme'); } catch (e) { savedTheme = null; }
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      var ic = document.getElementById('themeIcon');
+      var lb = document.getElementById('themeLabel');
+      if (ic) ic.innerHTML = (t === 'dark') ? ICON_MOON : ICON_SUN;
+      if (lb) lb.textContent = (t === 'dark') ? 'Dark' : 'Light';
+      try { localStorage.setItem('viz-theme', t); } catch (e) {}
+      currentTheme = t;
+      if (typeof onThemeChange === 'function') onThemeChange();
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, {
+          quality: 1, pixelRatio: 2,
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); }
+        });
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'harness-refactor-guide.png';
+        a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

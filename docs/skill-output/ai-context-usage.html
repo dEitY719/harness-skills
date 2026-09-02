@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ai-context 사용 결과 — AGENTS.md check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8a8a8a;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0f1115;
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #d97706;
+      --code-bg: #f4f4f5;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s; scrollbar-gutter: stable;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.12; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.4rem, 6.4vw, 3.3rem); }
+    h2 { font-weight: 700; font-size: clamp(1.6rem, 4vw, 2rem); }
+    h3 { font-weight: 600; font-size: 1.4rem; }
+    h4 { font-weight: 600; font-size: 1.02rem; }
+    p, li, td, th, span, label, dd, dt { font-weight: 400; color: var(--text); font-size: 1rem; }
+    .text-secondary { color: var(--text-secondary); }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; font-size: 0.9em; }
+    :not(pre) > code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+
+    .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 52px 0; border-top: 1px solid var(--border); }
+    .eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .lede { font-size: 1.1rem; color: var(--text-secondary); max-width: 70ch; margin-top: 14px; }
+
+    header.hero { padding: 72px 0 42px; }
+    .verdict {
+      display: inline-flex; align-items: center; gap: 10px; margin-top: 26px;
+      padding: 12px 20px; border-radius: 12px; font-weight: 700; font-size: 1.1rem;
+      background: color-mix(in srgb, var(--negative) 12%, transparent);
+      color: var(--negative); border: 1px solid color-mix(in srgb, var(--negative) 34%, transparent);
+    }
+    .pipe { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+    .pipe .node { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-weight: 600; font-size: 0.95rem; }
+    .pipe .node.hi { border-color: var(--accent); color: var(--accent); }
+    .pipe .arrow { color: var(--text-secondary); font-weight: 700; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: box-shadow 0.2s ease; }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 18px rgba(0,0,0,0.08); }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .stat .num { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; }
+    .stat .lbl { font-size: 0.86rem; color: var(--text-secondary); margin-top: 4px; }
+    .num.pass { color: var(--positive); } .num.warn { color: var(--warning); }
+    .num.fail { color: var(--negative); } .num.na { color: var(--text-secondary); }
+
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    table { border-collapse: collapse; width: 100%; min-width: 640px; }
+    th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    thead th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); font-weight: 700; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--surface-hover); }
+    tbody tr[hidden] { display: none; }
+    td.id { font-family: ui-monospace, Menlo, monospace; font-weight: 600; white-space: nowrap; }
+    .pill { display: inline-block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 999px; border: 1px solid; }
+    .pill.PASS { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 34%, transparent); background: color-mix(in srgb, var(--positive) 11%, transparent); }
+    .pill.WARN { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 34%, transparent); background: color-mix(in srgb, var(--warning) 11%, transparent); }
+    .pill.FAIL { color: var(--negative); border-color: color-mix(in srgb, var(--negative) 34%, transparent); background: color-mix(in srgb, var(--negative) 11%, transparent); }
+    .pill.NA { color: var(--text-secondary); border-color: var(--border); background: transparent; }
+
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+    .filters button {
+      font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      padding: 8px 15px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-secondary); transition: all 0.18s;
+    }
+    .filters button:hover { background: var(--surface-hover); color: var(--text); }
+    .filters button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+    .callout { border-left: 3px solid var(--negative); background: var(--surface); border-radius: 0 10px 10px 0; padding: 16px 20px; }
+    .callout.warn { border-left-color: var(--warning); }
+    .callout.note { border-left-color: var(--accent); }
+    .kv { display: grid; grid-template-columns: 108px 1fr; gap: 8px 16px; }
+    .kv dt { font-weight: 600; color: var(--text-secondary); font-size: 0.87rem; }
+    pre.block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.92rem; line-height: 1.8; }
+    footer { padding: 32px 0 56px; color: var(--text-secondary); font-size: 0.88rem; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; }
+    .animate.delay-2 { animation-delay: 0.2s; }
+    .animate.delay-3 { animation-delay: 0.3s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle { width: 44px; height: 44px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(12px); transition: all 0.2s; }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 196px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px); transition: all 0.2s;
+      backdrop-filter: blur(16px); box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button { width: 100%; padding: 10px 14px; border: none; border-radius: 8px; background: transparent; color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown button svg { width: 17px; height: 17px; flex: none; color: var(--text-secondary); }
+
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu, .filters { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      tbody tr[hidden] { display: table-row !important; }
+      .card { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+  </style>
+</head>
+<body>
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true" aria-expanded="false" id="vizMenuToggle">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" role="menuitem" aria-label="테마 전환"><span id="themeIcon" aria-hidden="true"></span><span id="themeLabel">Dark</span></button>
+      <button onclick="downloadImage()" role="menuitem" aria-label="PNG 내려받기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg><span>Download PNG</span>
+      </button>
+      <button onclick="window.print()" role="menuitem" aria-label="인쇄 또는 PDF 저장">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 8V3h8v5"/><rect x="3" y="8" width="14" height="6" rx="1.5"/><path d="M6 13h8v4H6z"/>
+        </svg><span>Print / PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+    <header class="hero">
+      <div class="wrap">
+        <div class="eyebrow animate">harness-skills · 실행 기록</div>
+        <h1 class="animate delay-1">ai-context 사용 결과</h1>
+        <p class="lede animate delay-2">
+          컨텍스트 파일 1개(<code>AGENTS.md</code>)를 받아 코어+어댑터 검사 판정표와
+          <code>[OK]</code>/<code>[FAIL]</code> 리포트 1건을 생성합니다.
+          아래는 이 저장소에서 실제로 수행한 <code>check</code> 1회의 결과입니다.
+        </p>
+        <div class="pipe animate delay-2">
+          <span class="node">AGENTS.md</span>
+          <span class="arrow" aria-hidden="true">──▶</span>
+          <span class="node hi">/harness:ai-context check</span>
+          <span class="arrow" aria-hidden="true">──▶</span>
+          <span class="node">판정표 + Verdict + Next</span>
+        </div>
+        <div class="verdict animate delay-3" role="status">Verdict: [FAIL] — 7/9 passed (1 warning)</div>
+      </div>
+    </header>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">1. 실행한 명령</div>
+        <h2>read-only 감사 1회</h2>
+        <pre class="block mono" style="margin-top:18px"><code>/harness:ai-context check AGENTS.md</code></pre>
+        <p class="text-secondary" style="margin-top:12px">
+          SKILL.md 의 Step 1~4 를 이 저장소에서 그대로 수행했다. <code>check</code> 는 read-only 라
+          대상 파일은 변경되지 않았다.
+        </p>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">2. 입력</div>
+        <h2>대상과 어댑터</h2>
+        <div class="grid grid-2" style="margin-top:22px">
+          <div class="card">
+            <h4>대상 파일</h4>
+            <dl class="kv" style="margin-top:12px">
+              <dt>경로</dt><dd><code>AGENTS.md</code> (저장소 루트)</dd>
+              <dt>실체</dt><dd><code>CLAUDE.md</code> 로의 심볼릭 링크</dd>
+              <dt>크기</dt><dd><span data-count="106">106</span> lines / 5,297 bytes</dd>
+              <dt>탐지</dt><dd>경로를 명시했으므로 자동 탐지(<code>CLAUDE.md</code> 우선)를 거치지 않았다</dd>
+            </dl>
+          </div>
+          <div class="card">
+            <h4>어댑터와 기준</h4>
+            <dl class="kv" style="margin-top:12px">
+              <dt>Kind</dt><dd>파일명에서 <code>agents</code> 로 결정</dd>
+              <dt>검사</dt><dd>코어 C1~C7 + A-AG1~A-AG4</dd>
+              <dt>Baseline</dt><dd><code>references/industry-baseline.md</code> 스냅샷 2026-05-11</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">3. 결과</div>
+        <h2>판정표</h2>
+        <div class="grid stats" style="margin:22px 0 26px">
+          <div class="card stat"><div class="num pass" data-count="7">7</div><div class="lbl">PASS</div></div>
+          <div class="card stat"><div class="num warn" data-count="1">1</div><div class="lbl">WARN — C3</div></div>
+          <div class="card stat"><div class="num fail" data-count="1">1</div><div class="lbl">FAIL — C2</div></div>
+          <div class="card stat"><div class="num na" data-count="2">2</div><div class="lbl">N/A — 집계 제외</div></div>
+        </div>
+
+        <div class="filters" role="group" aria-label="판정으로 거르기">
+          <button type="button" aria-pressed="true" onclick="filterRows('ALL', this)">전체 11</button>
+          <button type="button" aria-pressed="false" onclick="filterRows('PASS', this)">PASS</button>
+          <button type="button" aria-pressed="false" onclick="filterRows('WARN', this)">WARN</button>
+          <button type="button" aria-pressed="false" onclick="filterRows('FAIL', this)">FAIL</button>
+          <button type="button" aria-pressed="false" onclick="filterRows('NA', this)">N/A</button>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <caption class="text-secondary" style="text-align:left; padding:12px 16px; font-size:0.85rem">
+              File: AGENTS.md (symlink -&gt; CLAUDE.md) · Kind: agents · Baseline: 2026-05-11
+            </caption>
+            <thead>
+              <tr><th>#</th><th>Check</th><th>Result</th><th>Notes</th></tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr data-result="PASS"><td class="id">C1</td><td>Role / Purpose</td><td><span class="pill PASS">PASS</span></td><td>L1-5 역할 선언 + L7-27 "What this repo is"</td></tr>
+              <tr data-result="FAIL"><td class="id">C2</td><td>Operational Commands</td><td><span class="pill FAIL">FAIL</span></td><td>실행 가능한 명령 0개 (유일한 코드펜스 L35-45 는 레이아웃 목록)</td></tr>
+              <tr data-result="WARN"><td class="id">C3</td><td>Loading &amp; Scope Model</td><td><span class="pill WARN">WARN</span></td><td>L3-5 는 누가 읽는지만 명시, 로드 시점은 미기재</td></tr>
+              <tr data-result="PASS"><td class="id">C4</td><td>Modular References</td><td><span class="pill PASS">PASS</span></td><td>최대 인라인 블록 11줄, L58 이 references/ 로 위임</td></tr>
+              <tr data-result="PASS"><td class="id">C5</td><td>Naming Conventions</td><td><span class="pill PASS">PASS</span></td><td>L76-81 디렉터리명=identity, bare vs 네임스페이스</td></tr>
+              <tr data-result="PASS"><td class="id">C6</td><td>Constraints / Rules</td><td><span class="pill PASS">PASS</span></td><td>L74-93 Do/Don't 목록 + L104-106 No emojis</td></tr>
+              <tr data-result="PASS"><td class="id">C7</td><td>Size / Context Budget</td><td><span class="pill PASS">PASS</span></td><td>106 lines — 400 이하</td></tr>
+              <tr data-result="PASS"><td class="id">A-AG1</td><td>Discovery</td><td><span class="pill PASS">PASS</span></td><td>저장소 루트에 위치 — Codex 자동 탐색 경로</td></tr>
+              <tr data-result="NA"><td class="id">A-AG2</td><td>Override / fallback</td><td><span class="pill NA">N/A</span></td><td>중첩 AGENTS.md 없음 (루트 1개)</td></tr>
+              <tr data-result="PASS"><td class="id">A-AG3</td><td>Payload budget</td><td><span class="pill PASS">PASS</span></td><td>5,297 bytes 단일 파일</td></tr>
+              <tr data-result="NA"><td class="id">A-AG4</td><td>Context Map</td><td><span class="pill NA">N/A</span></td><td>중첩 없음 — Context Map 불필요</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:34px">Issues &amp; Improvements</h3>
+        <div class="grid grid-2" style="margin-top:14px">
+          <div class="callout">
+            <strong>FAIL: C2 — Operational Commands</strong>
+            <p class="text-secondary" style="margin-top:6px">setup / lint / test / build 어느 것도 없음 → 실행 가능한 명령 섹션 추가</p>
+          </div>
+          <div class="callout warn">
+            <strong>WARN: C3 — Loading &amp; Scope Model</strong>
+            <p class="text-secondary" style="margin-top:6px">"AGENTS.md is a symlink to it, so ... read the same text" → 로드 시점 명시</p>
+          </div>
+        </div>
+
+        <div class="callout note" style="margin-top:18px">
+          <strong>Next</strong>
+          <p class="text-secondary" style="margin-top:6px">최우선 FAIL(C2)을 고친 뒤 <code>harness:ai-context check</code> 재실행.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        판정 기준: <code>skills/ai-context/references/checks.md</code> ·
+        리포트 형식: <code>references/report-template.md</code> ·
+        근거 스냅샷: <code>references/industry-baseline.md</code> (2026-05-11)
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var toggle = document.getElementById('vizMenuToggle');
+      if (!dropdown) return;
+      var open = dropdown.classList.toggle('open');
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function closeMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var toggle = document.getElementById('vizMenuToggle');
+      if (dropdown) dropdown.classList.remove('open');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+    document.addEventListener('click', function(e) { if (!e.target.closest('.viz-menu')) closeMenu(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMenu(); });
+
+    var ICON_MOON = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 11.8A7 7 0 0 1 8.2 3.5a7 7 0 1 0 8.3 8.3z"/></svg>';
+    var ICON_SUN = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.6v2M10 16.4v2M1.6 10h2M16.4 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M15.9 4.1l-1.4 1.4M5.5 14.5l-1.4 1.4"/></svg>';
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('viz-theme'); } catch (err) { savedTheme = null; }
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      var icon = document.getElementById('themeIcon');
+      var label = document.getElementById('themeLabel');
+      if (icon) icon.innerHTML = t === 'dark' ? ICON_SUN : ICON_MOON;
+      if (label) label.textContent = t === 'dark' ? 'Light 로 전환' : 'Dark 로 전환';
+      try { localStorage.setItem('viz-theme', t); } catch (err) { /* storage blocked */ }
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Result filter ===
+    function filterRows(kind, btn) {
+      var buttons = document.querySelectorAll('.filters button');
+      buttons.forEach(function(b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+      document.querySelectorAll('#resultBody tr').forEach(function(tr) {
+        tr.hidden = !(kind === 'ALL' || tr.dataset.result === kind);
+      });
+    }
+
+    // === Scroll reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Number counters ===
+    function animateCounters() {
+      document.querySelectorAll('[data-count]').forEach(function(el) {
+        if (el.dataset.counted) return;
+        el.dataset.counted = '1';
+        var target = parseFloat(el.dataset.count), start = performance.now(), duration = 1000;
+        (function tick(now) {
+          var p = Math.min((now - start) / duration, 1), eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * eased).toLocaleString();
+          if (p < 1) requestAnimationFrame(tick);
+        })(start);
+      });
+    }
+    var counterEl = document.querySelector('[data-count]');
+    if (counterEl) {
+      var cObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { animateCounters(); cObs.disconnect(); } });
+      }, { threshold: 0.3 });
+      cObs.observe(counterEl);
+    }
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, {
+          quality: 1, pixelRatio: 2,
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); }
+        });
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'ai-context-usage.png';
+        a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

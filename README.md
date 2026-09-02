@@ -22,6 +22,17 @@ the [shared per-harness tool mappings](#shared-assets) and the
 `harness-legacy-check` and `harness-refactor` are a pair: run the check first,
 review its report, then run the refactor.
 
+### Visual guides and worked examples (GitHub Pages)
+
+- `ai-context` — [visual guide](https://deity719.github.io/harness-skills/skill-guides/ai-context.html) · [usage example](https://deity719.github.io/harness-skills/skill-output/ai-context-usage.html) (AI context doc to an audit verdict, a new file, or a split tree)
+- `harness-legacy-check` — [visual guide](https://deity719.github.io/harness-skills/skill-guides/harness-legacy-check.html) · [usage example](https://deity719.github.io/harness-skills/skill-output/harness-legacy-check-usage.html) (whole harness to one read-only audit report)
+- `harness-refactor` — [visual guide](https://deity719.github.io/harness-skills/skill-guides/harness-refactor.html) · [usage example](https://deity719.github.io/harness-skills/skill-output/harness-refactor-usage.html) (audit report to applied low-risk changes)
+- `dissect-builtin` — [visual guide](https://deity719.github.io/harness-skills/skill-guides/dissect-builtin.html) · [usage example](https://deity719.github.io/harness-skills/skill-output/dissect-builtin-usage.html) (built-in skill to Korean docs plus its verbatim prompt)
+- `plugin-guide` — [visual guide](https://deity719.github.io/harness-skills/skill-guides/plugin-guide.html) · [usage example](https://deity719.github.io/harness-skills/skill-output/plugin-guide-usage.html) (installed plugin to a Korean guide and an updated index)
+
+Each page is generated from a Markdown source under
+[`docs/skill-guides/`](docs/skill-guides) and [`docs/skill-output/`](docs/skill-output).
+
 ## Install
 
 ### Claude Code

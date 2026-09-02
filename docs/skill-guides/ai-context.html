@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ai-context — 스킬 설명서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES (class-based only) ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.08);
+      --text: #EDEDED; --text-secondary: #8a8a8a;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0f1115;
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #64748b;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #d97706;
+      --code-bg: #f4f4f5;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.12; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.6rem, 7vw, 3.6rem); }
+    h2 { font-weight: 700; font-size: clamp(1.7rem, 4vw, 2.1rem); }
+    h3 { font-weight: 600; font-size: 1.5rem; }
+    h4 { font-weight: 600; font-size: 1.05rem; }
+    p, li, td, th, span, label { font-weight: 400; color: var(--text); font-size: 1rem; }
+    .text-secondary { color: var(--text-secondary); }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; font-size: 0.9em; }
+    :not(pre) > code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+    a { color: var(--accent); }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: none; }
+    .eyebrow { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .lede { font-size: 1.12rem; color: var(--text-secondary); max-width: 68ch; margin-top: 14px; }
+
+    /* ===== HERO ===== */
+    header.hero { padding: 76px 0 44px; }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+    .badge {
+      font-size: 0.78rem; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    }
+    .badge.ok { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 35%, transparent); }
+    .badge.warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 18px rgba(0,0,0,0.08); }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+    /* ===== PIPELINE ===== */
+    .pipe { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+    .pipe .node {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 18px; font-weight: 600; font-size: 0.95rem;
+    }
+    .pipe .node.hi { border-color: var(--accent); color: var(--accent); }
+    .pipe .arrow { color: var(--text-secondary); font-weight: 700; }
+
+    /* ===== ROUTING ===== */
+    .route { display: flex; gap: 14px; align-items: flex-start; }
+    .route .tag {
+      flex: 0 0 auto; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+      padding: 4px 9px; border-radius: 6px; text-transform: uppercase;
+      background: color-mix(in srgb, var(--negative) 14%, transparent); color: var(--negative);
+      border: 1px solid color-mix(in srgb, var(--negative) 30%, transparent);
+    }
+    .route .tag.mine { background: color-mix(in srgb, var(--positive) 14%, transparent); color: var(--positive); border-color: color-mix(in srgb, var(--positive) 30%, transparent); }
+
+    /* ===== TABLE ===== */
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    table { border-collapse: collapse; width: 100%; min-width: 560px; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    thead th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); font-weight: 700; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--surface-hover); }
+
+    /* ===== STEPS ===== */
+    ol.steps { list-style: none; counter-reset: s; display: grid; gap: 14px; }
+    ol.steps > li { counter-increment: s; position: relative; padding-left: 56px; }
+    ol.steps > li::before {
+      content: counter(s); position: absolute; left: 0; top: 2px;
+      width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--surface); border: 1px solid var(--border);
+      font-weight: 700; color: var(--accent); font-size: 0.95rem;
+    }
+
+    /* ===== ACTION TABS ===== */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab {
+      font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      padding: 9px 16px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-secondary); transition: all 0.18s;
+    }
+    .tab:hover { background: var(--surface-hover); color: var(--text); }
+    .tab[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .panel[hidden] { display: none; }
+    .kv { display: grid; grid-template-columns: 132px 1fr; gap: 8px 16px; margin-top: 14px; }
+    .kv dt { font-weight: 600; color: var(--text-secondary); font-size: 0.88rem; }
+    .kv dd { font-size: 0.98rem; }
+
+    /* ===== CALLOUT ===== */
+    .callout { border-left: 3px solid var(--warning); background: var(--surface); border-radius: 0 10px 10px 0; padding: 16px 20px; }
+    .callout.stop { border-left-color: var(--negative); }
+    .callout.note { border-left-color: var(--accent); }
+    ul.tight { margin: 10px 0 0 18px; display: grid; gap: 7px; }
+
+    footer { padding: 34px 0 56px; color: var(--text-secondary); font-size: 0.88rem; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.1s; }
+    .animate.delay-2 { animation-delay: 0.2s; }
+    .animate.delay-3 { animation-delay: 0.3s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 196px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 14px; font-family: inherit;
+      cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown button svg { width: 17px; height: 17px; flex: none; color: var(--text-secondary); }
+    .viz-menu-dropdown svg { flex: 0 0 auto; }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .card { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      .panel[hidden] { display: block !important; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+  </style>
+</head>
+<body>
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true" aria-expanded="false" id="vizMenuToggle">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" role="menuitem" aria-label="테마 전환">
+        <span id="themeIcon" aria-hidden="true"></span><span id="themeLabel">Dark</span>
+      </button>
+      <button onclick="downloadImage()" role="menuitem" aria-label="PNG 내려받기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg><span>Download PNG</span>
+      </button>
+      <button onclick="window.print()" role="menuitem" aria-label="인쇄 또는 PDF 저장">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 8V3h8v5"/><rect x="3" y="8" width="14" height="6" rx="1.5"/><path d="M6 13h8v4H6z"/>
+        </svg><span>Print / PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+    <header class="hero">
+      <div class="wrap">
+        <div class="eyebrow animate">harness-skills · 스킬 설명서</div>
+        <h1 class="animate delay-1">ai-context</h1>
+        <p class="lede animate delay-2">
+          <code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>GEMINI.md</code> 한 개를 대상으로,
+          업계 기준(Codex · Claude Code · Gemini CLI 스펙) 대비 <strong>PASS/WARN/FAIL 판정표와
+          <code>[OK]</code> 또는 <code>[FAIL]</code> 판정이 붙은 리포트 1건</strong>을 산출한다.
+          <code>create</code> / <code>refactor</code> 로 부르면 리포트에 더해 컨텍스트 파일 자체를 쓴다 —
+          다만 쓰기 전에 항상 사용자 확인을 받는다.
+        </p>
+        <div class="pipe animate delay-3">
+          <span class="node">CLAUDE.md / AGENTS.md / GEMINI.md</span>
+          <span class="arrow" aria-hidden="true">──▶</span>
+          <span class="node hi">/harness:ai-context</span>
+          <span class="arrow" aria-hidden="true">──▶</span>
+          <span class="node">판정표 + Verdict + Next</span>
+        </div>
+        <div class="hero-badges animate delay-3">
+          <span class="badge ok">check — read-only</span>
+          <span class="badge warn">create / refactor — 확인 후 쓰기</span>
+          <span class="badge">기본 action: check</span>
+          <span class="badge">baseline 스냅샷 2026-05-11</span>
+        </div>
+      </div>
+    </header>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">경계</div>
+        <h2>언제 쓰고, 언제 다른 스킬로 가는가</h2>
+        <p class="lede">대상이 <strong>세션 시작 시 모델 컨텍스트로 자동 로드되는 파일</strong>일 때만 이 스킬이다. 나머지는 전부 형제 스킬의 몫이고, 그중 둘은 SKILL.md 에 명시된 라우팅 정지 조건이다.</p>
+        <div class="grid grid-2" style="margin-top:26px">
+          <article class="card">
+            <div class="route" style="margin-bottom:14px"><span class="tag mine">이 스킬</span><h4 style="margin-top:2px">컨텍스트 주입 파일 한 개</h4></div>
+            <ul class="tight">
+              <li><strong>check</strong>(기본) — 기존 파일이 기준에 맞는지 감사</li>
+              <li><strong>create</strong> — 프로젝트 규모에 맞는 템플릿에서 새로 작성</li>
+              <li><strong>refactor</strong> — 비대해진 파일을 중첩 파일로 분할</li>
+            </ul>
+            <p class="text-secondary" style="margin-top:14px; font-size:0.92rem">
+              삭제된 다섯 레거시 스킬(<code>agents-md:{check,create,refactor}</code>,
+              <code>claude-md-check</code>, <code>claude-md-create</code>)의 단일 진입점.
+              옛 명령은 <code>references/help.md</code> 의 마이그레이션 표에 매핑되어 있다.
+            </p>
+          </article>
+          <article class="card">
+            <h4 style="margin-bottom:14px">다른 스킬로 가는 경우</h4>
+            <div class="grid" style="gap:14px">
+              <div class="route">
+                <span class="tag">STOP</span>
+                <div><strong><code>SKILL.md</code> → <code>skill:check</code></strong><br>
+                <span class="text-secondary">마크다운에 프런트매터까지 있어 헷갈리지만 로딩 모델(트리거 기반)과 검사 항목이 완전히 다르다. 대상이 SKILL.md 면 실행하지 않고 안내 후 멈춘다.</span></div>
+              </div>
+              <div class="route">
+                <span class="tag">STOP</span>
+                <div><strong><code>*.sh</code> → <code>sh:check</code></strong><br>
+                <span class="text-secondary">마찬가지로 명시적 라우팅 정지 조건.</span></div>
+              </div>
+              <div class="route">
+                <span class="tag" style="background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); border-color:color-mix(in srgb, var(--accent) 30%, transparent)">넓게</span>
+                <div><strong><code>harness-legacy-check</code></strong><br>
+                <span class="text-secondary">한 파일이 아니라 하네스 전체(컨텍스트 문서 + 스킬 + 워크플로 + settings + 훅 + MCP)를 훑어 <code>.claude/reports/harness-legacy-check.md</code> 로 남기는 read-only 감사.</span></div>
+              </div>
+              <div class="route">
+                <span class="tag" style="background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); border-color:color-mix(in srgb, var(--accent) 30%, transparent)">고침</span>
+                <div><strong><code>harness-refactor</code></strong><br>
+                <span class="text-secondary">그 하네스 리포트의 저위험 항목을 실제로 고친다. 이름이 닮은 <code>ai-context refactor</code> 는 <em>컨텍스트 파일 한 개</em>만 분할한다 — 대상이 다르다.</span></div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">인터페이스</div>
+        <h2>호출 형식과 인자</h2>
+        <div class="card" style="margin-top:22px; background:var(--code-bg)">
+          <pre class="mono" style="overflow-x:auto; font-size:0.92rem; line-height:1.9"><code>/harness:ai-context [action] [path]
+/harness:ai-context [action] [--file PATH] [--type TYPE]
+/harness:ai-context -h | --help | help</code></pre>
+        </div>
+        <p class="text-secondary" style="margin:16px 0 20px">
+          <code>references/help.md</code> 가 1차 근거다. 위치 인자는 <code>[action] [path]</code> 순이며,
+          알 수 없는 action 이 오면 help 를 출력하고 멈춘다.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <caption class="text-secondary" style="text-align:left; padding:12px 16px; font-size:0.85rem">인자 / 플래그 — 근거: references/help.md</caption>
+            <thead>
+              <tr><th>인자 / 플래그</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>action</code></td><td><code>check</code></td><td><code>check</code> / <code>create</code> / <code>refactor</code> / <code>help</code> 중 하나</td></tr>
+              <tr><td><code>path</code></td><td>자동 탐지</td><td>대상 파일 경로를 직접 지정</td></tr>
+              <tr><td><code>--file PATH</code></td><td>—</td><td>위치 인자 <code>path</code> 와 같되 <strong>우선한다</strong></td></tr>
+              <tr><td><code>--type TYPE</code></td><td>파일명에서 유추</td><td>어댑터 강제: <code>agents</code> / <code>claude</code> / <code>gemini</code></td></tr>
+              <tr><td><code>-h</code> / <code>--help</code> / <code>help</code></td><td>—</td><td><code>references/help.md</code> 를 그대로 출력하고 중단</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid grid-2" style="margin-top:20px">
+          <div class="card">
+            <h4>자동 탐지와 타입 매핑</h4>
+            <p class="text-secondary" style="margin-top:8px">
+              cwd 기준 우선순위는 <code>CLAUDE.md</code> → <code>AGENTS.md</code> → <code>GEMINI.md</code>.
+              파일명 → 타입은 <code>CLAUDE.md</code>→claude, <code>AGENTS.md</code>→agents,
+              <code>GEMINI.md</code>→gemini 이고, 비표준 파일명은 <code>--type</code> 으로 덮어쓴다.
+            </p>
+          </div>
+          <div class="card">
+            <h4>예시</h4>
+            <ul class="tight" style="font-size:0.95rem">
+              <li><code>/harness:ai-context</code> — 자동 탐지 후 check. 파일이 하나뿐일 때만 권장</li>
+              <li><code>/harness:ai-context check AGENTS.md</code> — <code>CLAUDE.md</code> 도 있을 때 대상 명시</li>
+              <li><code>/harness:ai-context check --file ./docs/AGENTS.md</code> — 루트 밖 경로 감사</li>
+              <li><code>/harness:ai-context create --type agents</code> — 새 AGENTS.md 작성 흐름</li>
+              <li><code>/harness:ai-context refactor</code> — 분할 계획 제시 후 확인받아 실행</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">동작</div>
+        <h2>네 단계, 그리고 액션별 분기</h2>
+        <ol class="steps" style="margin-top:24px">
+          <li>
+            <h4>인자 파싱</h4>
+            <p class="text-secondary"><code>$1</code> 이 <code>-h</code> / <code>--help</code> / <code>help</code> 면 <code>references/help.md</code> 를 그대로 출력하고 즉시 멈춘다. 이때는 다른 파일을 전혀 읽지 않는다.</p>
+          </li>
+          <li>
+            <h4>대상 파일 결정</h4>
+            <p class="text-secondary"><code>--file</code>(또는 위치 인자)이 있으면 그것을, 없으면 우선순위대로 자동 탐지. 파일이 여러 개면 <code>check</code> 는 최상위 하나만 감사하고 나머지는 WARN, <code>create</code> / <code>refactor</code> 는 후보를 출력하고 사용자에게 묻는다 — 자동으로 고르지 않는다. 하나도 없으면 <code>check</code> / <code>refactor</code> 는 <code>harness:ai-context create</code> 힌트와 함께 중단.</p>
+          </li>
+          <li>
+            <h4>액션별 분기 <span class="text-secondary" style="font-weight:400; font-size:0.9rem">— 탭을 눌러 확인</span></h4>
+            <div style="margin-top:14px">
+              <div class="tabs" role="tablist" aria-label="액션별 동작">
+                <button class="tab" role="tab" id="tab-check" aria-controls="panel-check" aria-selected="true" onclick="selectTab('check')">check</button>
+                <button class="tab" role="tab" id="tab-create" aria-controls="panel-create" aria-selected="false" onclick="selectTab('create')">create</button>
+                <button class="tab" role="tab" id="tab-refactor" aria-controls="panel-refactor" aria-selected="false" onclick="selectTab('refactor')">refactor</button>
+              </div>
+              <div class="card panel" id="panel-check" role="tabpanel" aria-labelledby="tab-check">
+                <p><strong>read-only.</strong> <code>references/checks.md</code> 의 코어 검사 C1~C7 에 더해 타입별 어댑터 검사를 돌리고, 각 판정에 근거가 된 라인을 인용한다. 파일은 절대 건드리지 않는다.</p>
+                <dl class="kv">
+                  <dt>코어 C1~C7</dt><dd>Role/Purpose · Operational Commands · Loading &amp; Scope Model · Modular References · Naming Conventions · Constraints · Size</dd>
+                  <dt>agents</dt><dd>A-AG1~4 — Discovery · Override/fallback · Payload budget · Context Map</dd>
+                  <dt>claude</dt><dd>A-CL1~4 — Reference-by-path · Permission Control · Thin Orchestrator · Local+rules layout</dd>
+                  <dt>gemini</dt><dd>A-GE1~3 — Hierarchy · <code>/memory</code>·imports · <code>.geminiignore</code></dd>
+                </dl>
+              </div>
+              <div class="card panel" id="panel-create" role="tabpanel" aria-labelledby="tab-create" hidden>
+                <p><strong>확인 후 쓰기.</strong> Phase 0 디스커버리로 규모를 분류하고, <code>references/templates/</code> 에서 템플릿을 읽어 채운 뒤 <strong>계획을 제시해 확인을 받고서야</strong> 쓴다.</p>
+                <dl class="kv">
+                  <dt>agents</dt><dd>프로젝트 크기 — small(&lt;20 파일) / medium(20~100, 2~3 도메인) / large(100+, 다중 서비스)</dd>
+                  <dt>claude</dt><dd>에이전트 수 — simple(1~2) / standard(3~6) / large(7+)</dd>
+                  <dt>gemini</dt><dd>아직 템플릿 없음 — 가장 가까운 agents 템플릿을 수동 편집 힌트와 함께 제안</dd>
+                </dl>
+              </div>
+              <div class="card panel" id="panel-refactor" role="tabpanel" aria-labelledby="tab-refactor" hidden>
+                <p><strong>확인 후 쓰기.</strong> 기존 파일을 읽어 중첩 파일로 옮겨야 할 인라인 블록·섹션을 목록화하고, 분할 계획을 제시해 <strong>확인을 받은 뒤</strong> 섹션을 추출하고 루트 파일을 얇게 만든다. 완료 후 권장 다음 행동은 <code>harness:ai-context check</code> 재실행과 중첩 파일 로드 확인이다.</p>
+              </div>
+            </div>
+          </li>
+          <li>
+            <h4>리포트</h4>
+            <p class="text-secondary">액션이 무엇이든 <code>references/report-template.md</code> 형식으로 출력한다 — 헤더(File / Kind / Baseline 스냅샷 날짜), 검사 결과 표, <code>Verdict</code>, WARN·FAIL 만 담는 <code>Issues &amp; Improvements</code>, 마지막의 <code>Next:</code> 줄.</p>
+            <div class="grid grid-3" style="margin-top:14px">
+              <div class="card" style="padding:16px"><strong style="color:var(--positive)">전부 PASS</strong><br><span class="text-secondary">[OK]</span></div>
+              <div class="card" style="padding:16px"><strong style="color:var(--warning)">WARN 만</strong><br><span class="text-secondary">[OK] — 경고 개수를 표면에 노출</span></div>
+              <div class="card" style="padding:16px"><strong style="color:var(--negative)">FAIL 하나라도</strong><br><span class="text-secondary">[FAIL]</span></div>
+            </div>
+            <p class="text-secondary" style="margin-top:12px; font-size:0.92rem"><code>N/A</code> 는 집계에서 제외한다.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section data-reveal>
+      <div class="wrap">
+        <div class="eyebrow">제약</div>
+        <h2>주의사항과 안전 계약</h2>
+        <div class="grid grid-2" style="margin-top:24px">
+          <div class="card">
+            <h4>절대 하지 않는 것</h4>
+            <ul class="tight">
+              <li><strong>check 는 감사 전용</strong> — 어떤 경우에도 대상 파일을 수정하지 않는다.</li>
+              <li><strong>create / refactor 는 덮어쓰기 전 항상 확인</strong> — 계획을 먼저 제시하고, 동의 전에는 쓰지 않는다.</li>
+              <li><strong>컨텍스트 파일이 여러 개일 때 자동 덮어쓰기는 절대 허용되지 않는다.</strong> <code>CLAUDE.md</code> 와 <code>AGENTS.md</code> 가 공존하는 흔한 상황에서, 어느 쪽을 손댈지는 기계가 아니라 사람이 정한다.</li>
+              <li><code>SKILL.md</code> / <code>*.sh</code> 에는 실행하지 않고 라우팅 후 멈춘다.</li>
+              <li><code>--file</code> / <code>--type</code> 오버라이드는 자동 탐지보다 항상 우선한다.</li>
+            </ul>
+          </div>
+          <div class="grid" style="gap:16px; align-content:start">
+            <div class="callout stop">
+              <strong>멈추는 조건</strong>
+              <p class="text-secondary" style="margin-top:6px">대상 파일이 없는데 action 이 check/refactor · 파일이 여러 개인데 action 이 create/refactor · 대상을 읽을 수 없음(원인 에러와 함께 중단) · 위의 두 라우팅 조건. Step 1~3 이 라우팅 정지나 help 출력이 <em>아닌</em> 진짜 이유로 실패하면 리포트 템플릿에 <code>Verdict=[FAIL]</code> 로 기록하고 멈춘다 — 조용히 넘어가지 않는다.</p>
+            </div>
+            <div class="callout note">
+              <strong>근거의 출처</strong>
+              <p class="text-secondary" style="margin-top:6px">어댑터 검사의 판정 근거는 지어내지 않고 <code>references/industry-baseline.md</code> 를 인용한다. Codex · Claude Code · Gemini CLI 공식 문서의 스냅샷이며 <strong>스냅샷 날짜</strong>(현재 2026-05-11)를 함께 들고 있다. 리포트 헤더의 <code>Baseline:</code> 이 그 날짜를 그대로 노출하므로 어떤 시점의 스펙으로 판정됐는지 되짚을 수 있다.</p>
+            </div>
+            <div class="callout">
+              <strong>자동 탐지의 함정</strong>
+              <p class="text-secondary" style="margin-top:6px">우선순위가 <code>CLAUDE.md</code> 부터라서, <code>AGENTS.md</code> 를 감사하려는 저장소에 <code>CLAUDE.md</code> 가 함께 있으면 인자 없는 호출은 <code>CLAUDE.md</code> 를 잡는다. <code>AGENTS.md</code> 가 <code>CLAUDE.md</code> 를 가리키는 심볼릭 링크인 흔한 배치에서는 결과가 같아 보이지만, 그때도 리포트의 <code>Kind:</code> 는 달라진다(agents 어댑터 vs claude 어댑터). 어느 파일을 어느 어댑터로 볼지 확정하려면 경로를 명시하라.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        출처: <code>skills/ai-context/SKILL.md</code> 및 <code>references/{help,checks,report-template,industry-baseline}.md</code> ·
+        harness-skills — 이 문서는 저장소 규칙에 따라 이모지를 쓰지 않는다.
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var toggle = document.getElementById('vizMenuToggle');
+      if (!dropdown) return;
+      var open = dropdown.classList.toggle('open');
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function closeMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var toggle = document.getElementById('vizMenuToggle');
+      if (dropdown) dropdown.classList.remove('open');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+    document.addEventListener('click', function(e) { if (!e.target.closest('.viz-menu')) closeMenu(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMenu(); });
+
+    // === Theme (class-based, inline SVG icons — no emoji) ===
+    var ICON_MOON = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 11.8A7 7 0 0 1 8.2 3.5a7 7 0 1 0 8.3 8.3z"/></svg>';
+    var ICON_SUN = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.6v2M10 16.4v2M1.6 10h2M16.4 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M15.9 4.1l-1.4 1.4M5.5 14.5l-1.4 1.4"/></svg>';
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('viz-theme'); } catch (err) { savedTheme = null; }
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      var icon = document.getElementById('themeIcon');
+      var label = document.getElementById('themeLabel');
+      if (icon) icon.innerHTML = t === 'dark' ? ICON_SUN : ICON_MOON;
+      if (label) label.textContent = t === 'dark' ? 'Light 로 전환' : 'Dark 로 전환';
+      try { localStorage.setItem('viz-theme', t); } catch (err) { /* storage blocked */ }
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Action tabs ===
+    var TAB_IDS = ['check', 'create', 'refactor'];
+    function selectTab(name) {
+      TAB_IDS.forEach(function(id) {
+        var tab = document.getElementById('tab-' + id);
+        var panel = document.getElementById('panel-' + id);
+        if (tab) tab.setAttribute('aria-selected', id === name ? 'true' : 'false');
+        if (panel) panel.hidden = (id !== name);
+      });
+    }
+
+    // === Scroll reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, {
+          quality: 1, pixelRatio: 2,
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); }
+        });
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'ai-context-guide.png';
+        a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>

@@ -142,7 +142,7 @@
 
       <div class="warn">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-        <span>형제 플러그인과 달리 이 저장소는 <strong>스킬별 설명서 &middot; 사용 예시 페이지를 아직 발행하지 않았고</strong>, 아래 카드의 링크는 각 스킬의 <code>SKILL.md</code> 원본으로 바로 연결됩니다.</span>
+        <span><strong>5개 중 4개는 이 저장소 밖을 바꿉니다</strong> &mdash; 사용자 하네스의 <code>.claude/reports/</code>, dotfiles 의 <code>claude/built-in-skills/</code> 와 플러그인 인덱스가 그 대상입니다. 그래서 그 4개의 사용 예시 문서는 <strong>미실행 예시</strong>이며, 명령과 게이트는 각 <code>SKILL.md</code> 인용입니다. 읽기 전용인 <code>ai-context check</code> 하나만 실제 실행 기록입니다.</span>
       </div>
     </header>
 
@@ -154,7 +154,8 @@
         <code class="inv">/harness:ai-context [check|create|refactor] [path]</code>
         <p><code>CLAUDE.md</code> &middot; <code>AGENTS.md</code> &middot; <code>GEMINI.md</code> 한 벌을 감사하거나(<code>check</code>), 프로젝트 규모에 맞는 템플릿으로 새로 쓰거나(<code>create</code>), 비대해진 파일을 중첩 파일로 쪼갠다(<code>refactor</code>). <strong>check 는 파일을 수정하지 않고</strong>, create 와 refactor 는 계획을 보여준 뒤 확인을 받고서야 쓴다.</p>
         <div class="links">
-          <a href="https://github.com/dEitY719/harness-skills/blob/main/skills/ai-context/SKILL.md"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>SKILL.md</span></a>
+          <a href="skill-guides/ai-context.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>설명서</span></a>
+          <a class="usage" href="skill-output/ai-context-usage.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v12H4z"/><path d="M2 20h20M10 9l4 2-4 2z"/></svg><span>사용 예시</span></a>
         </div>
       </article>
       <article class="card" data-reveal>
@@ -162,7 +163,8 @@
         <code class="inv">/harness:harness-legacy-check</code>
         <p>컨텍스트 문서 &middot; 스킬 &middot; 워크플로우 &middot; settings &middot; hooks &middot; MCP 를 훑어 <code>.claude/reports/harness-legacy-check.md</code> 에 리포트 1건을 남긴다. <strong>읽기 전용</strong> &mdash; 어떤 파일도 고치거나 지우지 않는다.</p>
         <div class="links">
-          <a href="https://github.com/dEitY719/harness-skills/blob/main/skills/harness-legacy-check/SKILL.md"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>SKILL.md</span></a>
+          <a href="skill-guides/harness-legacy-check.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>설명서</span></a>
+          <a class="usage" href="skill-output/harness-legacy-check-usage.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v12H4z"/><path d="M2 20h20M10 9l4 2-4 2z"/></svg><span>사용 예시</span></a>
         </div>
       </article>
       <article class="card" data-reveal>
@@ -170,7 +172,8 @@
         <code class="inv">/harness:harness-refactor</code>
         <p>그 리포트를 읽어 항목을 위험도로 분류하고, <strong>low-risk 만</strong> 골라 <code>claude/workflows/harness-refactor.js</code> 를 새로 생성한 뒤 실행한다. 위험한 항목은 적용하지 않고 Final Report 의 "Human Approval Required" 섹션에만 기록된다.</p>
         <div class="links">
-          <a href="https://github.com/dEitY719/harness-skills/blob/main/skills/harness-refactor/SKILL.md"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>SKILL.md</span></a>
+          <a href="skill-guides/harness-refactor.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>설명서</span></a>
+          <a class="usage" href="skill-output/harness-refactor-usage.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v12H4z"/><path d="M2 20h20M10 9l4 2-4 2z"/></svg><span>사용 예시</span></a>
         </div>
       </article>
       <article class="card" data-reveal>
@@ -178,7 +181,8 @@
         <code class="inv">/harness:dissect-builtin &lt;skill-name&gt;</code>
         <p>Claude Code 내장 스킬 하나를 불러와 <code>claude/built-in-skills/&lt;name&gt;/</code> 아래에 한국어 해설 <code>README.md</code> 와 원문 <code>PROMPT.md</code> 를 쓴다. <strong>PROMPT.md 는 요약도 번역도 재구성도 하지 않은 정확한 사본</strong>이다.</p>
         <div class="links">
-          <a href="https://github.com/dEitY719/harness-skills/blob/main/skills/dissect-builtin/SKILL.md"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>SKILL.md</span></a>
+          <a href="skill-guides/dissect-builtin.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>설명서</span></a>
+          <a class="usage" href="skill-output/dissect-builtin-usage.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v12H4z"/><path d="M2 20h20M10 9l4 2-4 2z"/></svg><span>사용 예시</span></a>
         </div>
       </article>
       <article class="card" data-reveal>
@@ -186,7 +190,8 @@
         <code class="inv">/harness:plugin-guide &lt;plugin&gt;[@&lt;marketplace&gt;] [--force]</code>
         <p>이미 설치된 플러그인의 캐시된 <code>SKILL.md</code> 들을 읽어 한국어 가이드 <code>docs/guide/plugins/&lt;plugin&gt;.md</code> 를 쓰고 인덱스에 한 줄을 끼워 넣는다. <strong>플러그인을 설치하지 않고 커밋도 하지 않으며</strong>, 문서가 이미 있으면 <code>--force</code> 없이는 건드리지 않는다.</p>
         <div class="links">
-          <a href="https://github.com/dEitY719/harness-skills/blob/main/skills/plugin-guide/SKILL.md"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>SKILL.md</span></a>
+          <a href="skill-guides/plugin-guide.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span>설명서</span></a>
+          <a class="usage" href="skill-output/plugin-guide-usage.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v12H4z"/><path d="M2 20h20M10 9l4 2-4 2z"/></svg><span>사용 예시</span></a>
         </div>
       </article>
       </div>
@@ -220,7 +225,7 @@
 
     <footer class="site">
       소스: <a href="https://github.com/dEitY719/harness-skills">dEitY719/harness-skills</a> &middot;
-      이 페이지는 저장소의 <code>README.md</code> 와 <code>skills/*/SKILL.md</code> 를 근거로 작성했습니다. 스킬별 설명서와 사용 예시 페이지는 아직 없습니다.
+      각 페이지는 <code>docs/skill-guides/</code> 와 <code>docs/skill-output/</code> 의 Markdown 원본에서 생성됩니다.
     </footer>
   </main>
 

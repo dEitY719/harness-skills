@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dissect-builtin — 스킬 설명서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { interpolate-size: allow-keywords; }
+
+    /* ===== THEMES ===== */
+    html.theme-dark {
+      --bg: #0A0A0A; --surface: #141414; --surface-hover: #1C1C1C;
+      --border: rgba(255,255,255,0.07);
+      --text: #EDEDED; --text-secondary: #8b8b8b;
+      --accent: #3b82f6; --accent-secondary: #8b5cf6;
+      --positive: #10b981; --negative: #f43f5e; --warning: #f59e0b;
+      --code-bg: #0f0f0f;
+    }
+    html.theme-light {
+      --bg: #FAFAF9; --surface: #FFFFFF; --surface-hover: #F5F5F4;
+      --border: rgba(0,0,0,0.09);
+      --text: #0f172a; --text-secondary: #5b6472;
+      --accent: #2563eb; --accent-secondary: #7c3aed;
+      --positive: #059669; --negative: #e11d48; --warning: #d97706;
+      --code-bg: #F4F4F2;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+      transition: background 0.3s, color 0.3s;
+      scrollbar-gutter: stable;
+    }
+    h1,h2,h3,h4 { color: var(--text); letter-spacing: -0.03em; line-height: 1.15; text-wrap: balance; }
+    h1 { font-weight: 800; font-size: clamp(2.6rem, 6vw, 3.6rem); }
+    h2 { font-weight: 700; font-size: clamp(1.8rem, 4vw, 2.15rem); }
+    h3 { font-weight: 600; font-size: 1.5rem; }
+    h4 { font-weight: 600; font-size: 1.05rem; }
+    p, li, td, th, span, label { color: var(--text); font-weight: 400; font-size: 1rem; }
+    .text-secondary { color: var(--text-secondary); }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+    code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 0.88em; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; overflow-x: auto; font-size: 0.9rem; line-height: 1.75; }
+    pre code { background: none; border: none; padding: 0; font-size: inherit; }
+    a { color: var(--accent); }
+
+    /* ===== LAYOUT ===== */
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: none; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent);
+      border: 1px solid var(--border); background: var(--surface);
+      border-radius: 999px; padding: 6px 14px; margin-bottom: 18px;
+    }
+    .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
+    .sec-num {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600;
+      color: var(--accent); border: 1px solid var(--border); background: var(--surface);
+      border-radius: 6px; padding: 3px 9px;
+    }
+
+    /* ===== HERO ===== */
+    header.hero { padding: 84px 0 56px; }
+    .hero-sub {
+      font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--text-secondary);
+      max-width: 62ch; margin-top: 22px; line-height: 1.7;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 600; }
+    .pipeline {
+      display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap;
+      margin-top: 36px;
+    }
+    .pipe-node {
+      flex: 1 1 220px; min-width: 220px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .pipe-node .k { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; }
+    .pipe-node .v { margin-top: 7px; font-weight: 600; font-size: 0.98rem; }
+    .pipe-node .v .mono { font-size: 0.9rem; }
+    .pipe-node.is-cmd { border-color: var(--accent); }
+    .pipe-arrow {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); font-size: 1.5rem; font-weight: 600; min-width: 24px;
+    }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 18px rgba(0,0,0,0.10); }
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+    .card h4 { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+    .dot.use { background: var(--positive); }
+    .dot.no { background: var(--negative); }
+    .dot.warn { background: var(--warning); }
+    .card p { color: var(--text-secondary); font-size: 0.95rem; }
+    .card p + p { margin-top: 10px; }
+    .card strong, .card code { color: var(--text); }
+
+    ul.clean { list-style: none; display: grid; gap: 12px; }
+    ul.clean li { position: relative; padding-left: 22px; color: var(--text-secondary); font-size: 0.95rem; }
+    ul.clean li::before {
+      content: ""; position: absolute; left: 3px; top: 0.62em;
+      width: 7px; height: 7px; border-radius: 2px; background: var(--accent);
+    }
+    ul.clean li strong, ul.clean li code { color: var(--text); }
+
+    /* ===== TABLE ===== */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; min-width: 520px; }
+    th, td { text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--border); font-size: 0.94rem; vertical-align: top; }
+    th { font-weight: 600; font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { white-space: nowrap; }
+
+    /* ===== STEPS ===== */
+    .steps { display: grid; gap: 14px; counter-reset: step; }
+    .step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 22px 24px 22px 24px;
+      position: relative; border-left: 3px solid var(--accent);
+      transition: box-shadow 0.2s ease;
+    }
+    .step:hover { box-shadow: 0 0 0 1px var(--border), 0 8px 18px rgba(0,0,0,0.10); }
+    .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .step-n {
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.78rem;
+      color: var(--bg); background: var(--accent); border-radius: 6px; padding: 3px 9px;
+    }
+    .step-t { font-weight: 600; font-size: 1.08rem; }
+    .step p { color: var(--text-secondary); font-size: 0.95rem; }
+    .step p + p, .step .table-wrap, .step ul.clean, .step pre { margin-top: 14px; }
+    .step strong, .step code { color: var(--text); }
+
+    /* ===== CALLOUT ===== */
+    .callout {
+      border: 1px solid var(--border); border-left: 3px solid var(--warning);
+      background: var(--surface); border-radius: 12px; padding: 22px 24px;
+    }
+    .callout.danger { border-left-color: var(--negative); }
+    .callout.info { border-left-color: var(--accent); }
+    .callout h4 { margin-bottom: 10px; }
+    .callout p { color: var(--text-secondary); font-size: 0.95rem; }
+    .callout p + p { margin-top: 10px; }
+    .callout strong, .callout code { color: var(--text); }
+
+    /* ===== VERDICT BLOCKS ===== */
+    .verdicts { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .verdict { border-radius: 12px; border: 1px solid var(--border); overflow: hidden; background: var(--surface); }
+    .verdict-h { padding: 12px 18px; font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.86rem; border-bottom: 1px solid var(--border); }
+    .verdict.ok .verdict-h { color: var(--positive); }
+    .verdict.fail .verdict-h { color: var(--negative); }
+    .verdict pre { border: none; border-radius: 0; background: var(--code-bg); }
+
+    /* ===== FOOTER ===== */
+    footer { padding: 44px 0 64px; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 0.88rem; }
+    footer .mono { font-size: 0.84rem; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease-out both; }
+    .animate.delay-1 { animation-delay: 0.08s; }
+    .animate.delay-2 { animation-delay: 0.16s; }
+    .animate.delay-3 { animation-delay: 0.24s; }
+    .animate.delay-4 { animation-delay: 0.32s; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white !important; color: black !important; }
+      .viz-menu { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .card, .step, .callout, .verdict { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+      section { padding: 24px 0; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+    @page { margin: 1in; }
+
+    /* ===== MENU ===== */
+    .viz-menu { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .viz-menu-toggle {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(12px); transition: all 0.2s;
+    }
+    .viz-menu-toggle:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown {
+      position: absolute; top: 52px; right: 0; min-width: 208px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all 0.2s; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    }
+    .viz-menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .viz-menu-dropdown button {
+      width: 100%; padding: 10px 14px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text); font-size: 0.9rem;
+      font-family: inherit; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 10px; transition: background 0.15s;
+    }
+    .viz-menu-dropdown button:hover { background: var(--surface-hover); }
+    .viz-menu-dropdown button svg { flex: 0 0 auto; }
+
+    .skip-to-content {
+      position: absolute; top: -40px; left: 6px; background: var(--accent);
+      color: #fff; padding: 8px 12px; text-decoration: none;
+      border-radius: 4px; opacity: 0; pointer-events: none;
+      transition: all 0.2s; z-index: 10000;
+    }
+    .skip-to-content:focus { top: 6px; opacity: 1; pointer-events: auto; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-to-content">본문으로 건너뛰기</a>
+
+  <!-- MENU -->
+  <div class="viz-menu">
+    <button class="viz-menu-toggle" onclick="toggleMenu()" aria-label="메뉴 열기" aria-haspopup="true" aria-expanded="false" id="vizMenuToggle">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div class="viz-menu-dropdown" id="vizMenuDropdown" role="menu">
+      <button onclick="cycleTheme()" role="menuitem" aria-label="테마 전환">
+        <svg id="iconMoon" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9z"/>
+        </svg>
+        <svg id="iconSun" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" hidden>
+          <circle cx="10" cy="10" r="3.6"/>
+          <path d="M10 1.6v2.1M10 16.3v2.1M3.6 3.6l1.5 1.5M14.9 14.9l1.5 1.5M1.6 10h2.1M16.3 10h2.1M3.6 16.4l1.5-1.5M14.9 5.1l1.5-1.5"/>
+        </svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+      <button onclick="downloadImage()" role="menuitem" aria-label="PNG 저장">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 2.6v9.4"/><path d="M6.2 8.4 10 12.2l3.8-3.8"/><path d="M3.2 14.2v1.8a1.4 1.4 0 0 0 1.4 1.4h10.8a1.4 1.4 0 0 0 1.4-1.4v-1.8"/>
+        </svg>
+        <span>Download PNG</span>
+      </button>
+      <button onclick="window.print()" role="menuitem" aria-label="인쇄 또는 PDF 저장">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5.5 7.5V2.8h9v4.7"/><rect x="2.6" y="7.5" width="14.8" height="6.2" rx="1.4"/><rect x="5.5" y="12.2" width="9" height="5" rx="1"/>
+        </svg>
+        <span>Print / PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <main id="main-content" role="main">
+    <div class="wrap">
+
+      <!-- HERO -->
+      <header class="hero">
+        <div class="eyebrow animate">harness plugin &middot; skill guide</div>
+        <h1 class="animate delay-1">dissect-builtin</h1>
+        <p class="hero-sub animate delay-2">
+          Claude Code <strong>내장 스킬 1개</strong>의 프롬프트를 Skill 도구로 불러와 해부하고,
+          <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 아래에 한국어 분석
+          <strong>README.md</strong> 와 원문 그대로의 <strong>PROMPT.md</strong> 두 파일을 남긴다.
+        </p>
+        <div class="pipeline animate delay-3">
+          <div class="pipe-node">
+            <div class="k">입력</div>
+            <div class="v">내장 스킬 이름 <span class="mono">&lt;skill-name&gt;</span></div>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">&rarr;</div>
+          <div class="pipe-node is-cmd">
+            <div class="k">실행</div>
+            <div class="v mono">/harness:dissect-builtin</div>
+          </div>
+          <div class="pipe-arrow" aria-hidden="true">&rarr;</div>
+          <div class="pipe-node">
+            <div class="k">산출물</div>
+            <div class="v"><span class="mono">README.md</span> + <span class="mono">PROMPT.md</span></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- 1. 언제 쓰는가 -->
+      <section data-reveal aria-labelledby="s-when">
+        <div class="sec-head">
+          <span class="sec-num">01</span>
+          <h2 id="s-when">언제 쓰고 언제 안 쓰는가</h2>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:16px">
+          <article class="card">
+            <h4><span class="dot use" aria-hidden="true"></span>쓸 때</h4>
+            <p>
+              내장 스킬(<code>simplify</code>, <code>loop</code>, <code>code-review</code> 등)이 실제로
+              무엇을 시키는지 알아야 할 때. 프롬프트 원문을 손으로 옮겨 적는 대신, 원문 사본
+              <code>PROMPT.md</code> 와 한국어 구조 분석 <code>README.md</code> 를 한 번에 만들어 둔다.
+            </p>
+            <p>
+              내장 스킬은 하네스 업데이트마다 조용히 바뀌므로, 이 스킬의 산출물은
+              <strong>"그 시점의 프롬프트"를 고정한 스냅샷</strong> 역할도 한다.
+            </p>
+          </article>
+          <article class="card">
+            <h4><span class="dot warn" aria-hidden="true"></span>대상이 내장 스킬이 아니면</h4>
+            <p>
+              Step 1 의 Skill 로드가 실패한다. 그때는 억지로 진행하지 않고 사용자에게 알린 뒤
+              대안을 제시하고 멈춘다.
+            </p>
+            <p>
+              이 스킬은 <strong>남의 스킬을 읽어 기록할 뿐</strong>, 대상 스킬을 고치지 않는다.
+            </p>
+          </article>
+        </div>
+
+        <h3 style="font-size:1.15rem; margin:26px 0 14px">안 쓸 때 &mdash; 형제 스킬로 가는 경계</h3>
+        <div class="grid grid-2">
+          <article class="card">
+            <h4><span class="dot no" aria-hidden="true"></span><code>/harness:plugin-guide</code></h4>
+            <p>
+              대상이 내장 스킬이 아니라 <strong>설치된 플러그인</strong>일 때. 캐시된
+              <code>SKILL.md</code> 들을 파싱해 <code>docs/guide/plugins/&lt;PLUGIN&gt;.md</code> 를 쓰고
+              플러그인 인덱스까지 갱신한다. 이 스킬은 스킬 <strong>1개</strong>의 프롬프트만 다루고
+              인덱스를 건드리지 않는다.
+            </p>
+          </article>
+          <article class="card">
+            <h4><span class="dot no" aria-hidden="true"></span><code>skill:check</code> / <code>skill:refactor</code></h4>
+            <p>
+              <strong>내가 만든 스킬</strong>의 품질을 점검하는 것은 <code>skill:check</code>,
+              길이를 줄이는 것은 <code>skill:refactor</code> 다.
+            </p>
+          </article>
+          <article class="card">
+            <h4><span class="dot no" aria-hidden="true"></span><code>/harness:harness-legacy-check</code></h4>
+            <p>
+              하네스 전체(<code>CLAUDE.md</code>, settings, hooks, MCP)를 감사하는 쪽.
+              그 리포트를 적용하는 것은 <code>/harness:harness-refactor</code> 다.
+            </p>
+          </article>
+          <article class="card">
+            <h4><span class="dot no" aria-hidden="true"></span><code>/gh:commit</code></h4>
+            <p>
+              산출물을 커밋하는 것은 이 스킬의 일이 아니다.
+              <code>[OK]</code> 판정의 <code>Next:</code> 가 <code>/gh:commit</code> 를 가리킨다.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- 2. 호출 형식 -->
+      <section data-reveal aria-labelledby="s-args">
+        <div class="sec-head">
+          <span class="sec-num">02</span>
+          <h2 id="s-args">호출 형식과 인자</h2>
+        </div>
+
+        <pre><code>/harness:dissect-builtin &lt;skill-name&gt;
+/harness:dissect-builtin -h | --help | help</code></pre>
+
+        <p class="text-secondary" style="margin:16px 0 20px; font-size:0.95rem">
+          <code>skills/dissect-builtin/references/help.md</code> 가 1차 근거다.
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only" style="position:absolute;left:-9999px">인자 표</caption>
+            <thead>
+              <tr><th scope="col">인자</th><th scope="col">기본값</th><th scope="col">설명</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>&lt;skill-name&gt;</code></td>
+                <td class="text-secondary">&mdash; (필수)</td>
+                <td>해부할 내장 스킬 이름. 예: <code>simplify</code>, <code>loop</code></td>
+              </tr>
+              <tr>
+                <td><code>-h</code> / <code>--help</code> / <code>help</code></td>
+                <td class="text-secondary">&mdash;</td>
+                <td><code>references/help.md</code> 를 그대로 출력하고 중단. 다른 동작 없음</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ul class="clean" style="margin-top:22px">
+          <li><code>/harness:dissect-builtin simplify</code></li>
+          <li><code>/harness:dissect-builtin loop</code></li>
+          <li><code>/harness:dissect-builtin -h</code></li>
+        </ul>
+      </section>
+
+      <!-- 3. 동작 단계 -->
+      <section data-reveal aria-labelledby="s-steps">
+        <div class="sec-head">
+          <span class="sec-num">03</span>
+          <h2 id="s-steps">동작 단계</h2>
+        </div>
+
+        <div class="callout danger" style="margin-bottom:22px">
+          <h4>중간에 멈추는 계약</h4>
+          <p>
+            순서대로 실행하며, 어느 단계에서든 오류(스킬 로드 실패, 에이전트 실패, 쓰기 실패)가 나면
+            <strong>즉시 멈추고 <code>[FAIL]</code> 판정을 낸다.</strong>
+            부분 산출물을 남긴 채 다음 단계로 넘어가지 않는다.
+          </p>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <div class="step-head">
+              <span class="step-n">STEP 1</span>
+              <span class="step-t">스킬 프롬프트 로드</span>
+            </div>
+            <p>
+              <code>Skill(skill: "&lt;skill-name&gt;")</code> 으로 대상 내장 스킬을 불러온다.
+              원시 프롬프트가 컨텍스트에 주입되며, <strong>전문을 그대로 보존</strong>한다.
+              여기서 로드가 실패하면 그 스킬은 내장이 아니라는 뜻이므로 Step 2 로 가지 않는다.
+            </p>
+          </article>
+
+          <article class="step">
+            <div class="step-head">
+              <span class="step-n">STEP 2</span>
+              <span class="step-t">에이전트 2개 병렬 실행</span>
+            </div>
+            <p>
+              Agent 도구로 두 에이전트를 <strong>한 메시지 안에서 동시에</strong> 띄운다.
+              출력 디렉터리는 dotfiles 저장소 루트 기준
+              <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 이다.
+            </p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th scope="col">산출물</th><th scope="col">경로</th><th scope="col">형식</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>README.md</code></td>
+                    <td class="mono" style="font-size:0.86rem">claude/built-in-skills/&lt;skill-name&gt;/README.md</td>
+                    <td>한국어 Markdown</td>
+                  </tr>
+                  <tr>
+                    <td><code>PROMPT.md</code></td>
+                    <td class="mono" style="font-size:0.86rem">claude/built-in-skills/&lt;skill-name&gt;/PROMPT.md</td>
+                    <td>원문 그대로(verbatim)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="grid grid-2" style="margin-top:16px">
+              <div class="card">
+                <h4>Agent 1 &mdash; README.md</h4>
+                <p>
+                  로드한 프롬프트를 분석해 한국어로 쓴다. 필수 항목은
+                  &#9312; 한줄 요약 &#9313; 동작 단계(Phase) &#9314; 각 단계의 상세 체크 항목(있는 경우)
+                  &#9315; 특징(병렬 실행, 쓰기 권한, 도메인 특화 등 주목할 설계 특성).
+                  적절한 곳에는 요약 표를 쓴다.
+                </p>
+                <p>
+                  권장 골격은 <code>#&nbsp;/&lt;skill-name&gt;&nbsp;-&nbsp;&lt;Title&gt;</code> &rarr;
+                  내장 스킬임을 밝히는 한 줄 설명 &rarr; <code>## 동작 요약</code> &rarr;
+                  <code>## Phase N: ...</code> &rarr; <code>## 특징</code> 이지만,
+                  <strong>고정 템플릿을 강요하지 말고 대상 스킬의 실제 단계에 맞춰 제목을 조정</strong>한다.
+                </p>
+              </div>
+              <div class="card">
+                <h4>Agent 2 &mdash; PROMPT.md</h4>
+                <p>
+                  원문 프롬프트를 그대로 쓴다. <strong>감싸는 제목도, 코드 펜스도 붙이지 않는다.</strong>
+                  원시 내용만 있는 그대로.
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-head">
+              <span class="step-n">STEP 3</span>
+              <span class="step-t">확인 및 판정</span>
+            </div>
+            <p>두 에이전트가 모두 끝나기를 기다린 뒤 결정적 판정을 낸다.</p>
+            <div class="verdicts" style="margin-top:14px">
+              <div class="verdict ok">
+                <div class="verdict-h">SUCCESS</div>
+                <pre><code>[OK] harness:dissect-builtin
+  Skill:    &lt;skill-name&gt;
+  Outputs:  claude/built-in-skills/&lt;skill-name&gt;/README.md
+            claude/built-in-skills/&lt;skill-name&gt;/PROMPT.md
+  Next:     /gh:commit</code></pre>
+              </div>
+              <div class="verdict fail">
+                <div class="verdict-h">FAILURE</div>
+                <pre><code>[FAIL] harness:dissect-builtin
+  Step:    &lt;Step 1 load | Step 2 agent | Step 2 write&gt;
+  Detail:  &lt;error or skill not built-in&gt;</code></pre>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 4. 주의사항 -->
+      <section data-reveal aria-labelledby="s-caveats">
+        <div class="sec-head">
+          <span class="sec-num">04</span>
+          <h2 id="s-caveats">주의사항과 제약</h2>
+        </div>
+
+        <div class="grid" style="gap:16px">
+          <div class="callout danger">
+            <h4>출력 파일명으로 <code>SKILL.md</code> 를 쓰지 않는다</h4>
+            <p>
+              이것이 이 스킬에서 가장 중요한 제약이다. Claude Code 는 스킬 트리에서
+              <code>SKILL.md</code> 를 발견하면 그것을 <strong>로드 가능한 스킬 정의로 취급</strong>한다.
+              해부 산출물을 <code>SKILL.md</code> 로 저장하면 "분석 문서"가 아니라
+              "설치된 또 하나의 스킬"이 되어 스킬 로딩 메커니즘과 충돌한다.
+            </p>
+            <p>
+              그래서 분석본은 <code>README.md</code>, 원문은 <code>PROMPT.md</code> 다.
+              산출물 파일명으로 <code>SKILL.md</code> 가 요청되면 <strong>거부한다.</strong>
+            </p>
+          </div>
+
+          <div class="callout info">
+            <h4><code>PROMPT.md</code> 는 원본의 정확한 사본이어야 한다</h4>
+            <p>
+              요약하지도, 번역하지도, 재포맷하지도 않는다. 이 파일의 가치는 전적으로
+              <strong>"손대지 않았다"</strong>는 데 있다 &mdash; 나중에 내장 스킬이 바뀌었는지
+              비교하려면 원문이어야 한다.
+            </p>
+            <p>
+              한국어로 쓰는 것은 <code>README.md</code> 쪽이고, 거기서도 기술 용어는 영어를 그대로 쓴다.
+            </p>
+          </div>
+
+          <div class="callout">
+            <h4>쓰기 위치는 이 저장소가 아니다</h4>
+            <p>
+              출력 경로 <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 는
+              <strong>dotfiles 저장소 루트 기준</strong>이다. harness-skills 저장소 안에서
+              호출하더라도 산출물은 dotfiles 쪽에 생긴다.
+            </p>
+            <p>
+              dotfiles 체크아웃이 없거나 쓰기 권한이 없는 환경에서는 Step 2 의 쓰기가 실패하고
+              <code>[FAIL] ... Step: Step 2 write</code> 로 중단된다.
+            </p>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="callout">
+              <h4>오류는 조용히 넘기지 않는다</h4>
+              <p>
+                이 스킬에는 soft-fail 단계가 없다. 세 단계 어디서든 실패하면 그 자리에서 멈추고
+                <code>[FAIL]</code> 과 함께 실패한 Step 을 밝힌다. 반쪽짜리 산출물
+                (README 만 있고 PROMPT 는 없는 디렉터리)을 남기지 않기 위한 설계다.
+              </p>
+            </div>
+            <div class="callout">
+              <h4>커밋하지 않는다</h4>
+              <p>
+                파일을 쓸 뿐, <code>git add</code> 도 커밋도 하지 않는다.
+                <code>[OK]</code> 판정의 <code>Next:</code> 가 <code>/gh:commit</code> 를
+                안내하는 이유다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          근거: <span class="mono">skills/dissect-builtin/SKILL.md</span> &middot;
+          <span class="mono">skills/dissect-builtin/references/help.md</span>
+        </p>
+        <p style="margin-top:6px">harness-skills &middot; harness plugin skill guide</p>
+      </footer>
+
+    </div>
+  </main>
+
+  <script>
+    // === Menu ===
+    function toggleMenu() {
+      var dropdown = document.getElementById('vizMenuDropdown');
+      var toggle = document.getElementById('vizMenuToggle');
+      if (!dropdown) return;
+      dropdown.classList.toggle('open');
+      if (toggle) toggle.setAttribute('aria-expanded', dropdown.classList.contains('open') ? 'true' : 'false');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.viz-menu')) {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        var toggle = document.getElementById('vizMenuToggle');
+        if (dropdown) dropdown.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var dropdown = document.getElementById('vizMenuDropdown');
+        var toggle = document.getElementById('vizMenuToggle');
+        if (dropdown) dropdown.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // === Theme ===
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('viz-theme'); } catch (e) { savedTheme = null; }
+    var currentTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    function applyTheme(t) {
+      document.documentElement.className = 'theme-' + t;
+      var moon = document.getElementById('iconMoon');
+      var sun = document.getElementById('iconSun');
+      var label = document.getElementById('themeLabel');
+      if (moon) moon.hidden = (t !== 'dark');
+      if (sun) sun.hidden = (t === 'dark');
+      if (label) label.textContent = (t === 'dark' ? 'Dark' : 'Light');
+      try { localStorage.setItem('viz-theme', t); } catch (e) {}
+      currentTheme = t;
+    }
+    function cycleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+    applyTheme(currentTheme);
+
+    // === Scroll Reveal ===
+    document.querySelectorAll('[data-reveal]').forEach(function(el) { el.classList.add('reveal'); });
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // === Download PNG ===
+    async function downloadImage() {
+      var menu = document.querySelector('.viz-menu');
+      menu.style.display = 'none';
+      try {
+        var url = await htmlToImage.toPng(document.body, {
+          quality: 1, pixelRatio: 2,
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          filter: function(n) { return !n.classList || !n.classList.contains('viz-menu'); }
+        });
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'dissect-builtin-guide.png';
+        a.click();
+      } catch (e) { console.error('Download failed:', e); }
+      menu.style.display = '';
+    }
+  </script>
+</body>
+</html>
