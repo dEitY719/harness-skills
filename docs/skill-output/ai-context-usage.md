@@ -12,7 +12,7 @@ AGENTS.md  ──▶  /harness:ai-context check  ──▶  판정표 + Verdict 
 
 ## 2. 입력
 
-- **대상** — 저장소 루트 `AGENTS.md`(=`CLAUDE.md` 심볼릭 링크, 106줄 / 5,297 bytes). 경로를 명시했으므로 자동 탐지(`CLAUDE.md` 우선)를 거치지 않았고, 파일명에서 어댑터 `agents` 가 결정되어 코어 C1~C7 + A-AG1~A-AG4 를 `references/industry-baseline.md` 스냅샷 2026-05-11 기준으로 돌렸다.
+- **대상** — 저장소 루트 `AGENTS.md`(=`CLAUDE.md` 심볼릭 링크, 143줄 / 6,684 bytes). 경로를 명시했으므로 자동 탐지(`CLAUDE.md` 우선)를 거치지 않았고, 파일명에서 어댑터 `agents` 가 결정되어 코어 C1~C7 + A-AG1~A-AG4 를 `references/industry-baseline.md` 스냅샷 2026-05-11 기준으로 돌렸다.
 
 ## 3. 결과
 
@@ -21,20 +21,20 @@ AGENTS.md  ──▶  /harness:ai-context check  ──▶  판정표 + Verdict 
 File: AGENTS.md (symlink -> CLAUDE.md) | Kind: agents | Baseline: 2026-05-11
 | #     | Check                 | Result | Notes                                          |
 |-------|-----------------------|--------|------------------------------------------------|
-| C1    | Role / Purpose        | PASS   | L1-5 역할 선언 + L7-27 "What this repo is"     |
-| C2    | Operational Commands  | FAIL   | 실행 가능한 명령 0개 (유일한 코드펜스 L35-45는 레이아웃 목록) |
-| C3    | Loading & Scope Model | WARN   | L3-5 는 누가 읽는지만 명시, 로드 시점은 미기재 |
-| C4    | Modular References    | PASS   | 최대 인라인 블록 11줄, L58 이 references/ 로 위임 |
-| C5    | Naming Conventions    | PASS   | L76-81 디렉터리명=identity, bare vs 네임스페이스 |
-| C6    | Constraints / Rules   | PASS   | L74-93 Do/Don't 목록 + L104-106 No emojis      |
-| C7    | Size / Context Budget | PASS   | 106 lines — 400 이하                           |
+| C1    | Role / Purpose        | PASS   | L1-4 역할 선언 + L15-35 "What this repo is"    |
+| C2    | Operational Commands  | PASS   | L37-64 "Verifying a change locally" — 실행 가능한 명령 4개(L42-57) + CI 게이트 2개(L61-64) |
+| C3    | Loading & Scope Model | PASS   | L6-13 로드 시점(세션 시작 project memory)과 독자(Codex 심볼릭 링크, Gemini 예외) 명시 |
+| C4    | Modular References    | PASS   | 최대 인라인 블록 14줄(L42-57), L95 가 references/README.md 로 위임 |
+| C5    | Naming Conventions    | PASS   | L113-118 디렉터리명=identity, bare vs 네임스페이스 |
+| C6    | Constraints / Rules   | PASS   | L101-109 API 규칙 + L111-130 변경 규칙 + L141-143 No emojis |
+| C7    | Size / Context Budget | PASS   | 143 lines — 400 이하                           |
 | A-AG1 | Discovery             | PASS   | 저장소 루트에 위치 — Codex 자동 탐색 경로      |
-| A-AG2 | Override / fallback   | N/A    | 중첩 AGENTS.md 없음 (루트 1개)                 |
-| A-AG3 | Payload budget        | PASS   | 5,297 bytes 단일 파일                          |
+| A-AG2 | Override / fallback   | N/A    | 중첩 AGENTS.md 없음 (L12-13 이 명시)           |
+| A-AG3 | Payload budget        | PASS   | 6,684 bytes 단일 파일                          |
 | A-AG4 | Context Map           | N/A    | 중첩 없음 — Context Map 불필요                 |
-Verdict: [FAIL] 7/9 passed (1 warning)
+Verdict: [OK] 9/9 passed (0 warnings)
 Issues & Improvements
-  - FAIL: C2 — setup / lint / test / build 어느 것도 없음 → 실행 가능한 명령 섹션 추가
-  - WARN: C3 — "AGENTS.md is a symlink to it, so ... read the same text" → 로드 시점 명시
-Next: 최우선 FAIL(C2)을 고친 뒤 harness:ai-context check 재실행
+  - (없음)
+
+Next: 구조 변경이 생기면 harness:ai-context check 재실행
 ```

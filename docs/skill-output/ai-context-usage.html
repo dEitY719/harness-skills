@@ -54,8 +54,8 @@
     .verdict {
       display: inline-flex; align-items: center; gap: 10px; margin-top: 26px;
       padding: 12px 20px; border-radius: 12px; font-weight: 700; font-size: 1.1rem;
-      background: color-mix(in srgb, var(--negative) 12%, transparent);
-      color: var(--negative); border: 1px solid color-mix(in srgb, var(--negative) 34%, transparent);
+      background: color-mix(in srgb, var(--positive) 12%, transparent);
+      color: var(--positive); border: 1px solid color-mix(in srgb, var(--positive) 34%, transparent);
     }
     .pipe { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
     .pipe .node { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-weight: 600; font-size: 0.95rem; }
@@ -179,7 +179,7 @@
           <span class="arrow" aria-hidden="true">──▶</span>
           <span class="node">판정표 + Verdict + Next</span>
         </div>
-        <div class="verdict animate delay-3" role="status">Verdict: [FAIL] — 7/9 passed (1 warning)</div>
+        <div class="verdict animate delay-3" role="status">Verdict: [OK] — 9/9 passed (0 warnings)</div>
       </div>
     </header>
 
@@ -205,7 +205,7 @@
             <dl class="kv" style="margin-top:12px">
               <dt>경로</dt><dd><code>AGENTS.md</code> (저장소 루트)</dd>
               <dt>실체</dt><dd><code>CLAUDE.md</code> 로의 심볼릭 링크</dd>
-              <dt>크기</dt><dd><span data-count="106">106</span> lines / 5,297 bytes</dd>
+              <dt>크기</dt><dd><span data-count="143">143</span> lines / 6,684 bytes</dd>
               <dt>탐지</dt><dd>경로를 명시했으므로 자동 탐지(<code>CLAUDE.md</code> 우선)를 거치지 않았다</dd>
             </dl>
           </div>
@@ -226,9 +226,9 @@
         <div class="eyebrow">3. 결과</div>
         <h2>판정표</h2>
         <div class="grid stats" style="margin:22px 0 26px">
-          <div class="card stat"><div class="num pass" data-count="7">7</div><div class="lbl">PASS</div></div>
-          <div class="card stat"><div class="num warn" data-count="1">1</div><div class="lbl">WARN — C3</div></div>
-          <div class="card stat"><div class="num fail" data-count="1">1</div><div class="lbl">FAIL — C2</div></div>
+          <div class="card stat"><div class="num pass" data-count="9">9</div><div class="lbl">PASS</div></div>
+          <div class="card stat"><div class="num warn" data-count="0">0</div><div class="lbl">WARN</div></div>
+          <div class="card stat"><div class="num fail" data-count="0">0</div><div class="lbl">FAIL</div></div>
           <div class="card stat"><div class="num na" data-count="2">2</div><div class="lbl">N/A — 집계 제외</div></div>
         </div>
 
@@ -249,36 +249,35 @@
               <tr><th>#</th><th>Check</th><th>Result</th><th>Notes</th></tr>
             </thead>
             <tbody id="resultBody">
-              <tr data-result="PASS"><td class="id">C1</td><td>Role / Purpose</td><td><span class="pill PASS">PASS</span></td><td>L1-5 역할 선언 + L7-27 "What this repo is"</td></tr>
-              <tr data-result="FAIL"><td class="id">C2</td><td>Operational Commands</td><td><span class="pill FAIL">FAIL</span></td><td>실행 가능한 명령 0개 (유일한 코드펜스 L35-45 는 레이아웃 목록)</td></tr>
-              <tr data-result="WARN"><td class="id">C3</td><td>Loading &amp; Scope Model</td><td><span class="pill WARN">WARN</span></td><td>L3-5 는 누가 읽는지만 명시, 로드 시점은 미기재</td></tr>
-              <tr data-result="PASS"><td class="id">C4</td><td>Modular References</td><td><span class="pill PASS">PASS</span></td><td>최대 인라인 블록 11줄, L58 이 references/ 로 위임</td></tr>
-              <tr data-result="PASS"><td class="id">C5</td><td>Naming Conventions</td><td><span class="pill PASS">PASS</span></td><td>L76-81 디렉터리명=identity, bare vs 네임스페이스</td></tr>
-              <tr data-result="PASS"><td class="id">C6</td><td>Constraints / Rules</td><td><span class="pill PASS">PASS</span></td><td>L74-93 Do/Don't 목록 + L104-106 No emojis</td></tr>
-              <tr data-result="PASS"><td class="id">C7</td><td>Size / Context Budget</td><td><span class="pill PASS">PASS</span></td><td>106 lines — 400 이하</td></tr>
+              <tr data-result="PASS"><td class="id">C1</td><td>Role / Purpose</td><td><span class="pill PASS">PASS</span></td><td>L1-4 역할 선언 + L15-35 "What this repo is"</td></tr>
+              <tr data-result="PASS"><td class="id">C2</td><td>Operational Commands</td><td><span class="pill PASS">PASS</span></td><td>L37-64 "Verifying a change locally" — 실행 가능한 명령 4개(L42-57) + CI 게이트 2개(L61-64)</td></tr>
+              <tr data-result="PASS"><td class="id">C3</td><td>Loading &amp; Scope Model</td><td><span class="pill PASS">PASS</span></td><td>L6-13 로드 시점(세션 시작 project memory)과 독자(Codex 심볼릭 링크, Gemini 예외) 명시</td></tr>
+              <tr data-result="PASS"><td class="id">C4</td><td>Modular References</td><td><span class="pill PASS">PASS</span></td><td>최대 인라인 블록 14줄(L42-57), L95 가 references/README.md 로 위임</td></tr>
+              <tr data-result="PASS"><td class="id">C5</td><td>Naming Conventions</td><td><span class="pill PASS">PASS</span></td><td>L113-118 디렉터리명=identity, bare vs 네임스페이스</td></tr>
+              <tr data-result="PASS"><td class="id">C6</td><td>Constraints / Rules</td><td><span class="pill PASS">PASS</span></td><td>L101-109 API 규칙 + L111-130 변경 규칙 + L141-143 No emojis</td></tr>
+              <tr data-result="PASS"><td class="id">C7</td><td>Size / Context Budget</td><td><span class="pill PASS">PASS</span></td><td>143 lines — 400 이하</td></tr>
               <tr data-result="PASS"><td class="id">A-AG1</td><td>Discovery</td><td><span class="pill PASS">PASS</span></td><td>저장소 루트에 위치 — Codex 자동 탐색 경로</td></tr>
-              <tr data-result="NA"><td class="id">A-AG2</td><td>Override / fallback</td><td><span class="pill NA">N/A</span></td><td>중첩 AGENTS.md 없음 (루트 1개)</td></tr>
-              <tr data-result="PASS"><td class="id">A-AG3</td><td>Payload budget</td><td><span class="pill PASS">PASS</span></td><td>5,297 bytes 단일 파일</td></tr>
+              <tr data-result="NA"><td class="id">A-AG2</td><td>Override / fallback</td><td><span class="pill NA">N/A</span></td><td>중첩 AGENTS.md 없음 (L12-13 이 명시)</td></tr>
+              <tr data-result="PASS"><td class="id">A-AG3</td><td>Payload budget</td><td><span class="pill PASS">PASS</span></td><td>6,684 bytes 단일 파일</td></tr>
               <tr data-result="NA"><td class="id">A-AG4</td><td>Context Map</td><td><span class="pill NA">N/A</span></td><td>중첩 없음 — Context Map 불필요</td></tr>
+              <tr id="emptyRow" hidden><td colspan="4" class="text-secondary" style="text-align:center; padding:22px 16px">해당 판정에 해당하는 항목이 없습니다 — 이번 실행에는 WARN 도 FAIL 도 없다.</td></tr>
             </tbody>
           </table>
         </div>
 
         <h3 style="margin-top:34px">Issues &amp; Improvements</h3>
-        <div class="grid grid-2" style="margin-top:14px">
-          <div class="callout">
-            <strong>FAIL: C2 — Operational Commands</strong>
-            <p class="text-secondary" style="margin-top:6px">setup / lint / test / build 어느 것도 없음 → 실행 가능한 명령 섹션 추가</p>
-          </div>
-          <div class="callout warn">
-            <strong>WARN: C3 — Loading &amp; Scope Model</strong>
-            <p class="text-secondary" style="margin-top:6px">"AGENTS.md is a symlink to it, so ... read the same text" → 로드 시점 명시</p>
-          </div>
+        <div class="card" style="margin-top:14px">
+          <p><strong style="color:var(--positive)">WARN / FAIL 항목 없음.</strong> 리포트 템플릿의 Issues 절은 WARN 과 FAIL 만 담으므로 이번 실행에서는 비어 있다.</p>
+          <p class="text-secondary" style="margin-top:10px">
+            직전 실행 대비 달라진 두 항목: <strong>C2</strong> 는 <code>## Verifying a change locally</code> 섹션이 생기며 FAIL → PASS,
+            <strong>C3</strong> 은 로드 시점과 독자를 밝힌 상단 단락이 추가되며 WARN → PASS 로 바뀌었다.
+            나머지 항목의 판정은 그대로이고, 파일이 106줄에서 143줄로 늘었으나 C7 한도(400줄) 안이다.
+          </p>
         </div>
 
         <div class="callout note" style="margin-top:18px">
           <strong>Next</strong>
-          <p class="text-secondary" style="margin-top:6px">최우선 FAIL(C2)을 고친 뒤 <code>harness:ai-context check</code> 재실행.</p>
+          <p class="text-secondary" style="margin-top:6px">구조 변경이 생기면 <code>harness:ai-context check</code> 재실행.</p>
         </div>
       </div>
     </section>
@@ -330,9 +329,14 @@
     function filterRows(kind, btn) {
       var buttons = document.querySelectorAll('.filters button');
       buttons.forEach(function(b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
-      document.querySelectorAll('#resultBody tr').forEach(function(tr) {
-        tr.hidden = !(kind === 'ALL' || tr.dataset.result === kind);
+      var shown = 0;
+      document.querySelectorAll('#resultBody tr[data-result]').forEach(function(tr) {
+        var match = (kind === 'ALL' || tr.dataset.result === kind);
+        tr.hidden = !match;
+        if (match) shown++;
       });
+      var empty = document.getElementById('emptyRow');
+      if (empty) empty.hidden = (shown > 0);
     }
 
     // === Scroll reveal ===
