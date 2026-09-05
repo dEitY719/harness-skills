@@ -51,9 +51,15 @@
 #      header and notes survive.
 #   2. the OPT-OUT MARKER `# Bridge only` starting a line in the file's leading
 #      comment block -- a hand-written stub whose body was never upstream's.
-#      There is nothing to diff, so the assertion is that the bridge still has
-#      something to bridge: at least one symbol its header names in backticks is
-#      still a function of the SSOT.
+#      There is nothing to diff, so what is asserted is that the bridge still
+#      has something to bridge. A stub states that contract explicitly with a
+#      `# Bridges: _a _b` line in its header, and then ALL of those names must
+#      still be functions of the SSOT. Without the field, the fallback scrapes
+#      backticked identifiers out of the prose and requires at least ONE (#30) --
+#      a liveness check, not a completeness one, because a prose header
+#      legitimately backticks non-functions (`_SC`, `[ -f ]`) that were never
+#      promised. Scraped prose cannot carry a contract; the field is how a stub
+#      says which names it actually owes, so tightening one means adding it.
 #      Find them with: grep -rn '^# Bridge only' lib/vendor
 set -euo pipefail
 
@@ -270,12 +276,47 @@ for repo in "${repos[@]}"; do
     hdr=$(sed -n '/^[^#]/q;p' "$dest")
     if grep -q -- "$OPT_OUT" <<<"$hdr"; then
       # A stub's body was never upstream's, so there is nothing to diff. What is
-      # assertable is that the bridge still has something to bridge: at least one
-      # symbol its header backticks is still a function of the SSOT. At least
+      # assertable is that the bridge still has something to bridge.
+      #
+      # `# Bridges: _a _b` (commas or spaces) is the explicit contract: every
+      # name listed must still be a function of the SSOT. It is opt-in, so no
+      # existing stub regresses -- a stub without the field keeps the weaker
+      # backtick rule below rather than being failed for prose it never wrote.
+      bridges=$(sed -n 's/^#[[:space:]]*Bridges:[[:space:]]*//p' <<<"$hdr" | tr ',\n' '  ')
+      if [ -n "${bridges// /}" ]; then
+        checked=$((checked + 1))
+        want='' missing='' bad=''
+        # `read -ra`, not `for n in $bridges`: an unquoted split PATHNAME-EXPANDS
+        # first, so a broken `# Bridges: _one*` would quietly become whatever the
+        # cwd happens to contain -- validation after globbing validates the wrong
+        # thing. read splits on IFS and never globs.
+        read -ra blist <<<"$bridges"
+        for n in "${blist[@]}"; do
+          # The name goes straight into a grep pattern, so anything that is not
+          # an identifier is a broken field, not a silently-wider search.
+          if ! [[ $n =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then bad="$bad $n"; continue; fi
+          want="$want $n"
+          grep -q "^${n}[[:space:]]*()" "$src" || missing="$missing $n"
+        done
+        if [ -n "$bad" ]; then
+          echo "FAIL  $dest '# Bridges:' names something that is not a function name:$bad"
+          fail=1
+        elif [ -n "$missing" ]; then
+          echo "FAIL  $dest bridges $rel, which no longer defines:$missing"
+          fail=1
+        else
+          echo "ok    $dest -- bridge stub for $rel, all of$want still defined there"
+        fi
+        continue
+      fi
+      # No field: fall back to scraping backticked identifiers out of the prose
+      # and requiring at least ONE to still be a function of the SSOT. At least
       # one, not all -- a prose header backticks variables and shell snippets
-      # too (`_SC`, `[ -f ]` in gh-verify-skills' stub), so "all" would report
-      # names the stub never promised. A stub that backticks nothing stays a
-      # reported skip: it states no contract to check.
+      # too (`_SC`, `[ -f ]` in gh-verify-skills' stub), so "all" over scraped
+      # prose would report names the stub never promised. That makes this a
+      # liveness check rather than a completeness one (#30); a stub that wants
+      # completeness states it in the field above. A stub that backticks nothing
+      # stays a reported skip: it states no contract to check.
       names=$(grep -o '`[A-Za-z_][A-Za-z0-9_]*`' <<<"$hdr" | tr -d '`' | sort -u) || true
       if [ -z "$names" ]; then
         echo "skip  $dest -- header says 'Bridge only' and names no symbol of $rel to verify"

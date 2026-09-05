@@ -97,6 +97,15 @@ printf 'not vendored, no banner\n' > "$vendor/stray.sh"
   printf '# Bridge only. Recovers a missing `_one_fn`; the rest of upstream\n'
   printf '# big.sh is not vendored.\n'
   printf '. ./extracted.sh\n'; } > "$vendor/bridge.sh"
+# #30: scraped prose cannot carry a contract -- under the backtick rule this
+# stub passes on `_multi_fn` alone, so losing `_one_fn` upstream is a false
+# green even though the stub exists to recover it. `# Bridges:` states what the
+# stub owes, and ALL of it must still be there.
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
+  printf '# Bridge only. Recovers `_one_fn`; `_multi_fn` is read by the same\n'
+  printf '# caller, and `_SC` below is prose, not a promise.\n'
+  printf '# Bridges: _one_fn, _multi_fn\n'
+  printf '. ./extracted.sh\n'; } > "$vendor/bridge_field.sh"
 # The two shapes that state no checkable contract stay reported skips.
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
   printf '# Bridge only. Names no symbol at all.\n'
@@ -159,6 +168,12 @@ t "...naming that symbol" \
   grep -qF '_one_fn still defined' <<<"$(grep 'bridge\.sh --' <<<"$out")"
 t "a stub keeps its hand-written body" \
   [ "$(tail -n 1 "$vendor/bridge.sh")" = '. ./extracted.sh' ]
+t "a stub with a 'Bridges:' field is verified against every name it lists" \
+  grep -q '^ok    .*bridge_field\.sh' <<<"$out"
+t "...naming all of them, not just the first that resolved" \
+  grep -qF 'all of _one_fn _multi_fn' <<<"$out"
+t "...and ignoring backticked prose the field never promised" \
+  no grep -qF '_SC' <<<"$(grep 'bridge_field\.sh' <<<"$out")"
 t "a stub that names no symbol has no contract, so it stays a reported skip" \
   grep -q '^skip  .*bridge_bare\.sh' <<<"$out"
 t "a qualifier that is not a function name stays a reported skip" \
@@ -239,6 +254,14 @@ t "...failing the extraction, by name" \
   grep -q '_one_fn' <<<"$(grep '^FAIL  .*extracted\.sh' <<<"$out")"
 t "...failing the bridge stub that promised it, by name" \
   grep -q '_one_fn' <<<"$(grep '^FAIL  .*bridge\.sh' <<<"$out")"
+# The whole point of #30: `_multi_fn` is still a function of big.sh, so the
+# at-least-one backtick rule reports this stub `ok` while the symbol it exists
+# to recover is gone. The field turns that false green red, and names only the
+# name that actually went missing.
+t "a 'Bridges:' field fails when ONE of its names vanishes" \
+  grep -q '^FAIL  .*bridge_field\.sh' <<<"$out"
+t "...naming the symbol that went, not the one that survived" \
+  [ "$(grep -o '_one_fn\|_multi_fn' <<<"$(grep 'bridge_field\.sh' <<<"$out")" | sort -u)" = _one_fn ]
 t "write mode does not paper over a vanished symbol" [ "$(rc_of run)" = 1 ]
 t "...and leaves the extraction's body untouched" grep -q '{ echo 2; }' "$vendor/extracted.sh"
 sed -i 's/^_gone_fn() {/_one_fn() {/' "$ssot/big.sh"
@@ -267,6 +290,25 @@ t "naming no consumer repo is a usage error" \
   [ "$(rc_of "$sync" --ssot "$work/dotfiles")" = 2 ]
 t "--help prints the usage line, so the header parser is not silently empty" \
   grep -qF 'sync-shell-common-vendor.sh [--check]' <<<"$("$sync" --help)"
+
+# A field entry lands in a grep pattern. A non-identifier there is a broken
+# field, not a quietly wider search that would match anything and pass. The
+# second entry is the trap: split unquoted, `_glob*` PATHNAME-EXPANDS against
+# the cwd, so `_globbed_fn` below would turn a broken field into a plausible
+# name and the entry would never be reported at all. Hence the `cd`.
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
+  printf '# Bridge only.\n'
+  printf '# Bridges: _one.*, _glob*\n'
+  printf 'Z=9\n'; } > "$vendor/bridge_badfield.sh"
+: > "$work/_globbed_fn"
+out=$(cd "$work" && run --check 2>&1) || true
+t "a 'Bridges:' entry that is not a function name is a loud failure" \
+  grep -q '^FAIL  .*bridge_badfield\.sh' <<<"$out"
+t "...naming the bad entry rather than matching it as a pattern" \
+  grep -qF '_one.*' <<<"$(grep 'bridge_badfield\.sh' <<<"$out")"
+t "...and never pathname-expanding it against the cwd" \
+  grep -qF '_glob*' <<<"$(grep 'bridge_badfield\.sh' <<<"$out")"
+rm "$vendor/bridge_badfield.sh" "$work/_globbed_fn"
 
 # #31: the SSOT checkout is read as a WORKING TREE, so its own freshness is
 # part of the answer. Reproduces the exact shape that bit: `git fetch` had run,
