@@ -174,6 +174,11 @@ checks instead of being taught each repo's shape:
 - **A repo with no `tests/` prints `ok    no tests tracked` and passes.** There
   is no opt-in input; committing `tests/` is the opt-in.
 
+This repo tracks one such check itself
+([`tests/self-checks-step.sh`](tests/self-checks-step.sh)): it extracts the
+step from the workflow and runs it against fixture repos, so the discovery
+rules above are executed rather than described.
+
 An existing check in another shape is adapted by a two-line `tests/` script
 rather than by widening discovery:
 
