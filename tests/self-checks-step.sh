@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
-# Exercises the "Repo self-checks pass (tests/)" step of the shared workflow.
+# Exercises the two shared-workflow steps that discover files with git:
+# "Repo self-checks pass (tests/)" and "Shell scripts pass shellcheck (sh:check)".
 #
-# The step is extracted from skill-check.yml rather than retyped, so what is
+# Each step is extracted from skill-check.yml rather than retyped, so what is
 # tested is what ships. This repo tracks no other check, so without this file
-# the step's only exercised path here would be the empty-repo bypass.
+# the self-checks step's only exercised path here would be the empty-repo
+# bypass, and the shellcheck step's discovery would not be exercised at all.
 #
-# Offline: no network, no gh, no package install.
+# Offline: no network, no gh, no package install. Every shellcheck case is
+# shaped to return before the apt-get install, so what is asserted is purely
+# discovery.
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
 work=$(mktemp -d)
+fail=0
 trap 'rm -rf "$work"' EXIT
 
-python3 - "$root/.github/workflows/skill-check.yml" "$work/step.sh" <<'PY'
-import sys, pathlib, yaml
-wf = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-steps = [s for s in wf["jobs"]["validate"]["steps"]
-         if s.get("name", "").startswith("Repo self-checks")]
-if len(steps) != 1:
-    sys.exit(f"expected exactly one self-checks step, found {len(steps)}")
-pathlib.Path(sys.argv[2]).write_text("#!/usr/bin/env bash\n" + steps[0]["run"],
-                                     encoding="utf-8")
-PY
+# shellcheck source=tests/lib/step.sh
+. "$root/tests/lib/step.sh"
+
+extract "Repo self-checks" "$work/self-checks.sh"
+extract "Shell scripts pass shellcheck" "$work/shellcheck.sh"
+step=$work/self-checks.sh
 
 script() { printf '#!/usr/bin/env bash\n%s\n' "$1" > "$2"; }
 
@@ -34,18 +35,10 @@ repo() {  # repo <name> -- makes $work/<name> a git repo, prints its path
 
 track() { git -C "$1" add -A && git -C "$1" -c user.email=t@t -c user.name=t commit -qm fixture; }
 
-fail=0
-expect() {  # expect <label> <dir> <want-rc> <want-substring>
-    local label=$1 dir=$2 want_rc=$3 want=$4 out rc=0
-    out=$(cd "$dir" && bash "$work/step.sh" 2>&1) || rc=$?
-    if [ "$rc" = "$want_rc" ] && printf '%s' "$out" | grep -qF -- "$want"; then
-        echo "ok    $label"
-    else
-        printf 'FAIL  %s (rc=%s, wanted %s and %s)\n%s\n' \
-            "$label" "$rc" "$want_rc" "$want" "$out"
-        fail=1
-    fi
-}
+
+mkdir -p "$work/notgit"
+
+# --- Repo self-checks pass (tests/) ---
 
 d=$(repo empty); rmdir "$d/tests"; touch "$d/README.md"; track "$d"
 expect "a repo with no tests passes and says so" "$d" 0 "no tests tracked"
@@ -74,8 +67,54 @@ script 'echo tracked' "$d/tests/a.sh"; track "$d"
 script 'echo HIJACKED; exit 1' "$d/tests/run.sh"
 expect "an untracked tests/run.sh cannot hijack discovery" "$d" 0 "1 check(s) passed"
 
-mkdir -p "$work/notgit"
 expect "a git failure fails loudly instead of reading as no tests" "$work/notgit" 128 "not a git repository"
 
+# --- Shell scripts pass shellcheck (sh:check) ---
+#
+# Same trap, same fix: discovery must never turn "git failed" into "nothing to
+# check". The exclude input is caller-supplied, so a degenerate value has to be
+# rejected rather than sanitised into an empty skip list.
+
+step=$work/shellcheck.sh
+export SHELLCHECK_EXCLUDE_PATHS="lib/vendor/"
+
+d=$(repo sc-empty); touch "$d/README.md"; track "$d"
+expect "no tracked .sh passes and says so" "$d" 0 "no shell scripts to check"
+
+d=$(repo sc-vendor); mkdir -p "$d/lib/vendor"
+script 'echo v' "$d/lib/vendor/v.sh"; track "$d"
+expect "the excluded tree is subtracted, leaving nothing to check" "$d" 0 "no shell scripts to check"
+expect "the skip list is announced" "$d" 0 ":(exclude)lib/vendor"
+
+expect "a git failure fails loudly instead of reading as no scripts" "$work/notgit" 128 "not a git repository"
+
+SHELLCHECK_EXCLUDE_PATHS="/"
+expect "a degenerate '/' exclude is rejected, not quietly dropped" "$d" 1 "would exclude the whole repo"
+
+# --- the class, not the two sites ---
+#
+# Both fixed steps used to discover through `mapfile/read < <(git ls-files)`,
+# where a process substitution hides git's exit status from `set -e`. Nothing
+# lints these `run:` bodies, so nothing stopped a third site appearing -- and
+# a third had appeared, in the JSON step, which no issue had noticed. Assert
+# the shape is gone from the whole file rather than fixing sites one at a time.
+bad=$(python3 - "$root/.github/workflows/skill-check.yml" <<'SCAN'
+import re, sys, pathlib, yaml
+wf = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+for s in wf["jobs"]["validate"]["steps"]:
+    # Comments are excluded: the fixed steps describe the shape they removed.
+    code = "\n".join(ln for ln in s.get("run", "").splitlines()
+                     if not ln.lstrip().startswith("#"))
+    if re.search(r"<\s*<\(\s*git\b", code):
+        print(s.get("name", "<unnamed>"))
+SCAN
+)
+if [ -z "$bad" ]; then
+    echo "ok    no step discovers through a process substitution"
+else
+    printf 'FAIL  these steps hide git exit status from set -e:\n%s\n' "$bad"
+    fail=1
+fi
+
 [ "$fail" -eq 0 ] || exit 1
-echo "ok    self-checks step behaves"
+echo "ok    workflow discovery steps behave"
