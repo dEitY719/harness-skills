@@ -29,7 +29,7 @@ Positional: `<plugin-name> [output-root] [--force]`.
 | Arg | Description | Default | Required |
 |-----|-------------|---------|----------|
 | `<plugin-name>` | `<plugin>@<marketplace>` or `<plugin>` alone | — | Yes |
-| `[output-root]` | Directory the guide and its index live in | `docs/guide/plugins` | No |
+| `[output-root]` | Directory the guide and its index live in; a `-`-prefixed token is a flag, never this | `docs/guide/plugins` | No |
 | `--force` | Regenerate even if the target doc already exists | off | No |
 
 Split `<plugin-name>` on `@` into `PLUGIN` and (optional) `MARKETPLACE`.
