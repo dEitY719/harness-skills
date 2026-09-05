@@ -337,12 +337,12 @@
           <article class="rcard">
             <h4>
               <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              claude/workflows/harness-refactor.js
+              .claude/workflows/harness-refactor.js
             </h4>
             <p>
               새로 작성되며 이전 파일을 덮어쓴다(이전 계획은 git log 에 보존).
               <code>export const meta</code> 가 Pre-flight → Apply Changes → Verify → Final Report 4개 phase 를 선언하고
-              <code>HOME</code> / <code>ARCHIVE</code> / <code>SKILLS</code> / <code>ROOT</code> 상수를 정의한다.
+              <code>ARCHIVE</code> / <code>SKILLS</code> / <code>ROOT</code> 상수를 정의한다.
             </p>
           </article>
 
@@ -352,7 +352,7 @@
               워크플로우 실행
             </h4>
             <p>
-              <code>Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })</code>.
+              <code>Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })</code>.
               Pre-flight 는 대상 파일 존재 확인과 archive 디렉토리 생성만, Apply Changes 는 <code>parallel()</code> 로
               비중첩 파일 그룹별 에이전트, Verify 는 <code>wc -l</code> 비교와 <code>references/</code> 생성 확인.
             </p>

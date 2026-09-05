@@ -1,6 +1,6 @@
 # harness-refactor
 
-> 한 줄 요약 — `harness-legacy-check` 감사 리포트를 읽어 항목을 risk 로 분류한 뒤, low-risk 항목만 담은 **`claude/workflows/harness-refactor.js` 워크플로우 파일 1개**를 새로 작성해 실행한다. 위험한 항목은 실행하지 않고 Final Report 의 "Human Approval Required" 섹션에만 남긴다. 읽기 전용이 아니라 **실제로 하네스 파일을 고친다**.
+> 한 줄 요약 — `harness-legacy-check` 감사 리포트를 읽어 항목을 risk 로 분류한 뒤, low-risk 항목만 담은 **`.claude/workflows/harness-refactor.js` 워크플로우 파일 1개**를 새로 작성해 실행한다. 위험한 항목은 실행하지 않고 Final Report 의 "Human Approval Required" 섹션에만 남긴다. 읽기 전용이 아니라 **실제로 하네스 파일을 고친다**.
 
 ## 언제 쓰고 언제 안 쓰는가
 
@@ -50,13 +50,13 @@
 2. **Step 2 — risk 분류.** 리포트의 각 항목을 `references/classification-rules.md` 기준으로
    워크플로우에 넣을 것(허용 변경)과 넣지 않을 것(절대 금지)으로 가른다. 이 분류가 이 스킬의
    안전 계약 전부다 — 아래 "주의사항과 제약" 에 두 목록을 그대로 옮겨 둔다.
-3. **Step 3 — `harness-refactor.js` 생성.** `claude/workflows/harness-refactor.js` 를 **새로**
+3. **Step 3 — `harness-refactor.js` 생성.** `.claude/workflows/harness-refactor.js` 를 **새로**
    작성한다. 이전 파일은 덮어쓴다(이전 계획은 git log 에 남는다). 파일 구조는
    `references/workflow-template.md` 가 규정한다: `export const meta` 에 4개 phase
-   (Pre-flight → Apply Changes → Verify → Final Report), `HOME` / `ARCHIVE` / `SKILLS` / `ROOT`
+   (Pre-flight → Apply Changes → Verify → Final Report), `ARCHIVE` / `SKILLS` / `ROOT`
    상수, 아카이브 경로의 `YYYY-MM-DD` 는 오늘 날짜로 고정. Step 2 에서 금지로 분류된 항목은
    워크플로우 본문이 아니라 Final Report 의 "Human Approval Required" 섹션에만 기록한다.
-4. **Step 4 — 워크플로우 실행.** `Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })`.
+4. **Step 4 — 워크플로우 실행.** `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`.
    Pre-flight 가 대상 파일 존재 확인과 archive 디렉토리 생성만 하고(파일 수정 없음), Apply
    Changes 가 `parallel()` 로 비중첩 파일 그룹을 나눠 맡은 에이전트들을 돌리며, 각 에이전트는
    아카이브 후 수정하고 `CHANGE_SCHEMA` 로 구조화된 결과를 돌려준다. Verify 가 `wc -l` 비교와
@@ -86,7 +86,7 @@ allowed-tools 권한 확대, 프로젝트 애플리케이션 코드 수정, 테�
 `.claude/archive/harness-refactor-YYYY-MM-DD/` 로 옮긴다. 잘못 판단한 삭제를 되돌릴 수 있게
 하려는 것이므로, 워크플로우를 손볼 때도 이 아카이브 단계를 건너뛰지 않는다.
 
-**이전 워크플로우 파일은 덮어써진다.** `claude/workflows/harness-refactor.js` 는 매 호출마다
+**이전 워크플로우 파일은 덮어써진다.** `.claude/workflows/harness-refactor.js` 는 매 호출마다
 새로 생성된다. 손으로 고친 내용이 그 파일에 있다면 호출 전에 커밋해 두어야 git log 로만이라도
 남는다.
 

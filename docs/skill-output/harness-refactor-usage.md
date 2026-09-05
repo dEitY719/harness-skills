@@ -26,10 +26,10 @@ harness-legacy-check 리포트  ──▶  /harness:harness-refactor  ──▶ 
 
 ## 3. 결과 (실행 시)
 
-- **`claude/workflows/harness-refactor.js`** — 새로 작성되며 이전 파일을 덮어쓴다(이전 계획은
+- **`.claude/workflows/harness-refactor.js`** — 새로 작성되며 이전 파일을 덮어쓴다(이전 계획은
   git log 에 보존). `export const meta` 가 Pre-flight → Apply Changes → Verify → Final Report
-  4개 phase 를 선언하고 `HOME` / `ARCHIVE` / `SKILLS` / `ROOT` 상수를 정의한다.
-- **워크플로우 실행** — `Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })`.
+  4개 phase 를 선언하고 `ARCHIVE` / `SKILLS` / `ROOT` 상수를 정의한다.
+- **워크플로우 실행** — `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`.
   Pre-flight 는 대상 파일 존재 확인과 archive 디렉토리 생성만, Apply Changes 는 `parallel()`
   로 비중첩 파일 그룹별 에이전트, Verify 는 `wc -l` 비교와 `references/` 생성 확인.
 - **아카이브** — 삭제 대상은 영구 삭제 없이 `.claude/archive/harness-refactor-YYYY-MM-DD/` 로 이동.

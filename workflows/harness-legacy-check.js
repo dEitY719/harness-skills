@@ -2,18 +2,21 @@ export const meta = {
   name: 'harness-legacy-check',
   description: 'Read-only audit of AI coding harness for legacy rules, duplicates, bloat, and over-broad permissions',
   phases: [
-    { title: 'Inventory', detail: 'Enumerate all harness files and settings' },
-    { title: 'Parallel Analysis', detail: '5 specialist agents analyze dimensions in parallel' },
+    { title: 'Parallel Analysis', detail: '5 specialist agents (inventory + 4 dimensions) analyze in parallel' },
     { title: 'Refactor Planner', detail: 'Classify each finding: KEEP / SHRINK / MOVE / SPLIT / CONVERT / DELETE' },
     { title: 'Adversarial Review', detail: 'Challenge recommendations — what breaks if we cut it?' },
     { title: 'Final Report', detail: 'Synthesize into full audit report with action lists' },
   ],
 }
 
-// ─── Phase 1: Inventory ───────────────────────────────────────────────────
-phase('Inventory')
+// ─── Phase 1: Parallel Analysis ──────────────────────────────────────────
+// Inventory has no data dependency on the 4 specialist agents (none of them
+// read its output — only the Refactor Planner and Final Report do), so it
+// runs alongside them instead of gating them.
+phase('Parallel Analysis')
 
-const inventory = await agent(`
+const [inventory, globalContextFindings, skillQualityFindings, productOverlapFindings, safetyFindings] = await parallel([
+  () => agent(`
 You are a READ-ONLY inventory agent. Your job is to enumerate every AI coding harness file in the current project. All relative paths below resolve against your working directory.
 
 Scan and list the FULL CONTENT of:
@@ -37,14 +40,8 @@ For EACH file found, output:
 - SECTIONS: <bullet list of major sections/rules>
 
 Do NOT modify any files. Read only.
-`, { label: 'inventory', phase: 'Inventory' })
+`, { label: 'inventory', phase: 'Parallel Analysis' }),
 
-log('Inventory complete. Starting parallel specialist analysis...')
-
-// ─── Phase 2: Parallel Specialist Analysis ───────────────────────────────
-phase('Parallel Analysis')
-
-const [globalContextFindings, skillQualityFindings, productOverlapFindings, safetyFindings] = await parallel([
   () => agent(`
 You are the GLOBAL CONTEXT TAX AGENT. Your job: analyze files that load into EVERY session and assess whether they impose unnecessary context cost.
 
@@ -227,9 +224,9 @@ End with:
 `, { label: 'safety-permissions', phase: 'Parallel Analysis' }),
 ])
 
-log('Parallel analysis complete. Running Refactor Planner...')
+log('Inventory + parallel specialist analysis complete. Running Refactor Planner...')
 
-// ─── Phase 3: Refactor Planner ───────────────────────────────────────────
+// ─── Phase 2: Refactor Planner ────────────────────────────────────────────
 phase('Refactor Planner')
 
 const refactorPlan = await agent(`
@@ -295,7 +292,7 @@ After all items, produce these sections:
 
 log('Refactor plan ready. Running adversarial review...')
 
-// ─── Phase 4: Adversarial Reviewer ───────────────────────────────────────
+// ─── Phase 3: Adversarial Reviewer ────────────────────────────────────────
 phase('Adversarial Review')
 
 const adversarialReview = await agent(`
@@ -337,7 +334,7 @@ End with:
 
 log('Adversarial review complete. Synthesizing final report...')
 
-// ─── Phase 5: Final Report ────────────────────────────────────────────────
+// ─── Phase 4: Final Report ────────────────────────────────────────────────
 phase('Final Report')
 
 const finalReport = await agent(`
