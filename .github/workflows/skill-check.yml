@@ -359,3 +359,40 @@ jobs:
               sys.exit(1)
           print("ok    no emojis")
           PY
+
+      - name: Repo self-checks pass (tests/)
+        run: |
+          set -euo pipefail
+          # Convention (see README "CI"): a repo's committed checks live in
+          # `tests/`. If `tests/run.sh` exists it is the sole entry point and
+          # owns the ordering; otherwise every `tests/*.sh` is one check.
+          # Nothing outside `tests/` is discovered. A `--self-test` flag or a
+          # `lib/*.selfcheck.sh` is wired up by adding a one-line `tests/`
+          # script that calls it -- not by teaching CI a third shape.
+          #
+          # `:(glob)` stops `*` from crossing `/`, so only direct children of
+          # the repo-root `tests/` match. A vendored tree can never be one, so
+          # this step needs no `shellcheck-exclude-paths` plumbing.
+          #
+          # The listing is a plain assignment, never `mapfile < <(git ls-files)`:
+          # a process substitution hides git's exit status from `set -e`, and a
+          # git failure would then read as "no tests" and silently disable this
+          # gate.
+          #
+          # Offline: no network, no `gh` auth, no package install. A check that
+          # needs either does not belong here.
+          if [ -f tests/run.sh ]; then
+            listing=tests/run.sh
+          else
+            listing=$(git ls-files -- ':(glob)tests/*.sh')
+          fi
+          if [ -z "$listing" ]; then
+            echo "ok    no tests tracked"
+            exit 0
+          fi
+          mapfile -t checks <<<"$listing"
+          for c in "${checks[@]}"; do
+            echo "---   $c"
+            bash "$c"
+          done
+          echo "ok    ${#checks[@]} check(s) passed"

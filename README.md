@@ -141,7 +141,8 @@ a migration later.
 [`.github/workflows/skill-check.yml`](.github/workflows/skill-check.yml) is a
 `workflow_call` reusable workflow owned by this repo (#1410 D-10). It validates
 manifests, skill frontmatter, progressive-disclosure line limits, the Codex
-description budget, version agreement, and shell scripts.
+description budget, version agreement, and shell scripts, and it runs the
+repo's own checks.
 
 Every `dEitY719/*-skills` repo calls it instead of copying it:
 
@@ -156,6 +157,30 @@ jobs:
 This repo calls it too, through a local `./` reference
 ([`validate.yml`](.github/workflows/validate.yml)), so a change to the shared
 workflow is proven on its own PR before a sibling repo picks it up.
+
+### Where a repo's tests live
+
+One convention for all sixteen repos, so the workflow discovers checks instead
+of being taught each repo's shape:
+
+- **`tests/` is the home.** A check outside it is not discovered and does not
+  run.
+- **`tests/run.sh`, if present, is the sole entry point.** It owns ordering and
+  is expected to run everything else under `tests/`.
+- **Otherwise every `tests/*.sh` is one check**, run in `git ls-files` order.
+  Direct children only — `tests/lib/helper.sh` is a helper, not a check.
+- **Offline.** No network, no `gh` auth, no package install. A check that needs
+  any of those does not belong in CI.
+- **A repo with no `tests/` prints `ok    no tests tracked` and passes.** There
+  is no opt-in input; committing `tests/` is the opt-in.
+
+An existing check in another shape is adapted by a two-line `tests/` script
+rather than by widening discovery:
+
+```bash
+#!/usr/bin/env bash
+exec bash skills/symlink-manager/lib/symlink_migrate.sh --self-test
+```
 
 ## Provenance
 
