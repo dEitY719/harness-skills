@@ -165,7 +165,7 @@ of being taught each repo's shape:
 
 - **`tests/` is the home.** A check outside it is not discovered and does not
   run.
-- **`tests/run.sh`, if present, is the sole entry point.** It owns ordering and
+- **`tests/run.sh`, if tracked, is the sole entry point.** It owns ordering and
   is expected to run everything else under `tests/`.
 - **Otherwise every `tests/*.sh` is one check**, run in `git ls-files` order.
   Direct children only — `tests/lib/helper.sh` is a helper, not a check.
