@@ -38,7 +38,7 @@
 1. **Step 1 — 워크플로우 실행.** 스킬 본체가 하는 일은 사실상 이 호출 1건이다.
 
    ```
-   Workflow({ name: 'harness-legacy-check' })
+   Workflow({ name: 'harness:harness-legacy-check' })
    ```
 
    실제 감사는 이 워크플로우 **내부의 병렬 specialist agent 5개**가 수행한다. 감사 로직이

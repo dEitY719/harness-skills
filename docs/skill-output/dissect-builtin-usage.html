@@ -234,7 +234,7 @@
         <div class="eyebrow animate">harness plugin &middot; skill output</div>
         <h1 class="animate delay-1">dissect-builtin 사용 결과</h1>
         <p class="hero-sub animate delay-2">
-          내장 스킬 이름 하나를 받아 <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 아래에
+          내장 스킬 이름 하나를 받아 <code>docs/built-in-skills/&lt;skill-name&gt;/</code> 아래에
           한국어 분석 <strong>README.md</strong> 와 원문 <strong>PROMPT.md</strong> 를 생성합니다.
         </p>
 
@@ -245,7 +245,7 @@
           <div>
             <div class="n-title">NOTE &mdash; 미실행 예시</div>
             <p>
-              이 스킬은 dotfiles 저장소의 <code>claude/built-in-skills/</code> 아래에 파일을 쓰므로
+              이 스킬은 호출한 저장소의 <code>docs/built-in-skills/</code> 아래에 파일을 쓰므로
               문서화 목적으로 실행하지 않았습니다. 명령&middot;경로&middot;산출물은
               <code>skills/dissect-builtin/SKILL.md</code> 인용이며 <strong>실행 로그가 아닙니다.</strong>
             </p>
@@ -307,8 +307,8 @@
           <article class="card" style="grid-column:1 / -1">
             <h4><span class="dot mut" aria-hidden="true"></span>쓰기 대상</h4>
             <p>
-              dotfiles 저장소 루트 기준 <code>claude/built-in-skills/&lt;skill-name&gt;/</code> &mdash;
-              <strong>호출한 저장소가 아니라 dotfiles 쪽</strong>이다.
+              호출한 프로젝트 루트 기준 <code>docs/built-in-skills/&lt;skill-name&gt;/</code> &mdash;
+              <strong>작성자의 dotfiles 체크아웃을 전제하지 않는다.</strong>
             </p>
           </article>
         </div>
@@ -323,7 +323,7 @@
 
         <div class="grid grid-2">
           <article class="card file-card">
-            <span class="file-path">claude/built-in-skills/&lt;skill-name&gt;/README.md</span>
+            <span class="file-path">docs/built-in-skills/&lt;skill-name&gt;/README.md</span>
             <h4>Agent 1 &mdash; 한국어 분석</h4>
             <p>
               한줄 요약 / 동작 단계(Phase) / 단계별 상세 체크 항목 /
@@ -332,7 +332,7 @@
             </p>
           </article>
           <article class="card file-card">
-            <span class="file-path">claude/built-in-skills/&lt;skill-name&gt;/PROMPT.md</span>
+            <span class="file-path">docs/built-in-skills/&lt;skill-name&gt;/PROMPT.md</span>
             <h4>Agent 2 &mdash; 원문 그대로</h4>
             <p>
               감싸는 제목도 코드 펜스도 없고, 요약&middot;번역&middot;재포맷하지 않는다.

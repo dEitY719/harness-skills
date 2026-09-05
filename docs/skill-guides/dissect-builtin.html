@@ -280,7 +280,7 @@
         <h1 class="animate delay-1">dissect-builtin</h1>
         <p class="hero-sub animate delay-2">
           Claude Code <strong>내장 스킬 1개</strong>의 프롬프트를 Skill 도구로 불러와 해부하고,
-          <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 아래에 한국어 분석
+          <code>docs/built-in-skills/&lt;skill-name&gt;/</code> 아래에 한국어 분석
           <strong>README.md</strong> 와 원문 그대로의 <strong>PROMPT.md</strong> 두 파일을 남긴다.
         </p>
         <div class="pipeline animate delay-3">
@@ -446,8 +446,8 @@
             </div>
             <p>
               Agent 도구로 두 에이전트를 <strong>한 메시지 안에서 동시에</strong> 띄운다.
-              출력 디렉터리는 dotfiles 저장소 루트 기준
-              <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 이다.
+              출력 디렉터리는 호출한 프로젝트 루트 기준
+              <code>docs/built-in-skills/&lt;skill-name&gt;/</code> 이다.
             </p>
             <div class="table-wrap">
               <table>
@@ -457,12 +457,12 @@
                 <tbody>
                   <tr>
                     <td><code>README.md</code></td>
-                    <td class="mono" style="font-size:0.86rem">claude/built-in-skills/&lt;skill-name&gt;/README.md</td>
+                    <td class="mono" style="font-size:0.86rem">docs/built-in-skills/&lt;skill-name&gt;/README.md</td>
                     <td>한국어 Markdown</td>
                   </tr>
                   <tr>
                     <td><code>PROMPT.md</code></td>
-                    <td class="mono" style="font-size:0.86rem">claude/built-in-skills/&lt;skill-name&gt;/PROMPT.md</td>
+                    <td class="mono" style="font-size:0.86rem">docs/built-in-skills/&lt;skill-name&gt;/PROMPT.md</td>
                     <td>원문 그대로(verbatim)</td>
                   </tr>
                 </tbody>
@@ -505,8 +505,8 @@
                 <div class="verdict-h">SUCCESS</div>
                 <pre><code>[OK] harness:dissect-builtin
   Skill:    &lt;skill-name&gt;
-  Outputs:  claude/built-in-skills/&lt;skill-name&gt;/README.md
-            claude/built-in-skills/&lt;skill-name&gt;/PROMPT.md
+  Outputs:  docs/built-in-skills/&lt;skill-name&gt;/README.md
+            docs/built-in-skills/&lt;skill-name&gt;/PROMPT.md
   Next:     /gh-pr:commit</code></pre>
               </div>
               <div class="verdict fail">
@@ -555,14 +555,15 @@
           </div>
 
           <div class="callout">
-            <h4>쓰기 위치는 이 저장소가 아니다</h4>
+            <h4>쓰기 위치는 호출한 저장소다</h4>
             <p>
-              출력 경로 <code>claude/built-in-skills/&lt;skill-name&gt;/</code> 는
-              <strong>dotfiles 저장소 루트 기준</strong>이다. harness-skills 저장소 안에서
-              호출하더라도 산출물은 dotfiles 쪽에 생긴다.
+              출력 경로 <code>docs/built-in-skills/&lt;skill-name&gt;/</code> 는
+              <strong>호출한 프로젝트 루트 기준</strong>이다. 작성자의 dotfiles 체크아웃을
+              전제하지 않으므로, 이 플러그인을 설치한 어느 저장소에서 호출하든 산출물은
+              그 저장소 안에 생긴다.
             </p>
             <p>
-              dotfiles 체크아웃이 없거나 쓰기 권한이 없는 환경에서는 Step 2 의 쓰기가 실패하고
+              대상 디렉터리에 쓸 수 없으면 Step 2 의 쓰기가 실패하고
               <code>[FAIL] ... Step: Step 2 write</code> 로 중단된다.
             </p>
           </div>
