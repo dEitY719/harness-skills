@@ -32,6 +32,11 @@ on:
         required: false
         type: number
         default: 5440
+      shellcheck-exclude-paths:
+        description: "Newline- or comma-separated path prefixes excluded from the shellcheck step, for trees the repo vendors and is told not to edit. Empty checks every tracked *.sh."
+        required: false
+        type: string
+        default: "lib/vendor/"
       allow-emoji-paths:
         description: "Newline- or comma-separated path prefixes exempt from the emoji ban, for skills whose subject matter is emoji. Empty (the default) bans emoji repo-wide."
         required: false
@@ -48,6 +53,7 @@ jobs:
       PLUGIN_NAME: ${{ inputs.plugin-name }}
       MAX_SKILL_LINES: ${{ inputs.max-skill-lines }}
       DESCRIPTION_BUDGET: ${{ inputs.description-budget }}
+      SHELLCHECK_EXCLUDE_PATHS: ${{ inputs.shellcheck-exclude-paths }}
       ALLOW_EMOJI_PATHS: ${{ inputs.allow-emoji-paths }}
     steps:
       - uses: actions/checkout@v4
@@ -287,9 +293,14 @@ jobs:
       - name: Shell scripts pass shellcheck (sh:check)
         run: |
           set -euo pipefail
-          mapfile -t scripts < <(git ls-files '*.sh')
+          # Vendored trees are skipped: the repo is forbidden to edit them, so a
+          # finding there has no remedy it can apply — fix it at the SSOT instead.
+          mapfile -t skip < <(printf '%s\n' "$SHELLCHECK_EXCLUDE_PATHS" | tr ',' '\n' \
+            | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d; s|^|:(exclude)|; s|$|*|')
+          [ "${#skip[@]}" -eq 0 ] || echo "note  shellcheck skips: ${skip[*]}"
+          mapfile -t scripts < <(git ls-files -- '*.sh' "${skip[@]}")
           if [ "${#scripts[@]}" -eq 0 ]; then
-            echo "ok    no shell scripts tracked — nothing to check"
+            echo "ok    no shell scripts to check"
             exit 0
           fi
           sudo apt-get update -qq
