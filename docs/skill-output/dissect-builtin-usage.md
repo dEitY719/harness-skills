@@ -33,8 +33,8 @@
   프롬프트. 감싸는 제목도 코드 펜스도 없고, 요약·번역·재포맷하지 않는다. 두 에이전트는
   Step 2 가 한 메시지 안에서 동시에 띄우므로 병렬로 돈다.
 - **stdout 판정** — 성공 시 `[OK] harness:dissect-builtin` 아래 `Skill:`, 두 산출물
-  경로를 담은 `Outputs:`, 그리고 `Next: /gh:commit`. 실패 시
+  경로를 담은 `Outputs:`, 그리고 `Next: /gh-pr:commit`. 실패 시
   `[FAIL] harness:dissect-builtin` 과 함께 `Step:`(Step 1 load / Step 2 agent /
   Step 2 write)과 `Detail:` 을 출력하고 즉시 중단한다.
 - **남지 않는 것** — 출력 파일명으로 `SKILL.md` 는 쓰지 않는다(Claude Code 의 스킬
-  로딩과 충돌). 커밋도 하지 않는다 — 그건 `/gh:commit` 의 일이다.
+  로딩과 충돌). 커밋도 하지 않는다 — 그건 `/gh-pr:commit` 의 일이다.

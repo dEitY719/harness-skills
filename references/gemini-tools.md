@@ -67,8 +67,8 @@ get a tidier history.
 ## Capability gaps
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
-`Workflow({ name: 'harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })`. Those
+`Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
+calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Those
 are Claude Code tools backed by a JS runtime Gemini does not have. Instead:
 
 - Run the audit's sweeps directly (`read_many_files`, `grep_search`,
@@ -76,7 +76,7 @@ are Claude Code tools backed by a JS runtime Gemini does not have. Instead:
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless. That
   path is the contract `harness:harness-refactor` reads from — nothing about it
   is Claude-specific except the directory name, so keep it.
-- For `harness-refactor`, still write `claude/workflows/harness-refactor.js`: it
+- For `harness-refactor`, still write `.claude/workflows/harness-refactor.js`: it
   is the reviewable plan of record, and a Claude Code session can execute it
   later. Then apply the low-risk edits yourself with `replace` / `write_file`.
 

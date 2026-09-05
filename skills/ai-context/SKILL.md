@@ -4,7 +4,8 @@ description: >-
   AI context doc dispatcher for CLAUDE.md / AGENTS.md / GEMINI.md — check,
   create, refactor. Use for "/harness:ai-context",
   "check my AGENTS.md", "create AI context file". Do NOT use for SKILL.md
-  (skill:check) or *.sh (sh:check).
+  (authoring:skill-check) or *.sh (authoring:sh-check).
+license: MIT
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash
 metadata:
   model_recommendation:
@@ -16,7 +17,7 @@ metadata:
 
 # harness:ai-context — Unified AI Context Doc Skill
 
-Replaces `agents-md:{check,create,refactor}` / `claude-md-{check,create}` (deleted in #560 — see `references/help.md` migration table).
+Replaces `agents-md:{check,create,refactor}` / `claude-md-{check,create}` (deleted in dEitY719/dotfiles#560 — see `references/help.md` migration table).
 
 ## Help
 
@@ -41,6 +42,9 @@ Unknown action → print help and stop.
 
 If `--file` (or positional `path`) is given, use it. Otherwise auto-detect
 in cwd in priority `CLAUDE.md` → `AGENTS.md` → `GEMINI.md`.
+
+Collapse aliases first: candidates on the same inode (`readlink -f`), or a
+`CLAUDE.md` whose body is only an `@AGENTS.md` import, are one documented source.
 
 | Situation             | check                                          | create / refactor                       |
 |-----------------------|------------------------------------------------|-----------------------------------------|
@@ -85,10 +89,11 @@ FAIL, else `[FAIL]`. Always end with a `Next:` line per the same file.
 
 ## Constraints
 
-- If any Step 1–3 step fails for a genuine reason (NOT a help print or a `skill:check` / `sh:check` routing stop — those are intentional early exits), report it via `references/report-template.md` with Verdict=`[FAIL]` and stop. The stop-on-error policy and `[FAIL]` report still apply to all other Step 1–3 failures.
+- If any Step 1–3 step fails for a genuine reason (NOT a help print or an `authoring:skill-check` / `authoring:sh-check` routing stop — those are intentional early exits), report it via `references/report-template.md` with Verdict=`[FAIL]` and stop. The stop-on-error policy and `[FAIL]` report still apply to all other Step 1–3 failures.
 - `check` is audit-only — never mutate the file.
 - Always confirm before overwriting in `create` / `refactor`.
 - Auto-overwrite is never allowed when multiple context files exist.
 - Honor `--file` and `--type` overrides over auto-detection.
 - Cite `references/industry-baseline.md` for adapter-check rationale (Codex / Claude Code / Gemini CLI docs).
-- Do NOT run on `SKILL.md` (route to `skill:check`) or `*.sh` (route to `sh:check`).
+- Do NOT run on `SKILL.md` (route to `authoring:skill-check`) or `*.sh` (route to `authoring:sh-check`).
+- No step here is Claude-Code-only, so the repo-root `references/*-tools.md` fallbacks do not apply.

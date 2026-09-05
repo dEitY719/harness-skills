@@ -16,11 +16,14 @@ export const meta = {
   ],
 }
 
-const HOME    = (typeof process !== 'undefined' && process.env?.HOME) || '/home/deity719'
-const ARCHIVE = `${HOME}/dotfiles/.claude/archive/harness-refactor-YYYY-MM-DD`
-const SKILLS  = `${HOME}/dotfiles/claude/skills`
-const ROOT    = `${HOME}/dotfiles`
+const ARCHIVE = '.claude/archive/harness-refactor-YYYY-MM-DD'
+const SKILLS  = '.claude/skills'
+const ROOT    = '.'
 ```
+
+워크플로우 런타임에는 파일시스템·셸 접근도 `process` 도 없다. 따라서 경로는
+평범한 프로젝트 상대 문자열로 적고, 실제 해석은 스폰된 에이전트가 프로젝트
+작업 디렉토리 기준으로 수행한다.
 
 날짜(`YYYY-MM-DD`)는 오늘 날짜로 고정한다.
 

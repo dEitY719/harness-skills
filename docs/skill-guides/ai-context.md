@@ -11,11 +11,11 @@
 
 **안 쓸 때 — 형제 스킬로 가는 경계:**
 
-- **`SKILL.md` 는 이 스킬의 소관이 아니다 — `skill:check` 로 간다.** SKILL.md 도
+- **`SKILL.md` 는 이 스킬의 소관이 아니다 — `authoring:skill-check` 로 간다.** SKILL.md 도
   마크다운이고 프런트매터가 있어 헷갈리기 쉽지만, 로딩 모델(스킬 트리거 기반)과
   검사 항목(16개 구조·UX·보안 항목)이 완전히 다르다. Stop condition 에 명시된
   라우팅이라 이 스킬은 대상이 `SKILL.md` 면 실행하지 않고 안내만 하고 멈춘다.
-- **`*.sh` 는 `sh:check` 로 간다.** 마찬가지로 명시적 라우팅 정지 조건이다.
+- **`*.sh` 는 `authoring:sh-check` 로 간다.** 마찬가지로 명시적 라우팅 정지 조건이다.
 - 같은 저장소의 **`harness-legacy-check`** 는 한 파일이 아니라 **하네스 전체**
   (컨텍스트 문서 + 스킬 + 워크플로 + settings + 훅 + MCP)를 훑어
   `.claude/reports/harness-legacy-check.md` 로 리포트를 남기는 read-only 감사다.
@@ -103,7 +103,7 @@
 - **컨텍스트 파일이 여러 개일 때 자동 덮어쓰기는 절대 허용되지 않는다.**
   `CLAUDE.md` 와 `AGENTS.md` 가 공존하는 흔한 상황에서, 어느 쪽을 손댈지는
   기계가 아니라 사람이 정한다.
-- **`SKILL.md` 와 `*.sh` 에는 실행하지 않는다.** 각각 `skill:check` / `sh:check`
+- **`SKILL.md` 와 `*.sh` 에는 실행하지 않는다.** 각각 `authoring:skill-check` / `authoring:sh-check`
   로 라우팅하고 멈춘다.
 - `--file` / `--type` 오버라이드는 자동 탐지보다 항상 우선한다.
 

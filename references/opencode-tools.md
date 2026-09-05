@@ -60,13 +60,13 @@ type name; read it as "an agent with no special role" and use `"general"`.
 ## Capability gaps
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
-`Workflow({ name: 'harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })`. Those
+`Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
+calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Those
 are Claude Code tools; OpenCode has no `Workflow` tool. Note the trap here:
 OpenCode's plugin system *is* JavaScript, so it looks like
 `harness-refactor.js` could just be run. It cannot — that file is written
 against Claude Code's workflow API, not OpenCode's plugin API. Do not `bash
-node claude/workflows/harness-refactor.js`.
+node .claude/workflows/harness-refactor.js`.
 
 Instead:
 
@@ -74,7 +74,7 @@ Instead:
   ones out with `task` (`subagent_type: "explore"`).
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless —
   that path is the contract `harness:harness-refactor` reads from.
-- For `harness-refactor`, still generate `claude/workflows/harness-refactor.js`:
+- For `harness-refactor`, still generate `.claude/workflows/harness-refactor.js`:
   it is the reviewable plan of record and a Claude Code session can execute it
   later. Then apply its low-risk edits yourself with `apply_patch`.
 
@@ -85,11 +85,16 @@ built-ins. Run that skill from Claude Code, or supply the prompt by hand and
 start at Step 2.
 
 **Plugin cache belongs to Claude Code.** `harness:plugin-guide` scans
-`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/<marketplace>/<plugin>` and
-resolves marketplaces against `claude/plugin/plugins.json`. Both are Claude Code
-/ dotfiles artifacts. Readable from OpenCode with `bash` when they exist on this
-machine; otherwise the skill has no input and should stop rather than retarget
-itself at OpenCode's own plugin list, which has a different shape.
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/<marketplace>/<plugin>`,
+resolves installed plugins from
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json` (a
+`.plugins` object keyed by `"<plugin>@<marketplace>"`), and reads each
+marketplace's owner/repo from
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/known_marketplaces.json`
+(`[<marketplace>].source.repo`). All three are Claude Code artifacts. Readable
+from OpenCode with `bash` when they exist on this machine; otherwise the skill
+has no input and should stop rather than retarget itself at OpenCode's own
+plugin list, which has a different shape.
 
 ## Read-only and confirmation contracts
 

@@ -63,7 +63,7 @@
    `references/` 파일 생성 여부를 확인한다.
 5. **Step 5 — 완료 보고.** `[OK] harness:harness-refactor — 완료` 아래에 변경 파일 수,
    생성된 `references/` 수, 아카이브 수, human review 필요 항목 수, 그리고 다음 행동
-   (`git diff` 확인 후 `/gh:commit`)을 적는다. 실패 시
+   (`git diff` 확인 후 `/gh-pr:commit`)을 적는다. 실패 시
    `[FAIL] harness:harness-refactor — <이유>`.
 
 ## 주의사항과 제약

@@ -345,10 +345,10 @@
             </p>
           </article>
           <article class="card">
-            <h4><span class="dot no" aria-hidden="true"></span><code>skill:check</code> / <code>skill:refactor</code></h4>
+            <h4><span class="dot no" aria-hidden="true"></span><code>authoring:skill-check</code> / <code>authoring:skill-refactor</code></h4>
             <p>
-              <strong>내가 만든 스킬</strong>의 품질을 점검하는 것은 <code>skill:check</code>,
-              길이를 줄이는 것은 <code>skill:refactor</code> 다.
+              <strong>내가 만든 스킬</strong>의 품질을 점검하는 것은 <code>authoring:skill-check</code>,
+              길이를 줄이는 것은 <code>authoring:skill-refactor</code> 다.
             </p>
           </article>
           <article class="card">
@@ -359,10 +359,10 @@
             </p>
           </article>
           <article class="card">
-            <h4><span class="dot no" aria-hidden="true"></span><code>/gh:commit</code></h4>
+            <h4><span class="dot no" aria-hidden="true"></span><code>/gh-pr:commit</code></h4>
             <p>
               산출물을 커밋하는 것은 이 스킬의 일이 아니다.
-              <code>[OK]</code> 판정의 <code>Next:</code> 가 <code>/gh:commit</code> 를 가리킨다.
+              <code>[OK]</code> 판정의 <code>Next:</code> 가 <code>/gh-pr:commit</code> 를 가리킨다.
             </p>
           </article>
         </div>
@@ -507,7 +507,7 @@
   Skill:    &lt;skill-name&gt;
   Outputs:  claude/built-in-skills/&lt;skill-name&gt;/README.md
             claude/built-in-skills/&lt;skill-name&gt;/PROMPT.md
-  Next:     /gh:commit</code></pre>
+  Next:     /gh-pr:commit</code></pre>
               </div>
               <div class="verdict fail">
                 <div class="verdict-h">FAILURE</div>
@@ -580,7 +580,7 @@
               <h4>커밋하지 않는다</h4>
               <p>
                 파일을 쓸 뿐, <code>git add</code> 도 커밋도 하지 않는다.
-                <code>[OK]</code> 판정의 <code>Next:</code> 가 <code>/gh:commit</code> 를
+                <code>[OK]</code> 판정의 <code>Next:</code> 가 <code>/gh-pr:commit</code> 를
                 안내하는 이유다.
               </p>
             </div>

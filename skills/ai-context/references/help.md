@@ -19,7 +19,8 @@ Single entry point for AI context-injection files (`CLAUDE.md`, `AGENTS.md`,
 - `claude-md-check`
 - `claude-md-create`
 
-The legacy skills have been deleted (follow-up to #539, see issue #560).
+The legacy skills have been deleted (follow-up to dEitY719/dotfiles#539, see
+issue dEitY719/dotfiles#560).
 
 ## Actions
 
@@ -41,8 +42,10 @@ The legacy skills have been deleted (follow-up to #539, see issue #560).
 | `-h`/`--help`  | Print this help and stop                          | —             |
 
 Auto-detection priority in cwd: `CLAUDE.md` → `AGENTS.md` → `GEMINI.md`.
-When multiple files coexist (common case: both `CLAUDE.md` and `AGENTS.md`),
-only the highest-priority file is audited — pass the path explicitly to target another.
+Aliases of one source collapse first: two names on the same inode (a
+`CLAUDE.md` -> `AGENTS.md` symlink), or a `CLAUDE.md` that only imports
+`@AGENTS.md`, count as one file. When genuinely distinct files coexist, only the
+highest-priority one is audited — pass the path explicitly to target another.
 
 ## Examples
 
@@ -62,8 +65,8 @@ only the highest-priority file is audited — pass the path explicitly to target
 - No context file found and action is `check`/`refactor` → suggest `create`.
 - Multiple files found and action is `create`/`refactor` → prompt; never auto-overwrite.
 - Target is unreadable → abort with the underlying error.
-- Target is `SKILL.md` → route to `skill:check`.
-- Target is `*.sh` → route to `sh:check`.
+- Target is `SKILL.md` → route to `authoring:skill-check`.
+- Target is `*.sh` → route to `authoring:sh-check`.
 
 ## Migration from legacy skills
 
@@ -75,7 +78,7 @@ only the highest-priority file is audited — pass the path explicitly to target
 | `/claude-md-check [path]`      | `/harness:ai-context check [path]`            |
 | `/claude-md-create`            | `/harness:ai-context create --type claude`    |
 
-Legacy skill directories have been removed (issue #560) — use the commands above.
+Legacy skill directories have been removed (issue dEitY719/dotfiles#560) — use the commands above.
 
 ## Output
 

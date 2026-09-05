@@ -15,8 +15,8 @@ the [shared per-harness tool mappings](#shared-assets) and the
 |-------|--------|--------------|
 | `ai-context` | `/harness:ai-context [check\|create\|refactor]` | Dispatcher for `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`: audits one read-only, authors a new one from a size-matched template, or splits a bloated one into nested files. Not for `SKILL.md` or `*.sh`. |
 | `harness-legacy-check` | `/harness:harness-legacy-check` | Read-only audit of the whole harness — context docs, skills, workflows, settings, hooks, MCP — saved to `.claude/reports/harness-legacy-check.md`. Changes nothing. |
-| `harness-refactor` | `/harness:harness-refactor` | Reads that report, classifies findings by risk, generates `claude/workflows/harness-refactor.js` from the low-risk ones, and runs it. Anything risky lands in a "Human Approval Required" section instead. |
-| `dissect-builtin` | `/harness:dissect-builtin <skill-name>` | Loads a Claude Code built-in skill and writes Korean docs (`README.md` + verbatim `PROMPT.md`) under `claude/built-in-skills/<name>/`. |
+| `harness-refactor` | `/harness:harness-refactor` | Reads that report, classifies findings by risk, generates `.claude/workflows/harness-refactor.js` from the low-risk ones, and runs it. Anything risky lands in a "Human Approval Required" section instead. |
+| `dissect-builtin` | `/harness:dissect-builtin <skill-name>` | Loads a Claude Code built-in skill and writes Korean docs (`README.md` + verbatim `PROMPT.md`) under `docs/built-in-skills/<name>/`. |
 | `plugin-guide` | `/harness:plugin-guide <plugin>[@<marketplace>]` | Generates a Korean guide for an installed plugin from its cached `SKILL.md` files and updates the plugins index. Never installs, never commits. |
 
 `harness-legacy-check` and `harness-refactor` are a pair: run the check first,
@@ -103,7 +103,7 @@ cannot do.
 
 **This repo is their sole owner.** The other fourteen `*-skills` repos link
 here rather than carrying copies — one tool rename should be one edit, not
-fifteen (#1410 NF-2). See [`references/README.md`](references/README.md).
+fifteen (dEitY719/dotfiles#1410 NF-2). See [`references/README.md`](references/README.md).
 
 ### Plugin-root resolution convention
 
@@ -149,10 +149,10 @@ a migration later.
 ## CI
 
 [`.github/workflows/skill-check.yml`](.github/workflows/skill-check.yml) is a
-`workflow_call` reusable workflow owned by this repo (#1410 D-10). It validates
-manifests, skill frontmatter, progressive-disclosure line limits, the Codex
-description budget, version agreement, and shell scripts, and it runs the
-repo's own checks.
+`workflow_call` reusable workflow owned by this repo (dEitY719/dotfiles#1410
+D-10). It validates manifests, skill frontmatter, progressive-disclosure line
+limits, the Codex description budget, version agreement, and shell scripts, and
+it runs the repo's own checks.
 
 Every `dEitY719/*-skills` repo calls it instead of copying it:
 
