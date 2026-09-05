@@ -339,7 +339,7 @@ jobs:
               fail = 1;
               continue;
             }
-            const m = /name:\s*['"]([^'"]+)['"]/.exec(src.slice(0, 500));
+            const m = /const\s+meta\b[\s\S]{0,400}?\bname:\s*['"]([^'"]+)['"]/.exec(src);
             const want = path.basename(f, ".js");
             if (!m) {
               console.log(`FAIL  ${f}: meta has no name:`);
