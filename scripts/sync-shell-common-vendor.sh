@@ -109,15 +109,26 @@ strip_stamp() { sed 's|^\(# Synced \)[^ ]* \(by .*\)$|\1<stamp> \2|'; }
 # cannot end the function early. Empty output means the file does not define it.
 extract_fn() {  # extract_fn <file> <name>
   awk -v n="$2" '
-    !inf { if ($0 ~ "^" n "[ \t]*\\(\\)") { inf = 1; one = 1 } else next }
+    !inf { if ($0 ~ "^" n "[ \t]*\\(\\)") { inf = 1; first = 1 } else next }
     hd != "" { print; if ($0 ~ "^[ \t]*" hd "$") hd = ""; next }
     {
-      if (match($0, /(^|[^<])<<-?[ \t]*[^ \t<]+/)) {   # a heredoc, not a <<< here-string
-        t = substr($0, RSTART, RLENGTH); sub(/^.*<</, "", t); gsub(/[^A-Za-z0-9_]/, "", t)
+      # Every test below reads the line with its comment removed. A `#` comment
+      # is not code, so it can neither open a heredoc nor close the function --
+      # and `f() { # note }` is a MULTI-line function, not a one-liner.
+      c = $0; sub(/(^|[ \t])#.*$/, "", c)
+      # `one` only when the header line both opens and closes the body. Testing
+      # for a trailing `}` alone also fires on `f() { x=${BAR}` and truncates it.
+      if (first) { one = (c ~ /\{/ && gsub(/\{/, "{", c) == gsub(/\}/, "}", c)); first = 0 }
+      # A heredoc delimiter starts with a quote or an identifier char, so the
+      # left shift in `$(( 1 << 3 ))` is not one. Reading either it or a `<<`
+      # in prose as a heredoc sets `hd` to a terminator that never arrives, and
+      # the extraction then swallows the whole SSOT tail into the copy.
+      if (match(c, /(^|[^<])<<-?[ \t]*["'"'"']?[A-Za-z_][A-Za-z0-9_]*/)) {   # not a <<< here-string
+        t = substr(c, RSTART, RLENGTH); sub(/^.*<<-?[ \t]*["'"'"']?/, "", t)
         if (t != "") hd = t
       }
       print
-      if ($0 ~ /^}/ || (one && $0 ~ /\}[ \t]*$/)) exit   # `one`: a one-line f() { ...; }
+      if (c ~ /^}/ || (one && c ~ /\}[ \t]*$/)) exit   # `one`: a one-line f() { ...; }
       one = 0
     }
   ' "$1"

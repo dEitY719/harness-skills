@@ -19,18 +19,40 @@ printf 'D=4\n' > "$ssot/helper.py"             # not a .sh
 printf 'E=5\n' > "$dots/shell-common/tools/t.sh"   # outside functions/
 
 # Stands in for the 1500-line integration file only one function of which is
-# vendored. `_one_fn`'s body carries the two shapes a naive extractor gets
-# wrong: a heredoc whose body has a `}` in column 1, and a nested brace.
+# vendored. `_one_fn`'s body carries every shape a naive extractor gets wrong:
+# a heredoc whose body has a `}` in column 1, a nested brace, a `<<-` heredoc
+# with a QUOTED delimiter and a TAB-indented terminator, and -- the two that
+# swallow the SSOT's whole tail rather than merely truncating -- a `<<` that is
+# not a heredoc at all, once in prose and once as an arithmetic left shift.
 one_fn() {
-  printf '%s\n' \
-    '_one_fn() {' \
-    '    cat <<EOF' \
-    '}' \
-    'EOF' \
-    '    { echo 1; }' \
-    '}'
+  cat <<'FN'
+_one_fn() {
+    cat <<EOF
 }
-{ printf '# big.sh header\n_before() { echo b; }\n'; one_fn; printf 'AFTER=1\n'; } > "$ssot/big.sh"
+EOF
+    # prose may name a <<NOPE delimiter that never opens a heredoc
+    m=$(( 1 << 3 ))
+    cat <<-'QUOTED'
+}
+	QUOTED
+    { echo 1; }
+}
+FN
+}
+
+# A MULTI-line function whose header line ends in `}`. An extractor that calls
+# any first line ending in `}` a one-liner truncates this to that single line --
+# and since both sides truncate identically it reports `ok`, so the drift
+# asserted further down would never be seen.
+multi_fn() {
+  cat <<'FN'
+_multi_fn() { p=${HOME}
+    echo body
+}
+FN
+}
+{ printf '# big.sh header\n_before() { echo b; }\n'; one_fn; multi_fn
+  printf 'AFTER=1\n'; } > "$ssot/big.sh"
 
 # `# Bridge only` opts a copy out only from its LEADING COMMENT BLOCK. This SSOT
 # puts the marker in the body, behind a non-comment line, so the rendered copy
@@ -56,6 +78,8 @@ printf 'not vendored, no banner\n' > "$vendor/stray.sh"
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\t(_one_fn)\n'
   printf '# Hand-written note that must survive a refresh.\n'
   one_fn; } > "$vendor/extracted.sh"
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh (_multi_fn)\n'
+  multi_fn; } > "$vendor/extracted_multi.sh"
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
   printf '# Bridge only. Recovers a missing `_one_fn`; the rest of upstream\n'
   printf '# big.sh is not vendored.\n'
@@ -165,6 +189,20 @@ t "...leaving the copy's own header alone" grep -q 'must survive a refresh' "$ve
 t "...and never dragging in the rest of the SSOT" \
   no grep -q '^AFTER=1$' "$vendor/extracted.sh"
 t "a refreshed extraction is clean on the next check" [ "$(rc_of run --check)" = 0 ]
+
+# The `one`-liner shortcut must not fire on `_multi_fn`, whose HEADER line ends
+# in `}` but whose body runs on. If it does, only that first line is compared,
+# both sides truncate to it identically, and this drift is reported `ok`.
+sed -i 's/^    echo body$/    echo body2/' "$ssot/big.sh"
+out=$(run --check 2>&1) && rc=0 || rc=$?
+t "drift below a header line ending in '}' still turns --check red" [ "$rc" = 1 ]
+t "...naming the multi-line extraction" grep -q '^DRIFT .*extracted_multi\.sh' <<<"$out"
+run >/dev/null
+t "write mode refreshes it without dragging in the SSOT tail" \
+  no grep -q '^AFTER=1$' "$vendor/extracted_multi.sh"
+sed -i 's/^    echo body2$/    echo body/' "$ssot/big.sh"
+run >/dev/null
+t "restoring it upstream restores a clean check" [ "$(rc_of run --check)" = 0 ]
 
 # The failure the whole issue is about: upstream renames or deletes the symbol.
 sed -i 's/^_one_fn() {/_gone_fn() {/' "$ssot/big.sh"
