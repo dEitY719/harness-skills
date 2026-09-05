@@ -1,3 +1,11 @@
+// Runtime contract. The Claude Code Workflow host evaluates this file as an
+// async function body and injects its API as globals: `phase`, `agent`,
+// `parallel`, `log`, `args`. They are deliberately not imported - there is no
+// import surface for them - and top-level `await` / `return` are legal here,
+// which is why `node --check` cannot lint this file. Callers invoke it as
+// `Workflow({ name: 'harness:harness-legacy-check' })`: the `harness:` prefix
+// is the plugin name and `meta.name` below stays bare.
+// .github/workflows/skill-check.yml asserts both halves of that contract.
 export const meta = {
   name: 'harness-legacy-check',
   description: 'Read-only audit of AI coding harness for legacy rules, duplicates, bloat, and over-broad permissions',
