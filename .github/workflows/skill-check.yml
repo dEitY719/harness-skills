@@ -43,7 +43,7 @@ on:
         type: string
         default: ""
       consistency-checks:
-        description: "YAML mapping of <set name> -> {<path glob>: <regex>}, asserting every matched file carries the same capture-group-1 value. Empty (the default) declares no set and passes."
+        description: "EXTRA YAML sets, <set name> -> {<path glob>: <regex>}, asserting every matched file carries the same capture-group-1 value. Merged with the built-in `license` set, which always runs -- reusing that set name is a named failure, not an override. Empty (the default) runs the built-in set alone."
         required: false
         type: string
         default: ""
@@ -296,17 +296,44 @@ jobs:
           # SHA case is a bare string in prose, so key-only extraction would
           # cover `license` and miss the case that motivated the gate; one
           # mechanism that covers both beats two that each cover half.
+          #
+          # `license` is the DEFAULT set, not a caller's opt-in: the same four
+          # globs hold in all sixteen repos (harness-skills#23), so an
+          # opt-in-only gate would leave sixteen already-agreeing repos free to
+          # drift apart -- and would need sixteen copies of this config to say
+          # so. LICENSE's own regex names MIT on purpose: a relicense then
+          # fails on this file by name, which is the one file whose prose has
+          # to be rewritten by hand anyway; the other three carry an SPDX id
+          # and compare as one.
+          #
+          # It lives here rather than in the input's `default:` because an
+          # input default is REPLACED by a caller's value. A caller declaring
+          # its own set (claudecode-skills' bundled-asset SHA set) must ADD to
+          # this one -- silently dropping its license gate is the same
+          # silent-pass shape this whole step exists to remove.
+          DEFAULT_SETS = r"""
+          license:
+            LICENSE: '^(MIT) License'
+            '.*-plugin/plugin.json': '"license":\s*"([^"]+)"'
+            package.json: '"license":\s*"([^"]+)"'
+            'skills/*/SKILL.md': '^license:\s*(\S+)'
+          """
+          sets = yaml.safe_load(DEFAULT_SETS)
           raw = os.environ.get("CONSISTENCY_CHECKS", "").strip()
-          if not raw:
-              print("ok    no consistency sets declared")
-              sys.exit(0)
-          try:
-              sets = yaml.safe_load(raw)
-          except yaml.YAMLError as e:
-              sys.exit(f"FAIL  consistency-checks is not valid YAML: {e}")
-          if not isinstance(sets, dict) or not sets:
-              sys.exit("FAIL  consistency-checks must be a mapping of "
-                       "<set name> -> {<path glob>: <regex>}")
+          if raw:
+              try:
+                  extra = yaml.safe_load(raw)
+              except yaml.YAMLError as e:
+                  sys.exit(f"FAIL  consistency-checks is not valid YAML: {e}")
+              if not isinstance(extra, dict) or not extra:
+                  sys.exit("FAIL  consistency-checks must be a mapping of "
+                           "<set name> -> {<path glob>: <regex>}")
+              clash = sorted(set(extra) & set(sets))
+              if clash:
+                  sys.exit(f"FAIL  consistency-checks redefines built-in set "
+                           f"{clash}: the built-in set always runs, so name "
+                           f"the caller's set something else")
+              sets.update(extra)
           fail = 0
           for name, sites in sets.items():
               if not isinstance(sites, dict) or not sites:
