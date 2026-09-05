@@ -33,7 +33,7 @@ on:
         type: number
         default: 5440
       shellcheck-exclude-paths:
-        description: "Newline- or comma-separated path prefixes excluded from the shellcheck step, for trees the repo vendors and is told not to edit. Empty checks every tracked *.sh."
+        description: "Newline- or comma-separated path prefixes this repo does not own -- trees it vendors and is told not to edit. Excluded from both the shellcheck and the emoji step. Empty scans everything. Name kept for compatibility: callers pin @main, so a rename could not retire it."
         required: false
         type: string
         default: "lib/vendor/"
@@ -326,8 +326,17 @@ jobs:
           allowed = tuple(s.strip() for s in raw if s.strip())
           if allowed:
               print(f"note  emoji allowed under: {', '.join(allowed)}")
-          files = subprocess.run(["git", "ls-files"], capture_output=True, text=True,
-                                 check=True).stdout.split()
+          # Vendored trees are not scanned at all, for the same reason the
+          # shellcheck step skips them: the repo may not edit them, so a finding
+          # there has no remedy it can apply -- fix it at the SSOT instead. Same
+          # input, and git's own :(exclude) carries the directory boundary, so
+          # `lib/vendor` never swallows a sibling `lib/vendor-tools/`.
+          raw = re.split(r"[,\n]", os.environ.get("SHELLCHECK_EXCLUDE_PATHS", ""))
+          skip = [f":(exclude){s}" for s in (x.strip().rstrip("/") for x in raw) if s]
+          if skip:
+              print(f"note  emoji scan skips: {' '.join(skip)}")
+          files = subprocess.run(["git", "ls-files", "--", *skip], capture_output=True,
+                                 text=True, check=True).stdout.split()
           bad = []
           for f in files:
               p = pathlib.Path(f)
