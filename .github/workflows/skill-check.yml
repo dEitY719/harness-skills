@@ -67,15 +67,24 @@ jobs:
       - name: Validate JSON manifests parse
         run: |
           set -euo pipefail
+          # Discovery through a file, never a process substitution: that hides
+          # git's exit status from `set -e`, and this gate failed even quieter
+          # than the shellcheck one -- an empty log and a green exit.
+          # tests/self-checks-step.sh now asserts no step in this file
+          # discovers that way, so the class is closed, not just the site.
+          listing=$(mktemp)
+          trap 'rm -f "$listing"' EXIT
+          git ls-files -z -- '*.json' > "$listing"
+          mapfile -t -d '' files < "$listing"
           fail=0
-          while IFS= read -r f; do
+          for f in "${files[@]}"; do
             if jq empty "$f" 2>/dev/null; then
               echo "ok    $f"
             else
               echo "FAIL  $f (invalid JSON)"
               fail=1
             fi
-          done < <(git ls-files '*.json')
+          done
           exit "$fail"
 
       - name: Validate YAML manifests parse
@@ -272,12 +281,16 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, re, sys, pathlib, yaml
+          import os, re, sys, subprocess, pathlib, yaml
           # The step above gates one hardcoded equality (version) over one
           # hardcoded file list. This one gates any equality a caller declares,
           # because the fact that drifts is repo-specific: `license` is stated
           # six times in all sixteen repos, while claudecode-skills pins a
           # bundled-asset SHA in six places of its own.
+          #
+          # Which gate a fact belongs in: a universal invariant stays
+          # hardcoded above, because a caller must not be able to switch it
+          # off by omitting it; a repo-specific one comes through this input.
           #
           # A value is a regex capture group, never a YAML/JSON key path. The
           # SHA case is a bare string in prose, so key-only extraction would
@@ -308,7 +321,18 @@ jobs:
                       print(f"FAIL  {name}: bad regex {pattern!r}: {e}")
                       fail = 1
                       continue
-                  paths = sorted(p for p in pathlib.Path(".").glob(str(glob)) if p.is_file())
+                  # Discovery is over TRACKED files, like every other step
+                  # here: an untracked scratch file must not be able to fail a
+                  # repo's gate. `:(glob)` keeps `*` from crossing `/`, so
+                  # `skills/*/SKILL.md` means what it looks like.
+                  proc = subprocess.run(["git", "ls-files", "-z", "--", f":(glob){glob}"],
+                                        capture_output=True, text=True)
+                  if proc.returncode != 0:
+                      print(f"FAIL  {name}: git rejected glob {glob!r}: {proc.stderr.strip()}")
+                      fail = 1
+                      continue
+                  paths = sorted(pathlib.Path(x) for x in proc.stdout.split("\0") if x)
+                  paths = [x for x in paths if x.is_file() and not x.is_symlink()]
                   if not paths:
                       # Loud, for the same reason the shellcheck step refuses a
                       # failed discovery: a set that quietly checks nothing is
@@ -323,9 +347,17 @@ jobs:
                           print(f"FAIL  {name}: {p} is unreadable as text: {e}")
                           fail = 1
                           continue
+                      # First match wins: this set is about agreement ACROSS
+                      # files, and a fact stated twice inside one file is that
+                      # file's own problem.
                       m = rx.search(text)
                       if not m or not m.groups():
                           print(f"FAIL  {name}: {p} has no capture-group match for {pattern!r}")
+                          fail = 1
+                          continue
+                      if str(p) in seen:
+                          print(f"FAIL  {name}: {p} is matched by two globs, so one regex would "
+                                f"silently win over the other")
                           fail = 1
                           continue
                       seen[str(p)] = m.group(1)

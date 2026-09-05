@@ -19,7 +19,11 @@ jobs:
     uses: ./.github/workflows/skill-check.yml
     with:
       plugin-name: harness
-      # `license` is asserted in six places here and in all fifteen siblings.
+      # Six sites in THIS repo. Deliberately not a default on the input:
+      # `license:` in SKILL.md frontmatter exists in 1 of the 15 siblings
+      # today, so a default would turn them red at @main - the one thing
+      # CLAUDE.md forbids. Defaulting the five machine-readable sites, or
+      # backfilling the frontmatter first, is a follow-up.
       # LICENSE's own regex names MIT on purpose: a relicense then fails on
       # this file by name, which is the file whose prose has to be rewritten
       # by hand anyway - the other five carry an SPDX id and compare as one.
