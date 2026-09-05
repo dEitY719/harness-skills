@@ -30,17 +30,21 @@
 # Only files that already carry the banner are refreshed. This never adds one:
 # what a repo vendors is that repo's decision, not this script's.
 #
-# Two banner shapes opt a copy OUT of regeneration, because it is not a
-# whole-file copy of its SSOT (#25). Both are reported as `skip <file> -- <why>`
-# in either mode; omitting them silently would be the same defect as
-# overwriting them silently:
+# Two banner shapes mark a copy that is NOT a whole-file copy of its SSOT (#25),
+# so rewriting it from the whole SSOT would be destruction rather than a sync.
+# Each gets a narrower check of its own instead, because "skipped and reported"
+# still leaves the copy frozen against an SSOT that moves under it (#28):
 #
 #   1. a QUALIFIER after the SSOT path -- a partial extraction:
 #        # SSOT: dEitY719/dotfiles shell-common/tools/integrations/claude.sh (_dotfiles_setup_mode)
-#      vendors one function out of a 1500-line file, so rewriting the copy with
-#      all 1500 lines of it is destruction, not a sync.
+#      vendors one function out of a 1500-line file. Only that function is
+#      compared, and write mode refreshes only that slice, so the copy's own
+#      header and notes survive.
 #   2. the OPT-OUT MARKER `# Bridge only` starting a line in the file's leading
 #      comment block -- a hand-written stub whose body was never upstream's.
+#      There is nothing to diff, so the assertion is that the bridge still has
+#      something to bridge: at least one symbol its header names in backticks is
+#      still a function of the SSOT.
 #      Find them with: grep -rn '^# Bridge only' lib/vendor
 set -euo pipefail
 
@@ -98,6 +102,42 @@ render() {  # render <ssot-file> <ssot-relpath> -- the copy, banner under the sh
 # generator, and a copy still pointing at the old unqualified path IS stale.
 strip_stamp() { sed 's|^\(# Synced \)[^ ]* \(by .*\)$|\1<stamp> \2|'; }
 
+# Extract one shell function: `^<name>()` through its closing `^}`. A column-0
+# `}` terminates rather than a brace counter, because in shell a nested brace is
+# always indented while a counter miscounts `${x}`, `case` bodies and braces
+# inside strings and comments. Heredoc bodies are stepped over so a `}` in one
+# cannot end the function early. Empty output means the file does not define it.
+extract_fn() {  # extract_fn <file> <name>
+  awk -v n="$2" '
+    !inf { if ($0 ~ "^" n "[ \t]*\\(\\)") { inf = 1; first = 1 } else next }
+    hd != "" { print; if ($0 ~ "^[ \t]*" hd "$") hd = ""; next }
+    {
+      # Every test below reads the line with its comment removed and its
+      # BACKSLASH-ESCAPED braces dropped. A `#` comment is not code, so it can
+      # neither open a heredoc nor close the function -- `f() { # note }` is a
+      # MULTI-line function. An escaped `\}` is a literal brace being printed,
+      # not syntax, so it must not balance the `{` that opened the body.
+      c = $0; sub(/(^|[ \t])#.*$/, "", c); gsub(/\\[{}]/, "", c)
+      # `one` only when the header line both opens and closes the body. Testing
+      # for a trailing `}` alone also fires on `f() { x=${BAR}` and truncates it.
+      if (first) { one = (c ~ /\{/ && gsub(/\{/, "{", c) == gsub(/\}/, "}", c)); first = 0 }
+      # A heredoc delimiter starts with a quote or an identifier char, so the
+      # left shift in `$(( 1 << 3 ))` is not one. Reading either it or a `<<`
+      # in prose as a heredoc sets `hd` to a terminator that never arrives, and
+      # the extraction then swallows the whole SSOT tail into the copy.
+      if (match(c, /(^|[^<])<<-?[ \t]*["'"'"']?[A-Za-z_][A-Za-z0-9_]*/)) {   # not a <<< here-string
+        t = substr(c, RSTART, RLENGTH); sub(/^.*<<-?[ \t]*["'"'"']?/, "", t)
+        if (t != "") hd = t
+      }
+      print
+      if (c ~ /^}/ || (one && c ~ /\}[ \t]*$/)) exit   # `one`: a one-line f() { ...; }
+      one = 0
+    }
+  ' "$1"
+}
+
+fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
+
 fail=0 checked=0 stale=0 skipped=0
 for repo in "${repos[@]}"; do
   dir=$repo/$VENDOR_ROOT
@@ -124,27 +164,84 @@ for repo in "${repos[@]}"; do
     rel=${rest%% *}
     qual=${rest#"$rel"}; qual=${qual# }
 
-    # Opt-outs first: a copy that is not a whole-file copy is never compared
-    # against its SSOT, so nothing about the SSOT is load-bearing for it.
-    if [ -n "$qual" ]; then
-      echo "skip  $dest -- partial extraction $qual of $rel, not a whole-file copy"
-      skipped=$((skipped + 1))
-      continue
-    fi
-    # Leading comment block only, so the marker cannot be forged from a body
-    # line. A here-string, not a pipe: `set -o pipefail` would read grep -q's
-    # early exit as the producer's SIGPIPE and silently invert the test.
-    if grep -q -- "$OPT_OUT" <<<"$(sed -n '/^[^#]/q;p' "$dest")"; then
-      echo "skip  $dest -- header says 'Bridge only', hand-written rather than copied from $rel"
-      skipped=$((skipped + 1))
-      continue
-    fi
+    # Hoisted above the two narrow checks: they read the SSOT too, so a missing
+    # one is now a FAIL for every shape rather than only for whole-file copies.
     src=$ssot/$rel
     if [ ! -f "$src" ]; then
       echo "FAIL  $dest names an SSOT that does not exist: $src"
       fail=1
       continue
     fi
+
+    # A partial extraction: compare only the function the qualifier names.
+    if [ -n "$qual" ]; then
+      name=${qual#(}; name=${name%)}
+      if ! [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+        echo "skip  $dest -- qualifier $qual of $rel is not a function name, nothing to compare"
+        skipped=$((skipped + 1))
+        continue
+      fi
+      checked=$((checked + 1))
+      extract_fn "$src" "$name" > "$tmp/want"
+      extract_fn "$dest" "$name" > "$tmp/have"
+      if [ ! -s "$tmp/want" ]; then
+        echo "FAIL  $dest extracts $name, which $src no longer defines"
+        fail=1
+      elif [ ! -s "$tmp/have" ]; then
+        echo "FAIL  $dest names extraction ($name) but no longer defines it"
+        fail=1
+      elif cmp -s "$tmp/want" "$tmp/have"; then
+        echo "ok    $dest -- extraction ($name) matches $rel"
+      else
+        stale=$((stale + 1))
+        if [ "$check_only" -eq 1 ]; then
+          echo "DRIFT $dest extraction ($name) differs from $src"
+          fail=1
+        else
+          # Splice the slice back in place: everything the copy wrote around the
+          # function -- its banner, its why-this-is-extracted note -- survives.
+          s=$(fn_line "$dest" "$name")
+          e=$((s + $(wc -l < "$tmp/have") - 1))
+          { head -n "$((s - 1))" "$dest"; cat "$tmp/want"; tail -n "+$((e + 1))" "$dest"; } > "$tmp/new"
+          cat "$tmp/new" > "$dest"
+          echo "sync  $dest -- extraction ($name) only"
+        fi
+      fi
+      continue
+    fi
+
+    # Leading comment block only, so the marker cannot be forged from a body
+    # line. A here-string, not a pipe: `set -o pipefail` would read grep -q's
+    # early exit as the producer's SIGPIPE and silently invert the test.
+    hdr=$(sed -n '/^[^#]/q;p' "$dest")
+    if grep -q -- "$OPT_OUT" <<<"$hdr"; then
+      # A stub's body was never upstream's, so there is nothing to diff. What is
+      # assertable is that the bridge still has something to bridge: at least one
+      # symbol its header backticks is still a function of the SSOT. At least
+      # one, not all -- a prose header backticks variables and shell snippets
+      # too (`_SC`, `[ -f ]` in gh-verify-skills' stub), so "all" would report
+      # names the stub never promised. A stub that backticks nothing stays a
+      # reported skip: it states no contract to check.
+      names=$(grep -o '`[A-Za-z_][A-Za-z0-9_]*`' <<<"$hdr" | tr -d '`' | sort -u) || true
+      if [ -z "$names" ]; then
+        echo "skip  $dest -- header says 'Bridge only' and names no symbol of $rel to verify"
+        skipped=$((skipped + 1))
+        continue
+      fi
+      checked=$((checked + 1))
+      live=
+      for n in $names; do
+        if grep -q "^${n}[[:space:]]*()" "$src"; then live=$n; break; fi
+      done
+      if [ -n "$live" ]; then
+        echo "ok    $dest -- bridge stub for $rel, $live still defined there"
+      else
+        echo "FAIL  $dest bridges $rel, which defines none of: $(tr '\n' ' ' <<<"$names")"
+        fail=1
+      fi
+      continue
+    fi
+
     checked=$((checked + 1))
     render "$src" "$rel" > "$tmp/want"
     # Process substitution is safe here, unlike git discovery: the status under
@@ -168,7 +265,7 @@ if [ "$check_only" -eq 1 ]; then
   if [ "$fail" -eq 0 ]; then
     echo "ok    $checked vendored file(s) match their SSOT, $skipped skipped"
   else
-    echo "FAIL  $stale of $checked vendored file(s) have drifted, $skipped skipped"
+    echo "FAIL  $checked vendored file(s) checked, $stale drifted, $skipped skipped -- see the FAIL/DRIFT lines above"
   fi
 else
   echo "ok    $checked vendored file(s) checked, $stale rewritten, $skipped skipped"
