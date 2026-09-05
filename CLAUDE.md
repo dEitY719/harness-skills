@@ -56,6 +56,12 @@ git ls-files -z | xargs -0 grep -lP '[\x{1F000}-\x{10FFFF}\x{FE0F}]' \
   || echo "ok  no emojis"
 ```
 
+This repo's own tracked check, which CI runs too:
+
+```bash
+bash tests/self-checks-step.sh
+```
+
 Then run the gate itself and watch it:
 
 ```bash
