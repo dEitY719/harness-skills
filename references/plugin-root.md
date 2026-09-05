@@ -40,7 +40,10 @@ you want.
 | 5 | **Stop, naming the path tried and the way out** | everything |
 
 There is no tier that guesses. Tier 5 is a real tier, and skipping it is what
-produced the `/lib/vendor/shell-common` defect below.
+produced the `/lib/vendor/shell-common` defect below. Tier 4 is what
+`claudecode-skills#5` reached for when a bundled script had been invoked by a
+repo-relative path and so never ran for a marketplace install: `${CLAUDE_PLUGIN_ROOT:-.}`,
+tier 2 falling through to tier 4.
 
 ## Which tiers you get depends on the carrier, not the harness
 
@@ -76,7 +79,7 @@ _SC="${DOTFILES_ROOT:-$HOME/dotfiles}/shell-common"                             
 [ -f "$_SC/functions/gh_host.sh" ] || {                                             # tier 5
     printf '[gh-pr:merge] shell-common not found under %s. On Claude Code this is a broken install; on any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' \
         "$_SC" >&2
-    exit 1
+    return 1 2>/dev/null || exit 1
 }
 export SHELL_COMMON="$_SC"
 ```
@@ -90,8 +93,10 @@ Three things are load-bearing:
 - `export` sits after the proof, never inside the fallback branch.
 - The skill name in the message is a literal, not a `$VAR` these blocks do not
   bind — an unbound name printing empty is the same class of bug.
-
-Use `return 1` instead of `exit 1` in a file that is sourced rather than pasted.
+- `return 1 2>/dev/null || exit 1`, not a bare `exit 1`. The same text gets
+  pasted into a shell *and* sourced from a `references/*.sh.md`, and a bare
+  `exit` in the sourced case kills the caller's shell. One form is correct in
+  both, so there is only one form to copy.
 
 ## Canonical form — a `.sh` file that can locate itself
 
@@ -119,14 +124,25 @@ if [ -z "$_root" ]; then
         *)                       _root="$PWD" ;;                 # tier 4
     esac
 fi
+[ -f "$_root/lib/vendor/shell-common/functions/gh_host.sh" ] || {   # tier 5
+    printf '[resolve-target] no plugin root: %s holds no lib/vendor/shell-common.\n' "$_root" >&2
+    return 1 2>/dev/null || exit 1
+}
 ```
 
+The proof is not optional here either. Tier 4 is a guess until something on
+disk confirms it, and a sourced file that skips the check carries a wrong root
+into every helper the caller sources afterwards — the same blast radius as the
+poisoned export, reached a different way.
+
 Match the suffix with `case`, never `dirname` on an unvalidated `$_self` — the
-pattern failing is how tier 3 declines instead of inventing a path.
+pattern failing is how tier 3 declines instead of inventing a path. A file
+sourced by a *relative* path (`. lib/resolve-target.sh`) also fails that
+pattern; it falls to tier 4, where `$PWD` happens to be the right answer, and
+the proof settles it either way.
 
 zsh and bash reach tier 3; `dash` and `sh` have no self-path at all and land on
-tier 4, whose `[ -f ]` proof then sends them to tier 5. Tier 3 is a bonus, never
-a guarantee — the proof is what holds.
+tier 4. Tier 3 is a bonus, never a guarantee — the proof is what holds.
 
 Both snippets on this page are asserted by
 [`plugin-root.selfcheck.sh`](plugin-root.selfcheck.sh), which runs them across
@@ -163,17 +179,35 @@ immediately followed by `/` is always the defect, and neither
 matches it:
 
 ```sh
-grep -rnE '\$\{[A-Za-z_][A-Za-z0-9_]*:?-\}/' skills lib   # must return nothing
+git ls-files -z | xargs -0 grep -nE '\$\{[A-Za-z_][A-Za-z0-9_]*:?-\}/' \
+  | grep -v '^references/plugin-root\.md:' \
+  || echo "ok  no empty-default path splices"
 ```
+
+The one exclusion is this file, which quotes the banned pattern to show it. No
+sibling repo needs it — they link here rather than copying, so the path does not
+exist there and the filter is inert.
+
+Driven off `git ls-files` rather than a `skills lib` path list, for the same
+reason this repo's emoji check is: the carriers live in different directories in
+different siblings, and a literal path list exits 2 on the repos that have no
+`lib/` — a spurious failure that teaches people to ignore the gate.
 
 A second grep is a review prompt, not a gate, because it cannot see the guard:
 
 ```sh
-grep -rnE '\$\{?CLAUDE_PLUGIN_ROOT\}?/' skills lib
+git ls-files -z | xargs -0 grep -nE '\$\{?CLAUDE_PLUGIN_ROOT\}?/'
 ```
 
 Every hit must sit inside a proof that already ran — `[ -n "$VAR" ]` or a
 `[ -f ]` on the composed path. Read them; do not "fix" a guarded one.
+
+The gate belongs in `.github/workflows/skill-check.yml` — the reusable workflow
+this repo owns — but **only after the rollout lands**. Adding it today turns CI
+red in the five siblings that still carry the defect, which is the wrong order
+and is what `CLAUDE.md`'s "never add a check a sibling repo cannot pass" rule
+forbids. Until then it runs per rollout PR, and this repo runs its own
+self-check in `validate.yml`.
 
 ## Per-harness answers
 
@@ -182,7 +216,7 @@ Every hit must sit inside a proof that already ran — `[ -n "$VAR" ]` or a
 | Claude Code | `CLAUDE_PLUGIN_ROOT` | plugin cache | nothing — tier 2 hits |
 | Codex | no | `~/.codex/plugins/` (`codex-tools.md`) | export `CLAUDE_PLUGIN_ROOT` first, else tier 5 |
 | Gemini CLI | no | the extension dir it loaded `GEMINI.md` from | same |
-| Antigravity | no | shares Gemini CLI's `~/.gemini` install | same |
+| Antigravity | no | shares Gemini CLI's `~/.gemini` install (`antigravity-tools.md`) | same |
 | Kimi CLI | no | the install dir named by `.kimi-plugin/plugin.json` | same |
 | Hermes | no | `~/.hermes/plugins/<repo>/` (`hermes-tools.md`) | same |
 | OpenCode | no | OpenCode's plugin manager dir | same |
@@ -195,12 +229,3 @@ That is the whole reason tier 5 exists rather than a sixth clever fallback.
 Whether `.claude-plugin/plugin.json` exists at all (`authoring-skills#9`) is a
 neighbouring problem, not this one: a manifest-less personal skill tree has no
 plugin root to resolve. It gets the same tier-5 answer and is tracked separately.
-
-## Evidence
-
-- `claudecode-skills#5` — a bundled script invoked by a repo-relative path never
-  ran for a marketplace install; fixed with `${CLAUDE_PLUGIN_ROOT:-.}` (tier 2
-  into tier 4).
-- `gh-issue-skills#11` — tier 3 accepted for a sourced `lib/*.sh`.
-- `gh-pr-skills#15` — tier 3 rejected for a pasted block; loud `[FAIL]` instead.
-- `gh-resolve-skills#8` — the `/lib/vendor/shell-common` export.

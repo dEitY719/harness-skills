@@ -28,6 +28,12 @@ Kimi Code's names collide with Claude Code's for the file and shell tools, so
 most of a skill's prose transfers unchanged. The differences that matter are
 `TodoWrite` -> `TodoList` and the subagent types.
 
+Kimi CLI exports no plugin-root variable. When a skill hands you a shell
+block that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory
+you read the `SKILL.md` from, before running the block — otherwise the block
+stops rather than guessing. Full rule:
+[`plugin-root.md`](plugin-root.md).
+
 ## Subagent dispatch
 
 `Agent` with an explicit `subagent_type`:

@@ -32,6 +32,12 @@ The plugin injects no per-session bootstrap context on purpose: these skills are
 task-triggered, so native `skill` discovery is all that is needed and a
 bootstrap preamble would be pure per-session cost.
 
+OpenCode exports no plugin-root variable. When a skill hands you a shell
+block that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory
+you read the `SKILL.md` from, before running the block — otherwise the block
+stops rather than guessing. Full rule:
+[`plugin-root.md`](plugin-root.md).
+
 ## Progressive disclosure
 
 The `skill` tool loads `SKILL.md`. When a step says "read

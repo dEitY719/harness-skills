@@ -25,6 +25,12 @@ not**. Do not carry Gemini CLI's tool names over — see
 | Dispatch a subagent | `invoke_subagent` with `TypeName: "self"` (full capability) or `"research"` (read-only) |
 | Invoke a skill | Read the `SKILL.md` directly; there is no skill namespace |
 
+Antigravity exports no plugin-root variable. When a skill hands you a shell
+block that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory
+you read the `SKILL.md` from, before running the block — otherwise the block
+stops rather than guessing. Full rule:
+[`plugin-root.md`](plugin-root.md).
+
 ## Task tracking
 
 Antigravity has **no todo tool**. `manage_task` manages background processes
