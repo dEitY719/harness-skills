@@ -38,6 +38,12 @@ and names each skill's path. Load one with `activate_skill`, or by include:
 Then follow its steps. The `harness:` prefix in skill prose is a naming
 convention from other harnesses, not a command to type here.
 
+Gemini CLI exports no plugin-root variable. When a skill hands you a shell
+block that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory
+you read the `SKILL.md` from, before running the block — otherwise the block
+stops rather than guessing. Full rule:
+[`plugin-root.md`](plugin-root.md).
+
 ## Progressive disclosure
 
 `GEMINI.md` deliberately lists only the five skills and what each is for. Read

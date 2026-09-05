@@ -16,19 +16,25 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 mkdir -p "$WORK/plugin/lib/vendor/shell-common/functions" "$WORK/elsewhere" "$WORK/nohome"
 : >"$WORK/plugin/lib/vendor/shell-common/functions/gh_host.sh"
 
-# --- the pasted-block snippet, verbatim from plugin-root.md ------------------
+# --- the pasted-block snippet, byte-verbatim from plugin-root.md -------------
+# (only the trailing `printf 'RESOLVED=...'` probe is added, so the assertions
+#  below can read what it resolved. Keep the rest identical: a fixture that
+#  drifts from the doc tests the wrong thing.)
 cat >"$WORK/block.sh" <<'BLOCK'
 _SC="${DOTFILES_ROOT:-$HOME/dotfiles}/shell-common"
 [ -f "$_SC/functions/gh_host.sh" ] || _SC="${CLAUDE_PLUGIN_ROOT:-$PWD}/lib/vendor/shell-common"
 [ -f "$_SC/functions/gh_host.sh" ] || {
-    printf '[selfcheck] shell-common not found under %s.\n' "$_SC" >&2
+    printf '[gh-pr:merge] shell-common not found under %s. On Claude Code this is a broken install; on any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' \
+        "$_SC" >&2
     return 1 2>/dev/null || exit 1
 }
 export SHELL_COMMON="$_SC"
 printf 'RESOLVED=%s\n' "$SHELL_COMMON"
 BLOCK
 
-# --- the self-locating-file snippet, verbatim from plugin-root.md ------------
+# --- the self-locating snippet, verbatim from plugin-root.md -----------------
+# (its tier-5 printf arm is replaced by a PROVEN= probe, so assertion 6 can see
+#  whether the proof held rather than only that the script died.)
 cat >"$WORK/plugin/lib/resolve-target.sh" <<'SELF'
 if [ -n "${ZSH_VERSION-}" ]; then
     _self="$0"
@@ -47,6 +53,11 @@ if [ -z "$_root" ]; then
     esac
 fi
 printf 'ROOT=%s\n' "$_root"
+if [ -f "$_root/lib/vendor/shell-common/functions/gh_host.sh" ]; then
+    printf 'PROVEN=yes\n'
+else
+    printf 'PROVEN=no\n'
+fi
 SELF
 
 # env -u for every variable that could mask a tier, so the machine running this
@@ -87,23 +98,50 @@ case "$got" in
     *) fail "SHELL_COMMON was exported despite the failure (got: $got)" ;;
 esac
 
-# 5. the self-path branch: a shell with $BASH_SOURCE/$0 reaches tier 3, one
-#    without it falls to tier 4 — and neither ever yields an empty root.
+# 5. tier 2 beats everything, in one shell — the branch it takes is plain POSIX
+#    parameter expansion, identical everywhere, so running it per shell would
+#    assert nothing extra.
+got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT=/OVERRIDE sh -c \
+    ". $WORK/plugin/lib/resolve-target.sh" | head -1)
+[ "$got" = "ROOT=/OVERRIDE" ] || fail "tier 2 did not win over the self-path (got: $got)"
+
+# 6. the self-path branch, asserting what plugin-root.md actually claims:
+#    bash and zsh reach tier 3, every other shell falls to tier 4. Accepting
+#    "either one" would let the doc's per-shell claim rot unnoticed.
+#
+#    Deduplicate by resolved binary: on Debian-family boxes /bin/sh IS dash, and
+#    running it twice under two names would report coverage that is not there.
+seen=""
 for shell in sh dash bash zsh; do
-    command -v "$shell" >/dev/null 2>&1 || continue
-    got=$(cd "$WORK/elsewhere" && clean "$shell" -c ". $WORK/plugin/lib/resolve-target.sh")
-    case "$got" in
-        "ROOT=$WORK/plugin")    ;;  # tier 3, self-path available
-        "ROOT=$WORK/elsewhere") ;;  # tier 4, no self-path in this shell
-        *) fail "$shell resolved an unexpected root: $got" ;;
+    path=$(command -v "$shell" 2>/dev/null) || continue
+    real=$(readlink -f "$path" 2>/dev/null || echo "$path")
+    case " $seen " in *" $real "*) continue ;; esac
+    seen="$seen $real"
+
+    out=$(cd "$WORK/elsewhere" && clean "$shell" -c ". $WORK/plugin/lib/resolve-target.sh")
+    got=$(echo "$out" | head -1)
+    case "$shell" in
+        bash | zsh) want="ROOT=$WORK/plugin"    ; tier="3 (self-path)" ; proof=yes ;;
+        *)          want="ROOT=$WORK/elsewhere" ; tier="4 (\$PWD)"     ; proof=no  ;;
     esac
-    got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT=/OVERRIDE "$shell" -c \
-        ". $WORK/plugin/lib/resolve-target.sh")
-    [ "$got" = "ROOT=/OVERRIDE" ] || fail "$shell ignored tier 2 (got: $got)"
+    [ "$got" = "$want" ] || fail "$shell should reach tier $tier but gave: $got"
+
+    # The proof is what separates the two: tier 3 found the real checkout, so it
+    # holds; tier 4 guessed the cwd, so it must NOT — that is the guess getting
+    # caught, and it is the whole reason the proof is in the snippet.
+    echo "$out" | grep -q "^PROVEN=$proof\$" \
+        || fail "$shell reached tier $tier but the proof did not say PROVEN=$proof"
 done
+
+# 7. and the same tier-4 guess, once the cwd IS the checkout, must prove out.
+out=$(cd "$WORK/plugin" && clean sh -c ". $WORK/plugin/lib/resolve-target.sh")
+echo "$out" | grep -q '^PROVEN=yes$' \
+    || fail "tier 4 in the real checkout should prove out (got: $out)"
 
 echo "ok  tier 2 resolves from CLAUDE_PLUGIN_ROOT"
 echo "ok  tier 4 resolves from \$PWD in the checkout"
 echo "ok  tier 5 stops loudly and names the resolved path"
 echo "ok  a failed resolution exports nothing"
-echo "ok  self-path branch lands on tier 3 or 4 in every available shell"
+echo "ok  tier 2 wins over the self-path"
+echo "ok  bash/zsh reach tier 3, other shells tier 4"
+echo "ok  the proof accepts a real root and rejects a guessed one"

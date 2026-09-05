@@ -42,6 +42,12 @@ If registration failed outright, `__init__.py` raises loudly rather than
 silently skipping — a bootstrap that skips quietly is how a broken install
 passes for a working one. Read the error; it prints the paths it tried.
 
+Hermes exports no plugin-root variable. When a skill hands you a shell
+block that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory
+you read the `SKILL.md` from, before running the block — otherwise the block
+stops rather than guessing. Full rule:
+[`plugin-root.md`](plugin-root.md).
+
 ## Progressive disclosure
 
 `skill_view` returns the `SKILL.md` only. When a step says "read

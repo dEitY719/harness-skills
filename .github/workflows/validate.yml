@@ -19,3 +19,13 @@ jobs:
     uses: ./.github/workflows/skill-check.yml
     with:
       plugin-name: harness
+
+  # Repo-local, deliberately NOT in skill-check.yml: that workflow is an API the
+  # other fourteen repos call, and none of them ships this file. The convention's
+  # own gate grep moves there once the rollout lands (references/plugin-root.md).
+  plugin-root-selfcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Plugin-root snippets behave as documented
+        run: sh references/plugin-root.selfcheck.sh
