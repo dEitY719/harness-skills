@@ -17,6 +17,7 @@ printf 'B=2\n' > "$ssot/noshebang.sh"          # SSOT file with no shebang
 printf 'C=3\n' > "$ssot/notvendored.sh"        # SSOT file this consumer skips
 printf 'D=4\n' > "$ssot/helper.py"             # not a .sh
 printf 'E=5\n' > "$dots/shell-common/tools/t.sh"   # outside functions/
+printf 'F=6\n' > "$ssot/big.sh"               # stands in for the 1500-line integration file
 
 # A copy is discovered by its own banner, not by living at a blessed path.
 # The last two are the shapes a `functions/*.sh` glob skipped in silence.
@@ -26,6 +27,15 @@ stub shell-common/functions/noshebang.sh "$vendor/noshebang.sh"
 stub shell-common/functions/helper.py    "$vendor/helper.py"
 stub shell-common/tools/t.sh             "$work/consumer/lib/vendor/shell-common/tools/t.sh"
 printf 'not vendored, no banner\n' > "$vendor/stray.sh"
+
+# Two banner shapes are deliberately NOT whole-file copies (#25): a partial
+# extraction names its qualifier, a bridge stub says so in its header. Both
+# carry the banner, so both were found -- and both were destroyed.
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\t(_one_fn)\n'
+  printf '_one_fn() { echo 1; }\n'; } > "$vendor/extracted.sh"
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
+  printf '# Bridge only. The rest of upstream big.sh is not vendored.\n'
+  printf '. ./extracted.sh\n'; } > "$vendor/bridge.sh"
 
 fail=0
 # The assertion runs INSIDE t, never as a bare command followed by `t $?`:
@@ -65,7 +75,32 @@ t "a vendored copy outside functions/ is still synced" \
 t "the banner names the generator's repo, so the path resolves from here" \
   grep -qF 'by dEitY719/harness-skills scripts/sync-shell-common-vendor.sh' "$vendor/a.sh"
 
+# #25: a copy that is not a whole-file copy must be SKIPPED and REPORTED.
+# Silently omitting it is the same class of defect as silently overwriting it.
+t "a partial extraction is skipped" grep -q '^skip  .*extracted\.sh' <<<"$out"
+t "...naming the qualifier as the reason" \
+  grep -qF '(_one_fn)' <<<"$(grep '^skip  .*extracted\.sh' <<<"$out")"
+t "a partial extraction keeps its hand-written body" \
+  [ "$(tail -n 1 "$vendor/extracted.sh")" = '_one_fn() { echo 1; }' ]
+t "a stub carrying the opt-out marker is skipped" grep -q '^skip  .*bridge\.sh' <<<"$out"
+t "...naming the marker as the reason" \
+  grep -qF 'Bridge only' <<<"$(grep '^skip  .*bridge\.sh' <<<"$out")"
+t "a stub keeps its hand-written body" \
+  [ "$(tail -n 1 "$vendor/bridge.sh")" = '. ./extracted.sh' ]
+t "a whole-file copy is still regenerated alongside them" grep -q '^A=1$' "$vendor/a.sh"
+# The extraction's banner above separates path and qualifier with a TAB. awk's
+# own `$4` split on any whitespace; a bash `%% *` split would read the tab as
+# part of the path and chase an SSOT that does not exist (PR #27, codex).
+t "a banner separated by a tab still resolves its SSOT path" \
+  grep -qF 'of shell-common/functions/big.sh' <<<"$(grep '^skip  .*extracted\.sh' <<<"$out")"
+t "the summary counts the skips rather than losing them" grep -q '2 skipped' <<<"$out"
+
 t "--check is clean right after a sync" [ "$(rc_of run --check)" = 0 ]
+
+cout=$(run --check) && crc=0 || crc=$?
+t "--check exits 0 when the only non-matches are skips" [ "$crc" = 0 ]
+t "--check reports the skips too, never silently omits them" \
+  [ "$(grep -c '^skip  ' <<<"$cout")" = 2 ]
 
 printf 'TAMPERED\n' >> "$vendor/a.sh"
 out=$(run --check 2>&1) && rc=0 || rc=$?

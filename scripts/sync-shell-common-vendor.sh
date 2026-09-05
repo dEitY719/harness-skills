@@ -29,11 +29,25 @@
 #
 # Only files that already carry the banner are refreshed. This never adds one:
 # what a repo vendors is that repo's decision, not this script's.
+#
+# Two banner shapes opt a copy OUT of regeneration, because it is not a
+# whole-file copy of its SSOT (#25). Both are reported as `skip <file> -- <why>`
+# in either mode; omitting them silently would be the same defect as
+# overwriting them silently:
+#
+#   1. a QUALIFIER after the SSOT path -- a partial extraction:
+#        # SSOT: dEitY719/dotfiles shell-common/tools/integrations/claude.sh (_dotfiles_setup_mode)
+#      vendors one function out of a 1500-line file, so rewriting the copy with
+#      all 1500 lines of it is destruction, not a sync.
+#   2. the OPT-OUT MARKER `# Bridge only` starting a line in the file's leading
+#      comment block -- a hand-written stub whose body was never upstream's.
+#      Find them with: grep -rn '^# Bridge only' lib/vendor
 set -euo pipefail
 
 VENDOR_ROOT=lib/vendor
 BANNER_SSOT='# SSOT: dEitY719/dotfiles '
 BANNER_BY='dEitY719/harness-skills scripts/sync-shell-common-vendor.sh'
+OPT_OUT='^# Bridge only'   # see the header: opt-out marker for a hand-written stub
 
 # Reads the header above rather than restating it, so the two cannot drift.
 usage() { sed -n '/^# Usage:/,/^set -/{ /^set -/d; s/^# \?//; p; }' "$0"; }
@@ -84,7 +98,7 @@ render() {  # render <ssot-file> <ssot-relpath> -- the copy, banner under the sh
 # generator, and a copy still pointing at the old unqualified path IS stale.
 strip_stamp() { sed 's|^\(# Synced \)[^ ]* \(by .*\)$|\1<stamp> \2|'; }
 
-fail=0 checked=0 stale=0
+fail=0 checked=0 stale=0 skipped=0
 for repo in "${repos[@]}"; do
   dir=$repo/$VENDOR_ROOT
   if [ ! -d "$dir" ]; then
@@ -100,7 +114,31 @@ for repo in "${repos[@]}"; do
   fi
   while IFS= read -r dest; do
     [ -n "$dest" ] || continue
-    rel=$(awk -v p="^$BANNER_SSOT" '$0 ~ p {print $4; exit}' "$dest")
+    # `$rest` is the banner's tail: "<path>" or "<path> (qualifier)". `$1=$1`
+    # re-splits on any whitespace and rejoins on single spaces, so a tab or a
+    # trailing space parses the same as awk's own `$4` did. awk, not grep -m1:
+    # a file that somehow lost its banner leaves this empty and falls through to
+    # the "names an SSOT that does not exist" arm, rather than aborting the
+    # whole run under `set -e`.
+    rest=$(awk -v p="^$BANNER_SSOT" '$0 ~ p {sub(p, ""); $1=$1; print; exit}' "$dest")
+    rel=${rest%% *}
+    qual=${rest#"$rel"}; qual=${qual# }
+
+    # Opt-outs first: a copy that is not a whole-file copy is never compared
+    # against its SSOT, so nothing about the SSOT is load-bearing for it.
+    if [ -n "$qual" ]; then
+      echo "skip  $dest -- partial extraction $qual of $rel, not a whole-file copy"
+      skipped=$((skipped + 1))
+      continue
+    fi
+    # Leading comment block only, so the marker cannot be forged from a body
+    # line. A here-string, not a pipe: `set -o pipefail` would read grep -q's
+    # early exit as the producer's SIGPIPE and silently invert the test.
+    if grep -q -- "$OPT_OUT" <<<"$(sed -n '/^[^#]/q;p' "$dest")"; then
+      echo "skip  $dest -- header says 'Bridge only', hand-written rather than copied from $rel"
+      skipped=$((skipped + 1))
+      continue
+    fi
     src=$ssot/$rel
     if [ ! -f "$src" ]; then
       echo "FAIL  $dest names an SSOT that does not exist: $src"
@@ -128,11 +166,11 @@ done
 
 if [ "$check_only" -eq 1 ]; then
   if [ "$fail" -eq 0 ]; then
-    echo "ok    $checked vendored file(s) match their SSOT"
+    echo "ok    $checked vendored file(s) match their SSOT, $skipped skipped"
   else
-    echo "FAIL  $stale of $checked vendored file(s) have drifted"
+    echo "FAIL  $stale of $checked vendored file(s) have drifted, $skipped skipped"
   fi
 else
-  echo "ok    $checked vendored file(s) checked, $stale rewritten"
+  echo "ok    $checked vendored file(s) checked, $stale rewritten, $skipped skipped"
 fi
 exit "$fail"
