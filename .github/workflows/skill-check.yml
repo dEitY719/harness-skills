@@ -363,12 +363,9 @@ jobs:
       - name: Repo self-checks pass (tests/)
         run: |
           set -euo pipefail
-          # Convention (see README "CI"): a repo's committed checks live in
-          # `tests/`. If `tests/run.sh` is tracked it is the sole entry point
-          # and owns the ordering; otherwise every `tests/*.sh` is one check.
-          # Nothing outside `tests/` is discovered. A `--self-test` flag or a
-          # `lib/*.selfcheck.sh` is wired up by adding a one-line `tests/`
-          # script that calls it -- not by teaching CI a third shape.
+          # Convention, and the rules a check must follow: see README "CI".
+          # Another shape (a `--self-test` flag, a `lib/*.selfcheck.sh`) is
+          # wired up by a one-line `tests/` script, never by a third branch here.
           #
           # `:(glob)` stops `*` from crossing `/`, so only direct children of
           # the repo-root `tests/` match. A vendored tree can never be one, so
@@ -381,9 +378,6 @@ jobs:
           # tracked path containing a newline one path, and discovery is over
           # tracked files only, so an untracked `tests/run.sh` left in the
           # working tree cannot hijack it.
-          #
-          # Offline: no network, no `gh` auth, no package install. A check that
-          # needs either does not belong here.
           listing=$(mktemp)
           git ls-files -z -- ':(glob)tests/*.sh' > "$listing"
           mapfile -t -d '' checks < "$listing"
@@ -399,7 +393,7 @@ jobs:
             fi
           done
           for c in "${checks[@]}"; do
-            echo "---   $c"
+            echo "note  running $c"
             bash "$c"
           done
           echo "ok    ${#checks[@]} check(s) passed"

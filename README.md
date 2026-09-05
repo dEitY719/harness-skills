@@ -160,8 +160,8 @@ workflow is proven on its own PR before a sibling repo picks it up.
 
 ### Where a repo's tests live
 
-One convention for all sixteen repos, so the workflow discovers checks instead
-of being taught each repo's shape:
+One convention for every `dEitY719/*-skills` repo, so the workflow discovers
+checks instead of being taught each repo's shape:
 
 - **`tests/` is the home.** A check outside it is not discovered and does not
   run.
