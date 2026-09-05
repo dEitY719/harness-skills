@@ -13,6 +13,19 @@ MATCHES=$(jq -r --arg p "$PLUGIN" \
   "$CFG/plugins/installed_plugins.json")
 ```
 
+If that `jq` fails — the file is absent (no Claude Code config on this
+machine, or a different harness) or it has no `.plugins` object — do **not**
+fall through to the not-installed case below. An empty `$MATCHES` there reads
+as "this plugin is not installed" and sends the user to install something that
+may already be installed. Stop with the cause instead:
+
+```
+$CFG/plugins/installed_plugins.json 을 읽을 수 없습니다 (없거나 형식이 다름).
+이 스킬은 Claude Code 의 설치 기록을 SSOT 로 씁니다. CLAUDE_CONFIG_DIR 이
+맞는지 확인하거나, 다른 하네스라면 저장소 루트의 references/<harness>-tools.md
+를 따르세요.
+```
+
 ## Case A — `MARKETPLACE` given explicitly (`<plugin>@<marketplace>`)
 
 Check that the exact string `"$PLUGIN@$MARKETPLACE"` is one of `$MATCHES`.
