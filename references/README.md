@@ -16,6 +16,11 @@ those tools differently. These six files are the mapping.
 Claude Code has no file here: the skills are written in Claude Code's
 vocabulary, so on Claude Code the mapping is the identity.
 
+One more file is not a mapping: [`plugin-root.md`](plugin-root.md) is the
+cross-harness convention for "where are my bundled files" — the resolution order
+behind `${CLAUDE_PLUGIN_ROOT}`, which only Claude Code sets. Read it when a skill
+hands you a shell block that reads that variable, or before writing one.
+
 ## Ownership (dotfiles #1410 F-5 / NF-2)
 
 **This repo is the sole owner.** The other fourteen `*-skills` repos declare
