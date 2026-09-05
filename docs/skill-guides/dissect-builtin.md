@@ -1,6 +1,6 @@
 # dissect-builtin
 
-> 한 줄 요약 — Claude Code **내장 스킬 1개**의 프롬프트를 Skill 도구로 불러와 해부하고, `claude/built-in-skills/<skill-name>/` 아래에 한국어 분석 문서 `README.md` 와 원문 그대로의 `PROMPT.md` **2개 파일**을 남긴다.
+> 한 줄 요약 — Claude Code **내장 스킬 1개**의 프롬프트를 Skill 도구로 불러와 해부하고, `docs/built-in-skills/<skill-name>/` 아래에 한국어 분석 문서 `README.md` 와 원문 그대로의 `PROMPT.md` **2개 파일**을 남긴다.
 
 ## 언제 쓰고 언제 안 쓰는가
 
@@ -54,13 +54,13 @@
    스킬을 불러온다. 원시 프롬프트가 컨텍스트에 주입되며, **전문을 그대로 보존**한다.
    여기서 로드가 실패하면 그 스킬은 내장이 아니라는 뜻이므로 Step 2 로 가지 않는다.
 2. **Step 2 — 에이전트 2개 병렬 실행.** Agent 도구로 두 에이전트를 **한 메시지 안에서
-   동시에** 띄운다. 출력 디렉터리는 dotfiles 저장소 루트 기준
-   `claude/built-in-skills/<skill-name>/` 이다.
+   동시에** 띄운다. 출력 디렉터리는 호출한 프로젝트 루트 기준
+   `docs/built-in-skills/<skill-name>/` 이다.
 
    | 산출물 | 경로 | 형식 |
    |--------|------|------|
-   | `README.md` | `claude/built-in-skills/<skill-name>/README.md` | 한국어 Markdown |
-   | `PROMPT.md` | `claude/built-in-skills/<skill-name>/PROMPT.md` | 원문 그대로(verbatim) |
+   | `README.md` | `docs/built-in-skills/<skill-name>/README.md` | 한국어 Markdown |
+   | `PROMPT.md` | `docs/built-in-skills/<skill-name>/PROMPT.md` | 원문 그대로(verbatim) |
 
    - **Agent 1 (README.md)** — 로드한 프롬프트를 분석해 한국어로 쓴다. 필수 항목은
      ① 한줄 요약 ② 동작 단계(Phase) ③ 각 단계의 상세 체크 항목(있는 경우)
@@ -75,8 +75,8 @@
    ```
    [OK] harness:dissect-builtin
      Skill:    <skill-name>
-     Outputs:  claude/built-in-skills/<skill-name>/README.md
-               claude/built-in-skills/<skill-name>/PROMPT.md
+     Outputs:  docs/built-in-skills/<skill-name>/README.md
+               docs/built-in-skills/<skill-name>/PROMPT.md
      Next:     /gh-pr:commit
    ```
 
@@ -101,10 +101,11 @@ Claude Code 는 스킬 트리에서 `SKILL.md` 를 발견하면 그것을 **로�
 바뀌었는지 비교하려면 원문이어야 한다. 한국어로 쓰는 것은 `README.md` 쪽이고,
 거기서도 기술 용어는 영어를 그대로 쓴다.
 
-**쓰기 위치는 이 저장소가 아니다.** 출력 경로 `claude/built-in-skills/<skill-name>/` 는
-**dotfiles 저장소 루트 기준**이다. harness-skills 저장소 안에서 호출하더라도 산출물은
-dotfiles 쪽에 생긴다. dotfiles 체크아웃이 없거나 쓰기 권한이 없는 환경에서는
-Step 2 의 쓰기가 실패하고 `[FAIL] ... Step: Step 2 write` 로 중단된다.
+**쓰기 위치는 호출한 저장소다.** 출력 경로 `docs/built-in-skills/<skill-name>/` 는
+**호출한 프로젝트 루트 기준**이다. 작성자의 dotfiles 체크아웃을 전제하지 않으므로,
+이 플러그인을 설치한 어느 저장소에서 호출하든 산출물은 그 저장소 안에 생긴다.
+대상 디렉터리에 쓸 수 없으면 Step 2 의 쓰기가 실패하고
+`[FAIL] ... Step: Step 2 write` 로 중단된다.
 
 **오류는 조용히 넘기지 않는다.** 이 스킬에는 soft-fail 단계가 없다. 세 단계 어디서든
 실패하면 그 자리에서 멈추고 `[FAIL]` 과 함께 실패한 Step 을 밝힌다. 반쪽짜리 산출물

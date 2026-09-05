@@ -1,8 +1,8 @@
 # dissect-builtin 사용 결과
 
-> **한 줄 요약** — 내장 스킬 이름 하나를 받아 `claude/built-in-skills/<skill-name>/` 아래에 한국어 분석 `README.md` 와 원문 `PROMPT.md` 를 생성합니다.
+> **한 줄 요약** — 내장 스킬 이름 하나를 받아 `docs/built-in-skills/<skill-name>/` 아래에 한국어 분석 `README.md` 와 원문 `PROMPT.md` 를 생성합니다.
 
-> NOTE: **미실행 예시** — 이 스킬은 dotfiles 저장소의 `claude/built-in-skills/` 아래에 파일을 쓰므로 문서화 목적으로 실행하지 않았습니다. 명령·경로·산출물은 `skills/dissect-builtin/SKILL.md` 인용이며 실행 로그가 아닙니다.
+> NOTE: **미실행 예시** — 이 스킬은 호출한 저장소의 `docs/built-in-skills/` 아래에 파일을 쓰므로 문서화 목적으로 실행하지 않았습니다. 명령·경로·산출물은 `skills/dissect-builtin/SKILL.md` 인용이며 실행 로그가 아닙니다.
 
 ```
 내장 스킬 이름  ──▶  /harness:dissect-builtin  ──▶  README.md(한국어 분석) + PROMPT.md(원문)
@@ -22,14 +22,14 @@
 - **`<skill-name>`(필수)** — 해부할 Claude Code 내장 스킬 이름. Step 1 이
   `Skill(skill: "<skill-name>")` 로 로드하고, 주입된 원시 프롬프트 전문을 보존한다.
 - **선행 조건(게이트):** 대상이 실제 내장 스킬이어야 한다. 로드에 실패하면 사용자에게 알리고 대안을 제시한 뒤 중단한다.
-- **쓰기 대상:** dotfiles 저장소 루트 기준 `claude/built-in-skills/<skill-name>/` — 호출한 저장소가 아니라 dotfiles 쪽이다.
+- **쓰기 대상:** 호출한 프로젝트 루트 기준 `docs/built-in-skills/<skill-name>/` — 작성자의 dotfiles 체크아웃을 전제하지 않는다.
 
 ## 3. 결과 (실행 시)
 
-- **`claude/built-in-skills/<skill-name>/README.md`** — Agent 1 이 쓰는 한국어 분석.
+- **`docs/built-in-skills/<skill-name>/README.md`** — Agent 1 이 쓰는 한국어 분석.
   한줄 요약 / 동작 단계(Phase) / 단계별 상세 체크 항목 / 특징(병렬 실행, 쓰기 권한,
   도메인 특화 등)을 담고, 제목은 대상 스킬의 실제 단계에 맞춰 조정된다.
-- **`claude/built-in-skills/<skill-name>/PROMPT.md`** — Agent 2 가 쓰는 원문 그대로의
+- **`docs/built-in-skills/<skill-name>/PROMPT.md`** — Agent 2 가 쓰는 원문 그대로의
   프롬프트. 감싸는 제목도 코드 펜스도 없고, 요약·번역·재포맷하지 않는다. 두 에이전트는
   Step 2 가 한 메시지 안에서 동시에 띄우므로 병렬로 돈다.
 - **stdout 판정** — 성공 시 `[OK] harness:dissect-builtin` 아래 `Skill:`, 두 산출물
