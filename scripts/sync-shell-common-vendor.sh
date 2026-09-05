@@ -114,11 +114,13 @@ for repo in "${repos[@]}"; do
   fi
   while IFS= read -r dest; do
     [ -n "$dest" ] || continue
-    # `$rest` is the banner's tail: "<path>" or "<path> (qualifier)". awk, not
-    # grep -m1: a file that somehow lost its banner leaves this empty and falls
-    # through to the "names an SSOT that does not exist" arm, rather than
-    # aborting the whole run under `set -e`.
-    rest=$(awk -v p="^$BANNER_SSOT" '$0 ~ p {sub(p, ""); print; exit}' "$dest")
+    # `$rest` is the banner's tail: "<path>" or "<path> (qualifier)". `$1=$1`
+    # re-splits on any whitespace and rejoins on single spaces, so a tab or a
+    # trailing space parses the same as awk's own `$4` did. awk, not grep -m1:
+    # a file that somehow lost its banner leaves this empty and falls through to
+    # the "names an SSOT that does not exist" arm, rather than aborting the
+    # whole run under `set -e`.
+    rest=$(awk -v p="^$BANNER_SSOT" '$0 ~ p {sub(p, ""); $1=$1; print; exit}' "$dest")
     rel=${rest%% *}
     qual=${rest#"$rel"}; qual=${qual# }
 

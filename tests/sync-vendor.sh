@@ -31,7 +31,7 @@ printf 'not vendored, no banner\n' > "$vendor/stray.sh"
 # Two banner shapes are deliberately NOT whole-file copies (#25): a partial
 # extraction names its qualifier, a bridge stub says so in its header. Both
 # carry the banner, so both were found -- and both were destroyed.
-{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh (_one_fn)\n'
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\t(_one_fn)\n'
   printf '_one_fn() { echo 1; }\n'; } > "$vendor/extracted.sh"
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
   printf '# Bridge only. The rest of upstream big.sh is not vendored.\n'
@@ -88,6 +88,11 @@ t "...naming the marker as the reason" \
 t "a stub keeps its hand-written body" \
   [ "$(tail -n 1 "$vendor/bridge.sh")" = '. ./extracted.sh' ]
 t "a whole-file copy is still regenerated alongside them" grep -q '^A=1$' "$vendor/a.sh"
+# The extraction's banner above separates path and qualifier with a TAB. awk's
+# own `$4` split on any whitespace; a bash `%% *` split would read the tab as
+# part of the path and chase an SSOT that does not exist (PR #27, codex).
+t "a banner separated by a tab still resolves its SSOT path" \
+  grep -qF 'of shell-common/functions/big.sh' <<<"$(grep '^skip  .*extracted\.sh' <<<"$out")"
 t "the summary counts the skips rather than losing them" grep -q '2 skipped' <<<"$out"
 
 t "--check is clean right after a sync" [ "$(rc_of run --check)" = 0 ]
