@@ -30,6 +30,12 @@ The plugin root is wherever `codex plugin install dEitY719/harness-skills` put
 it — check `~/.codex/plugins/`. Follow the file's steps yourself; the `harness:`
 prefix in its prose is a naming convention, not something to type.
 
+Codex exports no plugin-root variable, so when a skill hands you a shell block
+that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory you
+just read the `SKILL.md` from, before running the block. Full rule, including
+what a block must do when you did not:
+[`plugin-root.md`](plugin-root.md).
+
 ## Progressive disclosure
 
 Skills say "read `references/checks.md`" and mean it literally. Resolve the path

@@ -105,6 +105,15 @@ cannot do.
 here rather than carrying copies — one tool rename should be one edit, not
 fifteen (#1410 NF-2). See [`references/README.md`](references/README.md).
 
+### Plugin-root resolution convention
+
+[`references/plugin-root.md`](references/plugin-root.md) answers "where are my
+bundled files" for all six harnesses. `${CLAUDE_PLUGIN_ROOT}` is the only
+mechanism these plugins use to locate their own files and only Claude Code sets
+it, so the file fixes one resolution order, one canonical snippet per carrier,
+and the rule that an empty variable is never spliced into a path. Owned here,
+linked from the siblings.
+
 ## Layout
 
 Manifests live at the repo root and all point at one flat `skills/` directory:
@@ -115,6 +124,7 @@ Manifests live at the repo root and all point at one flat `skills/` directory:
 │   ├── SKILL.md
 │   └── references/
 ├── references/*-tools.md                        shared, owned here
+├── references/plugin-root.md                    shared, owned here
 ├── .claude-plugin/{marketplace,plugin}.json     Claude Code
 ├── .codex-plugin/plugin.json                    Codex
 ├── .kimi-plugin/plugin.json                     Kimi CLI

@@ -25,7 +25,7 @@ five skills for managing the AI coding harness itself:
 | `dissect-builtin` | Documents a Claude Code built-in skill in Korean. |
 | `plugin-guide` | Documents an installed plugin in Korean. |
 
-It also owns two **shared assets** that the other fourteen `dEitY719/*-skills`
+It also owns three **shared assets** that the other fourteen `dEitY719/*-skills`
 repos depend on. Those are the reason this repo exists as more than a fifth of a
 split — see "Shared assets" below.
 
@@ -37,7 +37,7 @@ plan.
 ## Verifying a change locally
 
 `validate.yml` calls the shared `skill-check` workflow, so CI is the real gate.
-These four commands run its main assertions first, and all four are read-only.
+These commands run its main assertions first; none of them modify the repo.
 
 ```bash
 # Every JSON manifest parses
@@ -54,6 +54,9 @@ wc -l skills/*/SKILL.md | sort -rn
 # No emoji in tracked text, over the same codepoint range CI rejects
 git ls-files -z | xargs -0 grep -lP '[\x{1F000}-\x{10FFFF}\x{FE0F}]' \
   || echo "ok  no emojis"
+
+# The plugin-root convention's snippets still behave as documented
+sh references/plugin-root.selfcheck.sh
 ```
 
 Then run the gate itself and watch it:
@@ -79,6 +82,7 @@ single flat `./skills/` directory:
 gemini-extension.json + GEMINI.md          Gemini CLI
 skills/<name>/SKILL.md                     the skills themselves
 references/*-tools.md                      shared, owned here
+references/plugin-root.md                  shared, owned here
 ```
 
 Only Claude Code understands the nested mono layout. The other five harnesses
@@ -94,7 +98,12 @@ is the sole owner; the other fourteen repos link here. If you are about to paste
 one into a sibling repo, stop and add a link instead — one tool rename must stay
 one edit (NF-2). Details and the Kimi caveat: `references/README.md`.
 
-**2. The reusable CI workflow** (`.github/workflows/skill-check.yml`, D-10).
+**2. The plugin-root convention** (`references/plugin-root.md`). One resolution
+order for "where are my bundled files" across all six harnesses, since only
+Claude Code sets `${CLAUDE_PLUGIN_ROOT}`. Same ownership rule: siblings link,
+never copy. Its grep gate is the checkable half — a rollout PR runs it.
+
+**3. The reusable CI workflow** (`.github/workflows/skill-check.yml`, D-10).
 A `workflow_call` workflow the other fourteen repos invoke with a `plugin-name`
 input. Adding a check here applies it everywhere at once, which is the point.
 
