@@ -112,10 +112,12 @@ extract_fn() {  # extract_fn <file> <name>
     !inf { if ($0 ~ "^" n "[ \t]*\\(\\)") { inf = 1; first = 1 } else next }
     hd != "" { print; if ($0 ~ "^[ \t]*" hd "$") hd = ""; next }
     {
-      # Every test below reads the line with its comment removed. A `#` comment
-      # is not code, so it can neither open a heredoc nor close the function --
-      # and `f() { # note }` is a MULTI-line function, not a one-liner.
-      c = $0; sub(/(^|[ \t])#.*$/, "", c)
+      # Every test below reads the line with its comment removed and its
+      # BACKSLASH-ESCAPED braces dropped. A `#` comment is not code, so it can
+      # neither open a heredoc nor close the function -- `f() { # note }` is a
+      # MULTI-line function. An escaped `\}` is a literal brace being printed,
+      # not syntax, so it must not balance the `{` that opened the body.
+      c = $0; sub(/(^|[ \t])#.*$/, "", c); gsub(/\\[{}]/, "", c)
       # `one` only when the header line both opens and closes the body. Testing
       # for a trailing `}` alone also fires on `f() { x=${BAR}` and truncates it.
       if (first) { one = (c ~ /\{/ && gsub(/\{/, "{", c) == gsub(/\}/, "}", c)); first = 0 }

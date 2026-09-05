@@ -51,7 +51,18 @@ _multi_fn() { p=${HOME}
 }
 FN
 }
-{ printf '# big.sh header\n_before() { echo b; }\n'; one_fn; multi_fn
+
+# A header line whose trailing `}` is BACKSLASH-ESCAPED -- a literal brace being
+# printed, not the syntax that closes the body. Counting it balances the `{` that
+# opened the function and truncates the extraction to this single line.
+esc_fn() {
+  cat <<'FN'
+_esc_fn() { printf '%s' \}
+    echo body
+}
+FN
+}
+{ printf '# big.sh header\n_before() { echo b; }\n'; one_fn; multi_fn; esc_fn
   printf 'AFTER=1\n'; } > "$ssot/big.sh"
 
 # `# Bridge only` opts a copy out only from its LEADING COMMENT BLOCK. This SSOT
@@ -80,6 +91,8 @@ printf 'not vendored, no banner\n' > "$vendor/stray.sh"
   one_fn; } > "$vendor/extracted.sh"
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh (_multi_fn)\n'
   multi_fn; } > "$vendor/extracted_multi.sh"
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh (_esc_fn)\n'
+  esc_fn; } > "$vendor/extracted_esc.sh"
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
   printf '# Bridge only. Recovers a missing `_one_fn`; the rest of upstream\n'
   printf '# big.sh is not vendored.\n'
@@ -203,6 +216,20 @@ t "write mode refreshes it without dragging in the SSOT tail" \
 sed -i 's/^    echo body2$/    echo body/' "$ssot/big.sh"
 run >/dev/null
 t "restoring it upstream restores a clean check" [ "$(rc_of run --check)" = 0 ]
+
+# An escaped `\}` on the header line is a literal brace, not syntax. Counting it
+# balances the opening `{`, fires the one-liner shortcut, and truncates -- again
+# identically on both sides, so the drift below would be reported `ok`.
+sed -i 's/^    echo body$/    echo body3/' "$ssot/big.sh"
+out=$(run --check 2>&1) && rc=0 || rc=$?
+t "drift below a header line ending in an escaped brace turns --check red" [ "$rc" = 1 ]
+t "...naming the escaped-brace extraction" grep -q '^DRIFT .*extracted_esc\.sh' <<<"$out"
+run >/dev/null
+t "write mode refreshes it without dragging in the SSOT tail" \
+  no grep -q '^AFTER=1$' "$vendor/extracted_esc.sh"
+sed -i 's/^    echo body3$/    echo body/' "$ssot/big.sh"
+run >/dev/null
+t "restoring the escaped-brace function restores a clean check" [ "$(rc_of run --check)" = 0 ]
 
 # The failure the whole issue is about: upstream renames or deletes the symbol.
 sed -i 's/^_one_fn() {/_gone_fn() {/' "$ssot/big.sh"
