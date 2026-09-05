@@ -113,6 +113,13 @@ never copy. Its grep gate is the checkable half — a rollout PR runs it.
 A `workflow_call` workflow the other fourteen repos invoke with a `plugin-name`
 input. Adding a check here applies it everywhere at once, which is the point.
 
+**4. The vendored-function generator** (`scripts/sync-shell-common-vendor.sh`,
+harness-skills#14). The banner in all 24 vendored files across the five `gh-*`
+repos names this path; before it existed nothing kept a copy in sync with
+`dEitY719/dotfiles` and nothing detected drift. `--check` is the detector; the
+SSOT checkout is an argument, so it runs outside the author's `$HOME`. It
+refreshes only what a consumer already vendors and never adds a file.
+
 Because a change here lands in fourteen other repos, treat this file as an API:
 
 - **Never rename or remove an input.** Add new ones with a `default` so existing
