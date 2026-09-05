@@ -19,6 +19,16 @@ jobs:
     uses: ./.github/workflows/skill-check.yml
     with:
       plugin-name: harness
+      # `license` is asserted in six places here and in all fifteen siblings.
+      # LICENSE's own regex names MIT on purpose: a relicense then fails on
+      # this file by name, which is the file whose prose has to be rewritten
+      # by hand anyway - the other five carry an SPDX id and compare as one.
+      consistency-checks: |
+        license:
+          LICENSE: '^(MIT) License'
+          '.*-plugin/plugin.json': '"license":\s*"([^"]+)"'
+          package.json: '"license":\s*"([^"]+)"'
+          'skills/*/SKILL.md': '^license:\s*(\S+)'
 
   # Repo-local, deliberately NOT in skill-check.yml: that workflow is an API the
   # other fourteen repos call, and none of them ships this file. The convention's

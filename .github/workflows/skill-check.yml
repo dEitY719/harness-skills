@@ -42,6 +42,11 @@ on:
         required: false
         type: string
         default: ""
+      consistency-checks:
+        description: "YAML mapping of <set name> -> {<path glob>: <regex>}, asserting every matched file carries the same capture-group-1 value. Empty (the default) declares no set and passes."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -55,6 +60,7 @@ jobs:
       DESCRIPTION_BUDGET: ${{ inputs.description-budget }}
       SHELLCHECK_EXCLUDE_PATHS: ${{ inputs.shellcheck-exclude-paths }}
       ALLOW_EMOJI_PATHS: ${{ inputs.allow-emoji-paths }}
+      CONSISTENCY_CHECKS: ${{ inputs.consistency-checks }}
     steps:
       - uses: actions/checkout@v4
 
@@ -260,6 +266,80 @@ jobs:
               print(f"FAIL  manifests disagree on version: {sorted(distinct)}")
               sys.exit(1)
           print("ok    all manifests agree")
+          PY
+
+      - name: Declared cross-file facts agree
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, sys, pathlib, yaml
+          # The step above gates one hardcoded equality (version) over one
+          # hardcoded file list. This one gates any equality a caller declares,
+          # because the fact that drifts is repo-specific: `license` is stated
+          # six times in all sixteen repos, while claudecode-skills pins a
+          # bundled-asset SHA in six places of its own.
+          #
+          # A value is a regex capture group, never a YAML/JSON key path. The
+          # SHA case is a bare string in prose, so key-only extraction would
+          # cover `license` and miss the case that motivated the gate; one
+          # mechanism that covers both beats two that each cover half.
+          raw = os.environ.get("CONSISTENCY_CHECKS", "").strip()
+          if not raw:
+              print("ok    no consistency sets declared")
+              sys.exit(0)
+          try:
+              sets = yaml.safe_load(raw)
+          except yaml.YAMLError as e:
+              sys.exit(f"FAIL  consistency-checks is not valid YAML: {e}")
+          if not isinstance(sets, dict) or not sets:
+              sys.exit("FAIL  consistency-checks must be a mapping of "
+                       "<set name> -> {<path glob>: <regex>}")
+          fail = 0
+          for name, sites in sets.items():
+              if not isinstance(sites, dict) or not sites:
+                  print(f"FAIL  {name}: needs a mapping of <path glob> -> <regex>")
+                  fail = 1
+                  continue
+              seen = {}
+              for glob, pattern in sites.items():
+                  try:
+                      rx = re.compile(str(pattern), re.M)
+                  except re.error as e:
+                      print(f"FAIL  {name}: bad regex {pattern!r}: {e}")
+                      fail = 1
+                      continue
+                  paths = sorted(p for p in pathlib.Path(".").glob(str(glob)) if p.is_file())
+                  if not paths:
+                      # Loud, for the same reason the shellcheck step refuses a
+                      # failed discovery: a set that quietly checks nothing is
+                      # indistinguishable from a set that passed.
+                      print(f"FAIL  {name}: glob {glob!r} matched no file")
+                      fail = 1
+                      continue
+                  for p in paths:
+                      try:
+                          text = p.read_text(encoding="utf-8")
+                      except (UnicodeDecodeError, OSError) as e:
+                          print(f"FAIL  {name}: {p} is unreadable as text: {e}")
+                          fail = 1
+                          continue
+                      m = rx.search(text)
+                      if not m or not m.groups():
+                          print(f"FAIL  {name}: {p} has no capture-group match for {pattern!r}")
+                          fail = 1
+                          continue
+                      seen[str(p)] = m.group(1)
+              # Every file and its value, always -- "these files disagree" is
+              # only actionable next to the values it is talking about.
+              for f, v in sorted(seen.items()):
+                  print(f"{v}\t{f}")
+              distinct = sorted(set(seen.values()))
+              if len(distinct) > 1:
+                  print(f"FAIL  {name}: sites disagree: {distinct}")
+                  fail = 1
+              elif distinct:
+                  print(f"ok    {name} = {distinct[0]} across {len(seen)} file(s)")
+          sys.exit(fail)
           PY
 
       - name: Plugin name is consistent everywhere

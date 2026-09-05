@@ -59,10 +59,10 @@ git ls-files -z | xargs -0 grep -lP '[\x{1F000}-\x{10FFFF}\x{FE0F}]' \
 sh references/plugin-root.selfcheck.sh
 ```
 
-This repo's own tracked check, which CI runs too:
+This repo's own tracked checks, which CI runs too:
 
 ```bash
-bash tests/self-checks-step.sh
+for t in tests/*.sh; do bash "$t"; done
 ```
 
 Then run the gate itself and watch it:
