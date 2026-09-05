@@ -2,9 +2,10 @@
 name: dissect-builtin
 description: >-
   Analyze a Claude Code built-in skill and save Korean documentation
-  (README.md + PROMPT.md) under claude/built-in-skills/. Use for
+  (README.md + PROMPT.md) under docs/built-in-skills/. Use for
   "/harness:dissect-builtin <skill-name>", "내장 스킬 분석", "스킬 해부", or any
   request to study or document a built-in skill.
+license: MIT
 metadata:
   model_recommendation:
     tier: sonnet
@@ -40,16 +41,17 @@ Skill(skill: "<skill-name>")
 ```
 
 The raw prompt will be injected into context. Capture and preserve the full original text.
+The `Skill` tool and Claude Code built-ins are Claude-Code-only; other harnesses cannot reach them - see the repo-root `references/*-tools.md`.
 
 ### Step 2: Launch two agents in parallel
 
 Use the Agent tool to launch both agents concurrently in a single message.
-Output directory: `claude/built-in-skills/<skill-name>/` (relative to dotfiles repo root).
+Output directory: `docs/built-in-skills/<skill-name>/` (relative to the project root).
 
 | Output    | Path                                          | Format    |
 |-----------|-----------------------------------------------|-----------|
-| README.md | claude/built-in-skills/<skill-name>/README.md | Korean MD |
-| PROMPT.md | claude/built-in-skills/<skill-name>/PROMPT.md | Verbatim  |
+| README.md | docs/built-in-skills/<skill-name>/README.md | Korean MD |
+| PROMPT.md | docs/built-in-skills/<skill-name>/PROMPT.md | Verbatim  |
 
 #### Agent 1: Analyze and write README.md
 
@@ -75,9 +77,9 @@ Wait for both agents to complete, then emit a deterministic verdict:
 ```
 [OK] harness:dissect-builtin
   Skill:    <skill-name>
-  Outputs:  claude/built-in-skills/<skill-name>/README.md
-            claude/built-in-skills/<skill-name>/PROMPT.md
-  Next:     /gh:commit
+  Outputs:  docs/built-in-skills/<skill-name>/README.md
+            docs/built-in-skills/<skill-name>/PROMPT.md
+  Next:     /gh-pr:commit
 ```
 
 실패 시:

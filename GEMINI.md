@@ -40,7 +40,7 @@ recognise. On Antigravity read `@./references/antigravity-tools.md` instead —
   tool. Gemini has no workflow runtime: run their steps directly, but keep the
   output contract — the report goes to
   `.claude/reports/harness-legacy-check.md`, and `harness-refactor` still writes
-  `claude/workflows/harness-refactor.js` as the plan of record.
+  `.claude/workflows/harness-refactor.js` as the plan of record.
 - `dissect-builtin` loads a Claude Code built-in's raw prompt. Gemini cannot
   reach those; run that skill from Claude Code.
 - `plugin-guide` reads Claude Code's plugin cache

@@ -15,7 +15,7 @@
   쓰지 않는다. refactor 쪽이 리포트에서 low-risk 항목만 골라 워크플로우를 만들고 적용한다.
 - 감사 범위를 **AI 컨텍스트 문서 하나(CLAUDE.md / AGENTS.md / GEMINI.md)로 좁히고**
   싶다면 `/harness:ai-context check` 가 더 정밀하다. 이 스킬은 하네스 전체를 넓게 본다.
-- 개별 `SKILL.md` 의 구조 점검은 `skill:check`, 셸 스크립트는 `sh:check` 다. 이 스킬은
+- 개별 `SKILL.md` 의 구조 점검은 `authoring:skill-check`, 셸 스크립트는 `authoring:sh-check` 다. 이 스킬은
   스킬 하나를 파고들지 않고 하네스라는 집합을 본다.
 
 `legacy-check` / `refactor` 의 분리는 의도된 것이다. 사람이 리포트를 먼저 읽고

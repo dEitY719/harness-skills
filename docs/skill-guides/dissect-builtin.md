@@ -15,12 +15,12 @@
   그쪽은 캐시된 `SKILL.md` 들을 파싱해 `docs/guide/plugins/<PLUGIN>.md` 를 쓰고
   플러그인 인덱스까지 갱신한다. 이 스킬은 스킬 **1개**의 프롬프트만 다루고
   인덱스를 건드리지 않는다.
-- **내가 만든 스킬**의 품질을 점검하는 것은 `skill:check`, 길이를 줄이는 것은
-  `skill:refactor` 다. 이 스킬은 남의 스킬을 읽어 기록할 뿐, 대상 스킬을 고치지 않는다.
+- **내가 만든 스킬**의 품질을 점검하는 것은 `authoring:skill-check`, 길이를 줄이는 것은
+  `authoring:skill-refactor` 다. 이 스킬은 남의 스킬을 읽어 기록할 뿐, 대상 스킬을 고치지 않는다.
 - 하네스 전체(`CLAUDE.md`, settings, hooks, MCP)를 감사하는 것은
   `/harness:harness-legacy-check`, 그 리포트를 적용하는 것은 `/harness:harness-refactor` 다.
 - 산출물을 커밋하는 것은 이 스킬의 일이 아니다. `[OK]` 판정의 `Next:` 가
-  `/gh:commit` 를 가리킨다.
+  `/gh-pr:commit` 를 가리킨다.
 
 **대상이 내장 스킬이 아니면** Step 1 의 Skill 로드가 실패한다. 그때는 억지로
 진행하지 않고 사용자에게 알린 뒤 대안을 제시하고 멈춘다.
@@ -77,7 +77,7 @@
      Skill:    <skill-name>
      Outputs:  claude/built-in-skills/<skill-name>/README.md
                claude/built-in-skills/<skill-name>/PROMPT.md
-     Next:     /gh:commit
+     Next:     /gh-pr:commit
    ```
 
    실패 시:
@@ -111,4 +111,4 @@ Step 2 의 쓰기가 실패하고 `[FAIL] ... Step: Step 2 write` 로 중단된�
 (README 만 있고 PROMPT 는 없는 디렉터리)을 남기지 않기 위한 설계다.
 
 **커밋하지 않는다.** 파일을 쓸 뿐, `git add` 도 커밋도 하지 않는다. `[OK]` 판정의
-`Next:` 가 `/gh:commit` 를 안내하는 이유다.
+`Next:` 가 `/gh-pr:commit` 를 안내하는 이유다.

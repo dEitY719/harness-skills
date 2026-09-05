@@ -5,6 +5,7 @@ description: >-
   cached SKILL.md files, then update the plugins index. Use for
   /harness:plugin-guide <plugin-name>, "플러그인 가이드 만들어줘",
   "플러그인 문서화해줘". Does NOT install plugins and does NOT commit.
+license: MIT
 allowed-tools: Bash, Read, Grep, Write, Edit
 metadata:
   model_recommendation:
@@ -23,26 +24,26 @@ its content verbatim, then stop. No file reads/writes.
 
 ## Step 1: Parse Args
 
-Positional: `<plugin-name> [--force]`.
+Positional: `<plugin-name> [output-root] [--force]`.
 
 | Arg | Description | Default | Required |
 |-----|-------------|---------|----------|
 | `<plugin-name>` | `<plugin>@<marketplace>` or `<plugin>` alone | — | Yes |
+| `[output-root]` | Directory the guide and its index live in | `docs/guide/plugins` | No |
 | `--force` | Regenerate even if the target doc already exists | off | No |
 
 Split `<plugin-name>` on `@` into `PLUGIN` and (optional) `MARKETPLACE`.
 The output filename is always `PLUGIN.md`. Missing arg → print
 `Run /harness:plugin-guide -h for usage.` and stop.
-
-Set repo root `ROOT` = this dotfiles repo, `CFG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}`.
+Set `OUT` = `[output-root]` (create it if absent), `CFG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}`.
 
 ## Step 2: Verify Installed (F-2)
 
-Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against
-`claude/plugin/plugins.json`'s `plugins` array — **never** substring `grep`
-(a plugin named `skills` would falsely match `example-skills@...`). Zero, one,
-or 2+ matches (e.g. `superpowers` is installed under two marketplaces today)
-are each handled per `references/marketplace-resolution.md`, which also
+Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against the keys of
+`$CFG/plugins/installed_plugins.json`'s `plugins` object — **never** substring
+`grep` (a plugin named `skills` would falsely match `example-skills@...`). Zero,
+one, or 2+ matches (e.g. `superpowers` is installed under two marketplaces
+today) are each handled per `references/marketplace-resolution.md`, which also
 covers the not-installed case when `MARKETPLACE` itself is unknown.
 
 ## Step 3: Locate Cache + Enumerate Skills (F-3)
@@ -53,7 +54,8 @@ find "$CFG/plugins/cache/<MARKETPLACE>/<PLUGIN>" -maxdepth 4 -iname SKILL.md
 
 If multiple version dirs exist, keep only the highest (`sort -V` on the
 version path component). Zero `SKILL.md` found → this is the **no-skills error
-case**: report `스킬 없음, 문서화 대상 아님` and stop.
+case**: report `스킬 없음, 문서화 대상 아님` and stop. That cache is Claude-Code-only;
+for every other harness see the repo-root `references/*-tools.md`.
 
 If skill count > 10, print ONE warning line
 (`스킬 N개 (>10) — YAGNI: 단일 파일로 생성`) and continue with a single file.
@@ -64,24 +66,24 @@ its one core rule → a 1-2 line "하는 일" summary (see `references/doc-templ
 
 ## Step 4: Idempotent Skip (Acceptance: safe re-run)
 
-If `docs/guide/plugins/<PLUGIN>.md` already exists and `--force` was NOT passed:
+If `$OUT/<PLUGIN>.md` already exists and `--force` was NOT passed:
 print `이미 문서화됨 — 재생성하려면 --force` and stop. Do NOT diff or merge
 sections. `--force` overwrites the file wholesale.
 
 ## Step 5: Write the Doc (F-4, F-6)
 
-Write `docs/guide/plugins/<PLUGIN>.md` in **Korean**, following the exact
+Write `$OUT/<PLUGIN>.md` in **Korean**, following the exact
 3-section skeleton in `references/doc-template.md` (설치 방법 → 스킬 설명 →
 사용법 예제). SKILL.md sources are English — summarize, don't copy prose.
 
 ## Step 6: Update Index (F-5)
 
-Insert one line inside the `## Index` list in `docs/guide/plugins/README.md`
-— after the last existing `- [...]` item and **before** the next `## ` header
-(e.g. `## 문서 구성`); never blindly append to end-of-file:
+Insert one line inside the `## Index` list in `$OUT/README.md` — after the last
+existing `- [...]` item and **before** the next `## ` header (e.g. `## 문서 구성`);
+never blindly append to end-of-file:
 `- [<PLUGIN>](./<PLUGIN>.md) — <one-line Korean summary>`. **Idempotent**: if a
-line already links `./<PLUGIN>.md`, skip. `docs/guide/README.md` already has a
-`plugins/` link — leave it untouched (add only if genuinely absent).
+line already links `./<PLUGIN>.md`, skip. Create `$OUT/README.md` with an
+`## Index` heading if it does not exist yet.
 
 ## Step 7: Report
 

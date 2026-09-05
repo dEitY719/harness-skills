@@ -16,11 +16,11 @@ harness-legacy-check 감사 리포트를 바탕으로 low-risk 하네스 개선�
 
 1. 세션에서 harness-legacy-check 리포트 확인
 2. low-risk 항목 분류 (references/classification-rules.md 기준)
-3. claude/workflows/harness-refactor.js 새로 작성 (이전 파일 덮어쓰기)
+3. .claude/workflows/harness-refactor.js 새로 작성 (이전 파일 덮어쓰기)
 4. 워크플로우 실행
 5. [OK]/[FAIL] 결과 요약 보고
 
 ## 결과
 
-`claude/workflows/harness-refactor.js` 가 갱신되고 워크플로우가 실행된다.
+`.claude/workflows/harness-refactor.js` 가 갱신되고 워크플로우가 실행된다.
 이전 파일은 git log 에 보존된다.

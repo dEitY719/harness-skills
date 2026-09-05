@@ -5,6 +5,7 @@ description: >-
   MCP)를 읽기 전용으로 감사해 리포트를 저장한다. Use when the user runs
   /harness:harness-legacy-check, "하네스 감사해줘", "harness check 해줘", or
   before running harness:harness-refactor.
+license: MIT
 metadata:
   model_recommendation:
     tier: haiku
@@ -28,8 +29,13 @@ If arg #1 is `-h`, `--help`, or `help`, read `references/help.md` verbatim and s
 ## Step 1: 워크플로우 실행
 
 ```
-Workflow({ name: 'harness-legacy-check' })
+Workflow({ name: 'harness:harness-legacy-check' })
 ```
+
+워크플로우 스크립트는 이 플러그인에 함께 배포된다: `workflows/harness-legacy-check.js`.
+`Workflow` 는 Claude Code 전용 도구다. 다른 하네스는 저장소 루트의
+`references/<harness>-tools.md` (codex / gemini / hermes / kimi / opencode / antigravity)
+에 적힌 대체 절차를 따른다.
 
 워크플로우가 완료되면 `.claude/reports/harness-legacy-check.md`에
 리포트가 저장된다. 실패 시 즉시 `[FAIL] harness:harness-legacy-check — <이유>` 출력 후 중단.

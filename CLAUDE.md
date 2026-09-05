@@ -150,8 +150,8 @@ The version appears in seven manifests: `.claude-plugin/marketplace.json`,
 `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`,
 `.kimi-plugin/plugin.json`, `.hermes-plugin/plugin.yaml`,
 `gemini-extension.json`, and `package.json`. CI checks that they agree — bump
-all of them together. Versioning is independent per repo (#1410 D-9); this repo
-does not move in lockstep with its siblings.
+all of them together. Versioning is independent per repo (dEitY719/dotfiles#1410
+D-9); this repo does not move in lockstep with its siblings.
 
 ## No emojis
 

@@ -37,4 +37,4 @@ harness-legacy-check 리포트  ──▶  /harness:harness-refactor  ──▶ 
   모은 **"Human Approval Required"** 섹션. hooks·MCP·권한 확대·앱 코드 수정·테스트/빌드/배포
   실행·신뢰도 low 항목은 여기에만 기록되고 자동 적용되지 않는다.
 - **완료 보고** — `[OK] harness:harness-refactor — 완료` 와 변경 파일 / 생성 references /
-  아카이브 / human review 건수, 다음은 `git diff` 확인 후 `/gh:commit`. 실패 시 `[FAIL] ... — <이유>`.
+  아카이브 / human review 건수, 다음은 `git diff` 확인 후 `/gh-pr:commit`. 실패 시 `[FAIL] ... — <이유>`.

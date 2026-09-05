@@ -11,7 +11,7 @@
 Analyze a Claude Code built-in skill and produce structured Korean documentation.
 Loads the target skill's prompt via the Skill tool, then writes `README.md`
 (Korean analysis) and `PROMPT.md` (verbatim original prompt) into
-`claude/built-in-skills/<skill-name>/`.
+`docs/built-in-skills/<skill-name>/`.
 
 ## Arguments
 

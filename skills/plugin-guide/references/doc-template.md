@@ -1,9 +1,9 @@
 # Generated Doc Template
 
-The output `docs/guide/plugins/<plugin>.md` is Korean and has exactly 3 fixed
-sections. Model it on `docs/guide/plugins/ponytail.md` (the canonical example).
-Fill the placeholders `<...>` from the plugin's `plugins.json` /
-`marketplaces.json` entries and its cached `SKILL.md` files.
+The output `<output-root>/<plugin>.md` is Korean and has exactly 3 fixed
+sections. Fill the placeholders `<...>` from the plugin's
+`installed_plugins.json` / `known_marketplaces.json` entries under
+`$CFG/plugins/` and from its cached `SKILL.md` files.
 
 ## Skeleton
 
@@ -14,7 +14,7 @@ Fill the placeholders `<...>` from the plugin's `plugins.json` /
 종합해 한국어로 요약. 영어 원문 복붙 금지.>
 
 - Marketplace: [`<owner/repo>`](https://github.com/<owner/repo>)
-- 이 dotfiles 저장소 SSOT: `claude/plugin/plugins.json` (`<plugin>@<marketplace>`), `claude/plugin/marketplaces.json`
+- 설치 기록: `$CFG/plugins/installed_plugins.json` (`<plugin>@<marketplace>`), `$CFG/plugins/known_marketplaces.json`
 
 ## 1. 설치 방법
 
@@ -24,9 +24,8 @@ Fill the placeholders `<...>` from the plugin's `plugins.json` /
 /reload-plugins
 ​```
 
-`claude/plugin/plugins.json`·`marketplaces.json`은 `plugin-sync.sh` / `plugin-sync-session.sh` hook이
-세션 종료 시 자동으로 동기화한다 (`claude/AGENTS.md` → "Plugin Manifest" 참조) — 수동으로 SSOT 파일을
-편집할 필요 없음. 신규 PC에는 `./claude/plugin/restore.sh`로 일괄 복원된다.
+`installed_plugins.json`·`known_marketplaces.json`은 Claude Code 가 `/plugin install` 과
+`/plugin marketplace add` 실행 시 직접 갱신한다 — 수동으로 편집할 파일이 아니다.
 
 ## 2. 스킬 설명
 

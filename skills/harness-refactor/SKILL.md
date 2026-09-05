@@ -5,6 +5,7 @@ description: >-
   생성하고 실행한다. Use when the user runs /harness:harness-refactor,
   "하네스 리팩토링해줘", "하네스 정리해줘", or after reviewing a
   harness-legacy-check report to apply its findings.
+license: MIT
 metadata:
   model_recommendation:
     tier: sonnet
@@ -22,7 +23,7 @@ If arg #1 is `-h`, `--help`, or `help`, read `references/help.md` verbatim and s
 ## Role
 
 harness-legacy-check 감사 리포트를 읽고 low-risk 항목만 골라
-`claude/workflows/harness-refactor.js` 를 새로 작성한 뒤 실행한다.
+`.claude/workflows/harness-refactor.js` 를 새로 작성한 뒤 실행한다.
 이전 harness-refactor.js 는 새 파일로 덮어쓴다 (git log 에 이전 계획 보존).
 
 ## Step 1: 감사 리포트 확인
@@ -40,7 +41,8 @@ harness-legacy-check 감사 리포트를 읽고 low-risk 항목만 골라
 
 ## Step 3: harness-refactor.js 생성
 
-`claude/workflows/harness-refactor.js` 를 새로 작성한다.
+`.claude/workflows/` 디렉토리가 없으면 만든 뒤
+`.claude/workflows/harness-refactor.js` 를 새로 작성한다.
 파일 구조 및 설계 원칙: `references/workflow-template.md` 참조.
 
 Step 2 에서 금지 항목으로 분류된 것은 Final Report 의
@@ -49,8 +51,12 @@ Step 2 에서 금지 항목으로 분류된 것은 Final Report 의
 ## Step 4: 워크플로우 실행
 
 ```
-Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })
+Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })
 ```
+
+`Workflow` 는 Claude Code 전용 도구다. 다른 하네스는 저장소 루트의
+`references/<harness>-tools.md` (codex / gemini / hermes / kimi / opencode / antigravity)
+에 적힌 대체 절차를 따른다.
 
 ## Step 5: 완료 보고
 
@@ -58,7 +64,7 @@ Workflow({ scriptPath: 'claude/workflows/harness-refactor.js' })
 [OK] harness:harness-refactor — 완료
   변경 파일: N개  |  생성 references/: N개  |  아카이브: N개
   Human review 필요: N개 (Final Report "Human Approval Required" 참조)
-  다음: git diff 확인 후 /gh:commit
+  다음: git diff 확인 후 /gh-pr:commit
 ```
 
 실패 시: `[FAIL] harness:harness-refactor — <이유>`
