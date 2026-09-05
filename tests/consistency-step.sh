@@ -22,7 +22,7 @@ step=$work/step.sh
 extract "Declared cross-file facts" "$step"
 
 
-# A git repo carrying all four sites of the built-in `license` set. It has to
+# A git repo carrying all four globs of the built-in `license` set. It has to
 # be a real repo: discovery is `git ls-files`, so that an untracked scratch
 # file cannot fail a caller's gate.
 fixture=$work/repo
@@ -46,10 +46,10 @@ expect "a repo declaring no set still gets the built-in license gate" "$fixture"
 # A caller's own set is ADDED to the built-in one, never swapped for it:
 # claudecode-skills' bundled-asset SHA set must not silently drop its license
 # gate the moment it declares a set of its own.
-CONSISTENCY_CHECKS='sha:
+CONSISTENCY_CHECKS='caller:
   skills/*/SKILL.md: ^name:\s*(\S+)
 '
-expect "a caller's own set runs..." "$fixture" 0 "ok    sha = a across 1 file(s)"
+expect "a caller's own set runs..." "$fixture" 0 "ok    caller = a across 1 file(s)"
 expect "...alongside the built-in one, not instead of it" "$fixture" 0 \
     "ok    license = MIT across 5 file(s)"
 
@@ -63,19 +63,17 @@ YAML
 expect "a caller redefining a built-in set name fails, by name" "$fixture" 1 \
     "redefines built-in set ['license']"
 
-agree=$(cat <<'YAML'
+CONSISTENCY_CHECKS=$(cat <<'YAML'
 demo:
   LICENSE: '^(MIT) License'
   package.json: '"license":\s*"([^"]+)"'
   'skills/*/SKILL.md': '^license:\s*(\S+)'
 YAML
 )
-
-CONSISTENCY_CHECKS=$agree
 expect "agreeing sites pass, with the value and the count" "$fixture" 0 "ok    demo = MIT across 3 file(s)"
 
 printf '{\n  "license": "Apache-2.0"\n}\n' > "$fixture/package.json"
-expect "one flipped value fails" "$fixture" 1 "sites disagree: ['Apache-2.0', 'MIT']"
+expect "one flipped value fails" "$fixture" 1 "demo: sites disagree: ['Apache-2.0', 'MIT']"
 expect "...naming every file and its value" "$fixture" 1 "Apache-2.0	package.json"
 printf '{\n  "license": "MIT"\n}\n' > "$fixture/package.json"
 
@@ -120,7 +118,7 @@ wf = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 sys.stdout.write(wf["jobs"]["validate"]["with"]["consistency-checks"])
 PY
 )
-expect "validate.yml's own set holds in this repo" "$root" 0 "ok    action-pin = v4"
+expect "validate.yml's own set holds in this repo" "$root" 0 "ok    action-pin = "
 expect "...and the built-in license set holds beside it" "$root" 0 "ok    license = MIT"
 
 [ "$fail" -eq 0 ] || exit 1

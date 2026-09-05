@@ -283,14 +283,19 @@ jobs:
           python3 - <<'PY'
           import os, re, sys, subprocess, pathlib, yaml
           # The step above gates one hardcoded equality (version) over one
-          # hardcoded file list. This one gates any equality a caller declares,
-          # because the fact that drifts is repo-specific: `license` is stated
-          # six times in all sixteen repos, while claudecode-skills pins a
-          # bundled-asset SHA in six places of its own.
+          # hardcoded file list. This one gates a built-in set plus any
+          # equality a caller declares, because most facts that drift are
+          # repo-specific: `license` is stated six times in all sixteen repos,
+          # while claudecode-skills pins a bundled-asset SHA in six places of
+          # its own.
           #
-          # Which gate a fact belongs in: a universal invariant stays
-          # hardcoded above, because a caller must not be able to switch it
-          # off by omitting it; a repo-specific one comes through this input.
+          # Which gate a fact belongs in: a fact a caller must not be able to
+          # switch off by omitting it is hardcoded, never read from the input
+          # -- as the step above when a JSON key path pins the value more
+          # exactly than a regex could (`version` reads marketplace.json's
+          # plugins[0]), or as a built-in set below when a regex reaches it.
+          # A repo-specific fact comes through this input, and is merged into
+          # the built-ins rather than replacing them.
           #
           # A value is a regex capture group, never a YAML/JSON key path. The
           # SHA case is a bare string in prose, so key-only extraction would
