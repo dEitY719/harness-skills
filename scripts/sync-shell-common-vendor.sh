@@ -26,6 +26,15 @@
 #
 #   --check   report drift and write nothing; exit 1 if any copy is stale
 #   --ssot    dotfiles checkout (default: ${DOTFILES:-$HOME/dotfiles})
+#   --allow-stale-ssot
+#             vendor from an SSOT checkout that is behind its upstream anyway,
+#             and say so. For deliberately vendoring an older revision.
+#
+# The SSOT checkout is read as a WORKING TREE, so it is checked against its own
+# remote-tracking branch first: a tree that was fetched but never pulled answers
+# every comparison against commits upstream has moved past (#31). That check
+# makes NO network call -- `origin/main` is only as fresh as the last fetch, and
+# refreshing it is the operator's job, not a sync tool's silent side effect.
 #
 # Only files that already carry the banner are refreshed. This never adds one:
 # what a repo vendors is that repo's decision, not this script's.
@@ -57,12 +66,14 @@ OPT_OUT='^# Bridge only'   # see the header: opt-out marker for a hand-written s
 usage() { sed -n '/^# Usage:/,/^set -/{ /^set -/d; s/^# \?//; p; }' "$0"; }
 
 check_only=0
+allow_stale=0
 ssot=${DOTFILES:-$HOME/dotfiles}
 repos=()
 
 while [ $# -gt 0 ]; do
   case $1 in
     --check) check_only=1 ;;
+    --allow-stale-ssot) allow_stale=1 ;;
     --ssot) shift; ssot=${1:?--ssot needs a path} ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "unknown flag: $1" >&2; usage >&2; exit 2 ;;
@@ -80,6 +91,49 @@ fi
 if [ ! -d "$ssot" ]; then
   echo "FAIL  no SSOT checkout at $ssot -- pass --ssot <dotfiles-checkout>" >&2
   exit 1
+fi
+
+# Everything below reads the SSOT's working tree. A checkout that was fetched
+# but never pulled still answers every comparison -- against commits the SSOT
+# moved past -- so both directions go quietly wrong: --check calls the copies
+# clean against stale content, and write mode rolls a copy backwards (#31).
+#
+# Compare against the remote-tracking ref ALREADY ON DISK. No `git fetch`: that
+# ref is only as fresh as the operator's last one, refreshing it is their job,
+# and a sync tool doing silent network I/O is its own trap. Each thing that
+# cannot be determined says so rather than passing silently -- the whole class
+# of bug here is a gate that reports green because it could not see.
+#
+# `git -C` in a command substitution, never `< <(git ...)`: process substitution
+# discards the exit status, which is how a failed git reads as an empty answer.
+ssot_git() { git -C "$ssot" "$@" 2>/dev/null; }
+
+if ! ssot_head=$(ssot_git rev-parse --verify HEAD); then
+  echo "note  $ssot is not a git checkout -- cannot tell whether it is current"
+else
+  # Untracked files count: `$ssot/$rel` may itself be one, and it would vendor
+  # out with the same banner as anything upstream actually published.
+  if ! dirty=$(ssot_git status --porcelain); then
+    echo "note  cannot read $ssot's working tree state -- cannot tell whether it is dirty"
+  elif [ -n "$dirty" ]; then
+    echo "WARN  $ssot is dirty; these vendor out as though they were upstream:"
+    sed 's/^/        /' <<<"$dirty"
+  fi
+  if ! upstream=$(ssot_git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'); then
+    echo "note  $ssot has no upstream branch -- cannot tell whether it is behind"
+  elif ! behind=$(ssot_git rev-list --count "HEAD..$upstream"); then
+    echo "note  cannot compare $ssot against $upstream -- cannot tell whether it is behind"
+  elif [ "$behind" -gt 0 ]; then
+    gap="$ssot is $behind commit(s) behind $upstream -- HEAD $ssot_head, $upstream $(ssot_git rev-parse "$upstream")"
+    if [ "$allow_stale" -eq 1 ]; then
+      echo "WARN  --allow-stale-ssot: vendoring from a stale checkout anyway -- $gap"
+    else
+      echo "FAIL  $gap" >&2
+      echo "      run 'git -C $ssot pull --ff-only', or pass --allow-stale-ssot to vendor the older revision" >&2
+      echo "      ($upstream is only as fresh as your last fetch; this check makes no network call)" >&2
+      exit 1
+    fi
+  fi
 fi
 
 tmp=$(mktemp -d)
