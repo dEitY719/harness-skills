@@ -97,6 +97,15 @@ printf 'not vendored, no banner\n' > "$vendor/stray.sh"
   printf '# Bridge only. Recovers a missing `_one_fn`; the rest of upstream\n'
   printf '# big.sh is not vendored.\n'
   printf '. ./extracted.sh\n'; } > "$vendor/bridge.sh"
+# #30: scraped prose cannot carry a contract -- under the backtick rule this
+# stub passes on `_multi_fn` alone, so losing `_one_fn` upstream is a false
+# green even though the stub exists to recover it. `# Bridges:` states what the
+# stub owes, and ALL of it must still be there.
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
+  printf '# Bridge only. Recovers `_one_fn`; `_multi_fn` is read by the same\n'
+  printf '# caller, and `_SC` below is prose, not a promise.\n'
+  printf '# Bridges: _one_fn, _multi_fn\n'
+  printf '. ./extracted.sh\n'; } > "$vendor/bridge_field.sh"
 # The two shapes that state no checkable contract stay reported skips.
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
   printf '# Bridge only. Names no symbol at all.\n'
@@ -159,6 +168,12 @@ t "...naming that symbol" \
   grep -qF '_one_fn still defined' <<<"$(grep 'bridge\.sh --' <<<"$out")"
 t "a stub keeps its hand-written body" \
   [ "$(tail -n 1 "$vendor/bridge.sh")" = '. ./extracted.sh' ]
+t "a stub with a 'Bridges:' field is verified against every name it lists" \
+  grep -q '^ok    .*bridge_field\.sh' <<<"$out"
+t "...naming all of them, not just the first that resolved" \
+  grep -qF 'all of _one_fn _multi_fn' <<<"$out"
+t "...and ignoring backticked prose the field never promised" \
+  no grep -qF '_SC' <<<"$(grep 'bridge_field\.sh' <<<"$out")"
 t "a stub that names no symbol has no contract, so it stays a reported skip" \
   grep -q '^skip  .*bridge_bare\.sh' <<<"$out"
 t "a qualifier that is not a function name stays a reported skip" \
@@ -239,6 +254,14 @@ t "...failing the extraction, by name" \
   grep -q '_one_fn' <<<"$(grep '^FAIL  .*extracted\.sh' <<<"$out")"
 t "...failing the bridge stub that promised it, by name" \
   grep -q '_one_fn' <<<"$(grep '^FAIL  .*bridge\.sh' <<<"$out")"
+# The whole point of #30: `_multi_fn` is still a function of big.sh, so the
+# at-least-one backtick rule reports this stub `ok` while the symbol it exists
+# to recover is gone. The field turns that false green red, and names only the
+# name that actually went missing.
+t "a 'Bridges:' field fails when ONE of its names vanishes" \
+  grep -q '^FAIL  .*bridge_field\.sh' <<<"$out"
+t "...naming the symbol that went, not the one that survived" \
+  [ "$(grep -o '_one_fn\|_multi_fn' <<<"$(grep 'bridge_field\.sh' <<<"$out")" | sort -u)" = _one_fn ]
 t "write mode does not paper over a vanished symbol" [ "$(rc_of run)" = 1 ]
 t "...and leaves the extraction's body untouched" grep -q '{ echo 2; }' "$vendor/extracted.sh"
 sed -i 's/^_gone_fn() {/_one_fn() {/' "$ssot/big.sh"
@@ -267,6 +290,99 @@ t "naming no consumer repo is a usage error" \
   [ "$(rc_of "$sync" --ssot "$work/dotfiles")" = 2 ]
 t "--help prints the usage line, so the header parser is not silently empty" \
   grep -qF 'sync-shell-common-vendor.sh [--check]' <<<"$("$sync" --help)"
+
+# A field entry lands in a grep pattern. A non-identifier there is a broken
+# field, not a quietly wider search that would match anything and pass. The
+# second entry is the trap: split unquoted, `_glob*` PATHNAME-EXPANDS against
+# the cwd, so `_globbed_fn` below would turn a broken field into a plausible
+# name and the entry would never be reported at all. Hence the `cd`.
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/big.sh\n'
+  printf '# Bridge only.\n'
+  printf '# Bridges: _one.*, _glob*\n'
+  printf 'Z=9\n'; } > "$vendor/bridge_badfield.sh"
+: > "$work/_globbed_fn"
+out=$(cd "$work" && run --check 2>&1) || true
+t "a 'Bridges:' entry that is not a function name is a loud failure" \
+  grep -q '^FAIL  .*bridge_badfield\.sh' <<<"$out"
+t "...naming the bad entry rather than matching it as a pattern" \
+  grep -qF '_one.*' <<<"$(grep 'bridge_badfield\.sh' <<<"$out")"
+t "...and never pathname-expanding it against the cwd" \
+  grep -qF '_glob*' <<<"$(grep 'bridge_badfield\.sh' <<<"$out")"
+rm "$vendor/bridge_badfield.sh" "$work/_globbed_fn"
+
+# #31: the SSOT checkout is read as a WORKING TREE, so its own freshness is
+# part of the answer. Reproduces the exact shape that bit: `git fetch` had run,
+# `git pull` had not, so origin/main was two commits ahead of a tree the script
+# then called clean. `update-ref` stands in for that already-completed fetch --
+# no network here, and none in the script either.
+gdots=$work/gitdots
+gcons=$work/gitconsumer
+gvendor=$gcons/lib/vendor
+mkdir -p "$gdots/shell-common/functions" "$gvendor"
+# Quiet, and hook-free: the author's global core.hooksPath would otherwise
+# print into the middle of the assertion log.
+g() { git -C "$gdots" -c user.email=t@example.com -c user.name=t -c core.hooksPath=/dev/null "$@"; }
+git init -q -b main "$gdots"
+printf '#!/bin/sh\nV=1\n' > "$gdots/shell-common/functions/v.sh"
+printf 'W=1\n' > "$gdots/shell-common/functions/other.sh"
+g add -A && g commit -qm one >/dev/null
+printf '#!/bin/sh\nV=2\n' > "$gdots/shell-common/functions/v.sh"
+g add -A && g commit -qm two >/dev/null
+# A remote with a fetch refspec, so `@{upstream}` really resolves: `branch.*.merge`
+# alone leaves git unable to map refs/heads/main onto its remote-tracking ref.
+g remote add origin "$gdots"
+g update-ref refs/remotes/origin/main HEAD    # the fetch that already ran...
+g config branch.main.remote origin
+g config branch.main.merge refs/heads/main
+g reset -q --hard HEAD~1                      # ...and the pull that did not
+stub shell-common/functions/v.sh "$gvendor/v.sh"
+grun() { "$sync" --ssot "$gdots" "$@" "$gcons"; }
+behind_sha=$(g rev-parse HEAD)
+ahead_sha=$(g rev-parse origin/main)
+
+out=$(grun --check 2>&1) && rc=0 || rc=$?
+t "a stale SSOT checkout turns --check red" [ "$rc" = 1 ]
+t "...quoting the checked-out SHA" grep -qF "$behind_sha" <<<"$out"
+t "...and the upstream SHA it is behind" grep -qF "$ahead_sha" <<<"$out"
+t "...telling the operator to pull, not fetching itself" grep -qF 'pull --ff-only' <<<"$out"
+t "...saying plainly that it made no network call" grep -qF 'no network call' <<<"$out"
+t "write mode stops on a stale SSOT too" [ "$(rc_of grun)" = 1 ]
+t "...before writing anything" [ "$(wc -l < "$gvendor/v.sh")" = 1 ]
+
+out=$(grun --allow-stale-ssot 2>&1) && rc=0 || rc=$?
+t "the escape hatch runs" [ "$rc" = 0 ]
+t "...and announces itself" grep -q '^WARN.*--allow-stale-ssot' <<<"$out"
+t "...vendoring the older revision it was pointed at" grep -q '^V=1$' "$gvendor/v.sh"
+
+g merge -q --ff-only origin/main >/dev/null
+out=$(grun --check 2>&1) && rc=0 || rc=$?
+t "pulling exposes what the stale run vendored" [ "$rc" = 1 ]
+t "...as ordinary drift" grep -q '^DRIFT .*v\.sh' <<<"$out"
+grun >/dev/null
+t "a level SSOT syncs the current revision" grep -q '^V=2$' "$gvendor/v.sh"
+t "...and behaves exactly as before: clean is clean" [ "$(rc_of grun --check)" = 0 ]
+t "...with no freshness complaint of any kind" \
+  no grep -qE '^(WARN|note)' <<<"$(grun --check)"
+
+# An uncommitted local edit would vendor out wearing an upstream banner, so it
+# is worth a warning even when nothing vendored depends on it yet.
+printf 'W=2\n' > "$gdots/shell-common/functions/other.sh"
+out=$(grun --check 2>&1) && rc=0 || rc=$?
+t "a dirty SSOT warns" grep -q '^WARN.*dirty' <<<"$out"
+t "...naming the modified file" grep -q 'other\.sh' <<<"$out"
+t "...without failing the run: it is a warning, not a gate" [ "$rc" = 0 ]
+g checkout -q -- . >/dev/null
+
+# A checkout with no upstream cannot be compared to anything. Say that, rather
+# than crashing or -- worse -- reporting green.
+g config --unset branch.main.remote
+out=$(grun --check 2>&1) && rc=0 || rc=$?
+t "a checkout with no upstream still runs" [ "$rc" = 0 ]
+t "...and says what it could not check" grep -q '^note  .*no upstream' <<<"$out"
+
+# The main fixture's SSOT is not a git checkout at all -- the same must hold.
+t "a non-git SSOT says what it cannot check, rather than reporting green" \
+  grep -q '^note  .*not a git checkout' <<<"$(run --check 2>&1 || true)"
 
 [ "$fail" -eq 0 ] || exit 1
 echo "ok    sync-shell-common-vendor behaves"
