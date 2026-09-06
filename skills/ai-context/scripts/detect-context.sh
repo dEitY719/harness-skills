@@ -35,6 +35,21 @@ case "$type" in
   *) die "unknown --type: $type (expected agents, claude or gemini)" ;;
 esac
 
+# `readlink -f` is a GNU extension; default macOS/BSD userland lacks it and the
+# script runs under `set -e`, so the whole helper aborted there (PR #38 review,
+# codex BLOCKER, twice). Prefer realpath, then GNU readlink, then a pure-shell
+# fallback. Compares canonical PATHS, not inodes — see #42.
+_realpath() {
+  if command -v realpath >/dev/null 2>&1; then
+    realpath -- "$1"
+  elif readlink -f -- / >/dev/null 2>&1; then
+    readlink -f -- "$1"
+  else
+    ( CDPATH='' cd -- "$(dirname -- "$1")" 2>/dev/null || exit 1
+      printf '%s/%s\n' "$(pwd -P)" "$(basename -- "$1")" )
+  fi
+}
+
 kind_of() {
   case "$(basename -- "$1")" in
     CLAUDE.md) printf claude ;;
@@ -100,7 +115,13 @@ if [ -n "$file" ]; then
   if [ -e "$file" ]; then
     candidates=("$file")
   else
-    [ -n "$type" ] || type=$(kind_of "$file")
+    # `kind_of` answers `unknown` for a non-standard name, which is not an
+    # adapter — leave $type empty so the create default below decides
+    # (PR #38 review, agy BLOCKER).
+    if [ -z "$type" ]; then
+      type=$(kind_of "$file")
+      [ "$type" = unknown ] && type=
+    fi
   fi
 else
   for name in CLAUDE.md AGENTS.md GEMINI.md; do
@@ -134,7 +155,7 @@ if [ "${#candidates[@]}" -eq 0 ]; then
 fi
 
 primary=${candidates[0]}
-primary_real=$(readlink -f -- "$primary")
+primary_real=$(_realpath "$primary")
 primary_import=$(import_target "$primary" || true)
 primary_base=$(basename -- "$primary")
 
@@ -144,9 +165,10 @@ aliases=()
 for c in "${candidates[@]:1}"; do
   c_base=$(basename -- "$c")
   c_import=$(import_target "$c" || true)
-  if [ "$(readlink -f -- "$c")" = "$primary_real" ] \
+  if [ "$(_realpath "$c")" = "$primary_real" ] \
      || [ "$primary_import" = "$c_base" ] \
-     || [ "$c_import" = "$primary_base" ]; then
+     || [ "$c_import" = "$primary_base" ] \
+     || { [ -n "$c_import" ] && [ "$c_import" = "$primary_import" ]; }; then
     aliases+=("$c")
   else
     others+=("$c")
@@ -156,7 +178,7 @@ done
 # The text a reader actually gets: follow a one-line import to its target.
 content_path=$primary_real
 if [ -n "$primary_import" ] && [ -e "$(dirname -- "$primary")/$primary_import" ]; then
-  content_path=$(readlink -f -- "$(dirname -- "$primary")/$primary_import")
+  content_path=$(_realpath "$(dirname -- "$primary")/$primary_import")
 fi
 
 [ -n "$type" ] || type=$(kind_of "$primary")

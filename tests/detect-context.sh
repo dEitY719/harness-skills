@@ -175,6 +175,26 @@ grep -q 'other_candidates' "$root/skills/ai-context/references/checks.md" || {
   fail=1
 }
 
+# 7d. Two files that both import the SAME third file are aliases of each other,
+#     not distinct candidates — neither imports the other, so comparing only
+#     against the primary's own name missed it (PR #38 review, codex BLOCKER).
+sh3=$work/shared-import
+mkdir -p "$sh3"
+printf '# the real document\n' > "$sh3/SHARED.md"
+printf '@SHARED.md\n' > "$sh3/CLAUDE.md"
+printf '@SHARED.md\n' > "$sh3/AGENTS.md"
+out=$work/shared.out
+bash "$script" --dir "$sh3" > "$out"
+check "shared-import aliases" "$sh3/AGENTS.md" "$(get "$out" aliases)"
+check "shared-import others"  ""               "$(get "$out" other_candidates)"
+
+# 7e. A `--file` naming a non-standard filename with no --type must not report
+#     `kind=unknown`, which is not an adapter (PR #38 review, agy BLOCKER).
+out=$work/unknown.out
+bash "$script" --file "$e/notes.md" > "$out" 2>/dev/null || :
+check "custom name kind" claude       "$(get "$out" kind)"
+check "custom name path" "$e/notes.md" "$(get "$out" path)"
+
 # 8. `die` reports the message only — the exit code used to leak into it via
 #    "$*", so every `die "msg" 1` printed a stray trailing 1.
 msg=$(bash "$script" --dir "$e" 2>&1 >/dev/null) || :
