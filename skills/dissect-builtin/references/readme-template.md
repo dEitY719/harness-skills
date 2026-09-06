@@ -1,7 +1,10 @@
 # README.md brief
 
-The brief Step 2's agent gets. It analyzes the prompt loaded in Step 1 and
-writes `docs/built-in-skills/<skill-name>/README.md` in Korean.
+The brief Step 2's agent gets, together with the raw prompt text. It analyzes
+that prompt and writes `README.md` in Korean **to the path Step 2 gives it** —
+the staging directory, not the final one. Step 3 publishes from there once both
+outputs exist, so writing straight to `docs/built-in-skills/<skill-name>/`
+would destroy an existing document when a later step fails.
 
 ## Required content
 
