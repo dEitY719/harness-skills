@@ -68,7 +68,7 @@ repos were split up to serve.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Those
 are Claude Code tools; Antigravity has neither the tool nor the JS runtime.
 
 - Run the audit's sweeps directly, or fan them out with
