@@ -108,8 +108,8 @@ Six things are load-bearing:
 
 - **Tier 2 is never defaulted into a path.** `[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]`
   guards the assignment instead. That is what keeps tier 2 from collapsing to the
-  filesystem root without reaching for a default like `:-$PWD`, which is
-  attacker-supplied whenever the cwd is a PR under review (`harness-skills#22`).
+  filesystem root without reaching for a default like `:-$PWD` — see "There is no
+  tier 4" above for why that default is not the way out.
 - **The `unset -f` / `. ` / `command -v` proof**, converged on over three review
   rounds in `gh-issue-skills#14`. `unset -f` first means the `command -v` after
   the load proves *this* load, in *this* shell, defined the function — not one

@@ -85,6 +85,22 @@ clean() { env -u DOTFILES_ROOT -u SHELL_COMMON -u CLAUDE_PLUGIN_ROOT HOME="$WORK
 
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
+# Every "must refuse" assertion below is one shape: run a snippet with the
+# environment cleaned, require a non-zero exit, and require the message to name
+# the way out. `$out` is left set, so a caller needing a second claim about the
+# text asserts it after the call rather than growing another copy of this.
+refuses() {  # refuses <dir> <needle> <label> <cmd>...
+    _dir=$1 _needle=$2 _label=$3
+    shift 3
+    if out=$(cd "$_dir" && clean "$@" 2>&1); then
+        fail "$_label — it succeeded instead (got: $out)"
+    fi
+    case "$out" in
+        *"$_needle"*) ;;
+        *) fail "$_label — the refusal came from the wrong gate (got: $out)" ;;
+    esac
+}
+
 # 1. tier 2 — the variable is set, cwd is irrelevant.
 got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" sh "$WORK/block.sh")
 [ "$got" = "RESOLVED=$WORK/plugin/lib/vendor/shell-common" ] \
@@ -95,37 +111,24 @@ got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" sh "$WORK/
 #     that path, which is the other case `unset -f` + `command -v` closes.
 mkdir -p "$WORK/hollow/lib/vendor/shell-common/functions"
 : >"$WORK/hollow/lib/vendor/shell-common/functions/gh_host.sh"
-if err=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/hollow" \
-    sh "$WORK/block.sh" 2>&1); then
-    fail "a hollow gh_host.sh passed — the proof degraded to an existence check (got: $err)"
-fi
-case "$err" in
-    *"did not load a usable shell-common"*) ;;
-    *) fail "the hollow-file refusal came from the wrong gate (got: $err)" ;;
-esac
+refuses "$WORK/elsewhere" "did not load a usable shell-common" \
+    "a hollow gh_host.sh must fail the proof, not pass an existence check" \
+    CLAUDE_PLUGIN_ROOT="$WORK/hollow" sh "$WORK/block.sh"
 
 # 2. the retired tier 4 — the cwd genuinely IS the checkout, and the block must
 #    STILL refuse. This is the case that used to succeed by guessing $PWD, and
 #    the reason harness-skills#22 dropped it: a hostile PR is also "the cwd".
-if err=$(cd "$WORK/plugin" && clean sh "$WORK/block.sh" 2>&1); then
-    fail "the pasted block resolved from \$PWD — tier 4 is back (got: $err)"
-fi
-case "$err" in
-    *"CLAUDE_PLUGIN_ROOT is unset"*) ;;
-    *) fail "the \$PWD refusal must name the way out (got: $err)" ;;
-esac
+refuses "$WORK/plugin" "CLAUDE_PLUGIN_ROOT is unset" \
+    "the pasted block must refuse \$PWD even in the real checkout (tier 4 is back)" \
+    sh "$WORK/block.sh"
 
 # 3. tier 5 — no variable, cwd is not the checkout. This is the case that used
 #    to yield /lib/vendor/shell-common. It must fail, loudly, naming the path it
 #    tried — which is tier 1's, since tier 2 was never reached.
-if err=$(cd "$WORK/elsewhere" && clean sh "$WORK/block.sh" 2>&1); then
-    fail "tier 5 did not stop; it printed: $err"
-fi
-case "$err" in
-    *"$WORK/nohome/dotfiles/shell-common"*) ;;
-    *) fail "tier 5 message does not name the path it tried (got: $err)" ;;
-esac
-case "$err" in
+refuses "$WORK/elsewhere" "$WORK/nohome/dotfiles/shell-common" \
+    "tier 5 must stop and name the path it tried" \
+    sh "$WORK/block.sh"
+case "$out" in
     */lib/vendor/shell-common*) fail "a lib/vendor path was composed before the guard" ;;
     *) ;;
 esac
@@ -171,14 +174,9 @@ for shell in sh dash bash zsh; do
                 || fail "$shell reached tier 3 but the proof did not say PROVEN=yes"
             ;;
         *)
-            if out=$(cd "$WORK/elsewhere" && clean "$shell" -c \
-                ". $WORK/plugin/lib/resolve-target.sh" 2>&1); then
-                fail "$shell has no self-path and must stop at tier 5, but gave: $out"
-            fi
-            case "$out" in
-                *"CLAUDE_PLUGIN_ROOT is unset"*) ;;
-                *) fail "$shell's tier-5 stop does not name the way out (got: $out)" ;;
-            esac
+            refuses "$WORK/elsewhere" "CLAUDE_PLUGIN_ROOT is unset" \
+                "$shell has no self-path and must stop at tier 5" \
+                "$shell" -c ". $WORK/plugin/lib/resolve-target.sh"
             ;;
     esac
 done
@@ -186,9 +184,9 @@ done
 # 7. and no self-path must still stop at tier 5 once the cwd IS the checkout —
 #    the self-locating file's half of assertion 2. There is nothing left that
 #    would let the cwd stand in for a root.
-if out=$(cd "$WORK/plugin" && clean sh -c ". $WORK/plugin/lib/resolve-target.sh" 2>&1); then
-    fail "no self-path must refuse even in the real checkout (got: $out)"
-fi
+refuses "$WORK/plugin" "CLAUDE_PLUGIN_ROOT is unset" \
+    "no self-path must refuse even in the real checkout" \
+    sh -c ". $WORK/plugin/lib/resolve-target.sh"
 
 echo "ok  tier 2 resolves from CLAUDE_PLUGIN_ROOT"
 echo "ok  a file that defines nothing fails the proof"
