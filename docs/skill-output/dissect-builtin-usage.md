@@ -26,12 +26,12 @@
 
 ## 3. 결과 (실행 시)
 
-- **`docs/built-in-skills/<skill-name>/README.md`** — Agent 1 이 쓰는 한국어 분석.
+- **`docs/built-in-skills/<skill-name>/README.md`** — 에이전트 1개가 쓰는 한국어 분석.
   한줄 요약 / 동작 단계(Phase) / 단계별 상세 체크 항목 / 특징(병렬 실행, 쓰기 권한,
   도메인 특화 등)을 담고, 제목은 대상 스킬의 실제 단계에 맞춰 조정된다.
-- **`docs/built-in-skills/<skill-name>/PROMPT.md`** — Agent 2 가 쓰는 원문 그대로의
-  프롬프트. 감싸는 제목도 코드 펜스도 없고, 요약·번역·재포맷하지 않는다. 두 에이전트는
-  Step 2 가 한 메시지 안에서 동시에 띄우므로 병렬로 돈다.
+- **`docs/built-in-skills/<skill-name>/PROMPT.md`** — 부모가 컨텍스트의 원문을 직접
+  옮겨 쓴다. 감싸는 제목도 코드 펜스도 없고, 요약·번역·재포맷하지 않는다. 정확한 사본
+  이라 에이전트에 위임하지 않는다.
 - **stdout 판정** — 성공 시 `[OK] harness:dissect-builtin` 아래 `Skill:`, 두 산출물
   경로를 담은 `Outputs:`, 그리고 `Next: /gh-pr:commit`. 실패 시
   `[FAIL] harness:dissect-builtin` 과 함께 `Step:`(Step 1 load / Step 2 agent /

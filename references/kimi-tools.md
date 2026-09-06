@@ -39,7 +39,7 @@ stops rather than guessing. Full rule:
 `Agent` with an explicit `subagent_type`:
 
 - `"coder"` for anything that writes files — e.g. `harness:dissect-builtin`'s
-  two parallel documentation agents.
+  README.md documentation agent.
 - `"explore"` for read-only sweeps — e.g. fanning out the
   `harness:harness-legacy-check` audit across `skills/`, hooks, and settings.
 
