@@ -77,11 +77,16 @@ are Claude Code tools backed by a JS runtime Gemini does not have. Instead:
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless. That
   path is the contract `harness:harness-refactor` reads from — nothing about it
   is Claude-specific except the directory name, so keep it.
-- For `harness-refactor`, still write `.claude/workflows/harness-refactor.js`: it
-  is the reviewable plan of record for a human to read (Claude Code's own skill
-  passes its change list through `Workflow` `args`, not this file, so a later
-  Claude Code session will not execute it). Then apply the low-risk edits
-  yourself with `replace` / `write_file`.
+- For `harness-refactor`, skip writing a plan file. Classify the report the
+  same way `references/classification-rules.md` in that skill does, then
+  apply each allowed change directly with `replace` / `write_file`, archiving
+  the file's current content into
+  `.claude/archive/harness-refactor-<YYYY-MM-DD>/<path>` first.
+  `workflows/harness-refactor.js` documents the four phases (Pre-flight /
+  Apply Changes / Verify / Final Report) if you want the shape, but it is
+  written against Claude Code's `Workflow` host and cannot run here. Note
+  anything the classification forbids as "Human Approval Required" instead of
+  applying it.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt via `Skill(skill: "<name>")`. `activate_skill`
