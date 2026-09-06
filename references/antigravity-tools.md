@@ -75,11 +75,16 @@ are Claude Code tools; Antigravity has neither the tool nor the JS runtime.
   `invoke_subagent {TypeName: "research"}`, and merge.
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless —
   that path is the contract `harness:harness-refactor` reads from.
-- For `harness-refactor`, still write `.claude/workflows/harness-refactor.js`
-  (the reviewable plan for a human to read — Claude Code's own skill passes its
-  change list through `Workflow` `args`, not this file, so a later Claude Code
-  session will not execute it), then apply its low-risk edits yourself with
-  `replace_file_content`.
+- For `harness-refactor`, skip writing a plan file. Classify the report the
+  same way `references/classification-rules.md` in that skill does, then
+  apply each allowed change directly with `replace_file_content`, archiving
+  the file's current content into
+  `.claude/archive/harness-refactor-<YYYY-MM-DD>/<path>` first.
+  `workflows/harness-refactor.js` documents the four phases (Pre-flight /
+  Apply Changes / Verify / Final Report) if you want the shape, but it is
+  written against Claude Code's `Workflow` host and cannot run here. Note
+  anything the classification forbids as "Human Approval Required" instead of
+  applying it.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. Antigravity

@@ -79,11 +79,14 @@ has neither tool nor JS runtime for these. Two options, in order of preference:
 Either way the **output contract holds**: the report path is what
 `harness:harness-refactor` consumes, so do not relocate or rename it.
 
-For `harness-refactor`, still write `.claude/workflows/harness-refactor.js` — it
-is the durable, reviewable plan for a human to read (Claude Code's own skill
-passes its change list through `Workflow` `args`, not this file, so a later
-Claude Code session will not execute it) — then carry out its steps with
-`apply_patch` yourself.
+For `harness-refactor`, skip writing a plan file. Classify the report the same
+way `references/classification-rules.md` in that skill does, then apply each
+allowed change directly with `apply_patch`, archiving the file's current
+content into `.claude/archive/harness-refactor-<YYYY-MM-DD>/<path>` first.
+`workflows/harness-refactor.js` documents the four phases (Pre-flight / Apply
+Changes / Verify / Final Report) if you want the shape, but it is written
+against Claude Code's `Workflow` host and cannot run here. Note anything the
+classification forbids as "Human Approval Required" instead of applying it.
 
 **No built-in skill catalog.** `harness:dissect-builtin` Step 1 does
 `Skill(skill: "<name>")` to load a Claude Code built-in's raw prompt. Codex has

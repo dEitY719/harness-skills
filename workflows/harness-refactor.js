@@ -37,6 +37,10 @@ const ARCHIVE = `.claude/archive/harness-refactor-${today}`
 // boundary, so this is cheap insurance against one bad entry sending an
 // agent outside the repo.
 const isSafePath = (f) => typeof f === 'string' && f.length > 0 && !f.startsWith('/') && !f.split('/').includes('..')
+// Model-authored text lands verbatim inside a template-literal prompt below;
+// a stray backtick in a description would close that literal early and a
+// markdown fence would bleed formatting into the rest of the prompt.
+const clean = (s) => String(s == null ? '' : s).replace(/`/g, "'")
 const changes = rawChanges.filter((c) => isSafePath(c && c.file))
 const unsafe = rawChanges.filter((c) => !isSafePath(c && c.file))
 if (unsafe.length > 0) {
@@ -55,7 +59,7 @@ target file below exists in the current project, and create the archive
 directory ${ARCHIVE} (mkdir -p). Do not move or modify any file yet.
 
 Target files:
-${changes.map((c) => `- ${c.file}: ${c.description}`).join('\n')}
+${changes.map((c) => `- ${clean(c.file)}: ${clean(c.description)}`).join('\n')}
 
 Reply with ONLY a JSON object as your last line, no other trailing text:
 {"ok": true} if every file exists, or {"ok": false, "missing": ["<file>", ...]}
@@ -90,10 +94,10 @@ otherwise.
 
   const results = await parallel(groups.map(([file, group]) => () => agent(`
 You are an APPLY-CHANGES agent for a low-risk harness refactor. Before
-editing ${file}, copy its current content into ${ARCHIVE}/${file}
+editing ${clean(file)}, copy its current content into ${ARCHIVE}/${clean(file)}
 (preserving directory structure), then apply the following change(s) exactly:
 
-${group.map((c) => `- ${c.description}`).join('\n')}
+${group.map((c) => `- ${clean(c.description)}`).join('\n')}
 
 Return one CHANGE_SCHEMA result: { file, action, archived_to, lines_before, lines_after }.
 `, { label: `apply-${file.replace(/[^a-zA-Z0-9_-]/g, '-')}`, phase: 'Apply Changes' })))
@@ -126,6 +130,6 @@ Applied changes:
 ${JSON.stringify(results, null, 2)}
 
 Human Approval Required (forbidden by classification, never applied):
-${rejected.length > 0 ? rejected.map((r) => `- ${r.file}: ${r.description}${r.reason ? ` (${r.reason})` : ''}`).join('\n') : '(none)'}
+${rejected.length > 0 ? rejected.map((r) => `- ${clean(r.file)}: ${clean(r.description)}${r.reason ? ` (${clean(r.reason)})` : ''}`).join('\n') : '(none)'}
 `, { label: 'final-report', phase: 'Final Report' })
 }

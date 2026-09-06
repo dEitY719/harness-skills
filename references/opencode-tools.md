@@ -64,9 +64,10 @@ type name; read it as "an agent with no special role" and use `"general"`.
 calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Those
 are Claude Code tools; OpenCode has no `Workflow` tool. Note the trap here:
 OpenCode's plugin system *is* JavaScript, so it looks like
-`harness-refactor.js` could just be run. It cannot — that file is written
-against Claude Code's workflow API, not OpenCode's plugin API. Do not `bash
-node .claude/workflows/harness-refactor.js`.
+`workflows/harness-refactor.js` could just be run. It cannot — that file is
+written against Claude Code's workflow API (the `phase`/`agent`/`parallel`/
+`log`/`args` globals the host injects), not OpenCode's plugin API. Do not
+`bash node workflows/harness-refactor.js`.
 
 Instead:
 
@@ -74,11 +75,15 @@ Instead:
   ones out with `task` (`subagent_type: "explore"`).
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless —
   that path is the contract `harness:harness-refactor` reads from.
-- For `harness-refactor`, still generate `.claude/workflows/harness-refactor.js`:
-  it is the reviewable plan of record for a human to read (Claude Code's own
-  skill passes its change list through `Workflow` `args`, not this file, so a
-  later Claude Code session will not execute it). Then apply its low-risk
-  edits yourself with `apply_patch`.
+- For `harness-refactor`, skip writing a plan file. Classify the report the
+  same way `references/classification-rules.md` in that skill does, then
+  apply each allowed change directly with `apply_patch`, archiving the file's
+  current content into `.claude/archive/harness-refactor-<YYYY-MM-DD>/<path>`
+  first. `workflows/harness-refactor.js` documents the four phases (Pre-flight
+  / Apply Changes / Verify / Final Report) if you want the shape, but it is
+  written against Claude Code's `Workflow` host and cannot run here. Note
+  anything the classification forbids as "Human Approval Required" instead of
+  applying it.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. OpenCode's
