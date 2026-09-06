@@ -92,8 +92,16 @@ fi
 
 candidates=()
 if [ -n "$file" ]; then
-  [ -e "$file" ] || die "not found: $file" 1
-  candidates=("$file")
+  # A named target that does not exist yet is the `create --file NEW.md` case,
+  # not an error: the resolution matrix sends "no context file" to `create`
+  # (PR #38 review, codex BLOCKER). It falls through to the no-candidates
+  # block below, which prints the fields and still exits 1, so `check` and
+  # `refactor` abort exactly as before. The name is what carries the adapter.
+  if [ -e "$file" ]; then
+    candidates=("$file")
+  else
+    [ -n "$type" ] || type=$(kind_of "$file")
+  fi
 else
   for name in CLAUDE.md AGENTS.md GEMINI.md; do
     if [ -e "$dir/$name" ]; then candidates+=("$dir/$name"); fi
@@ -106,6 +114,14 @@ fi
 # input at all). So emit the fields that ARE knowable from $dir, on stdout,
 # before exiting.
 if [ "${#candidates[@]}" -eq 0 ]; then
+  # `kind` must be concrete: `create` picks both the template and the target
+  # filename from it, and an empty value leaves it with neither (PR #38
+  # review, codex BLOCKER). With no file to read a name from, the default is
+  # the head of the same priority order the `path` field documents —
+  # CLAUDE.md -> AGENTS.md -> GEMINI.md — so `create` writes CLAUDE.md.
+  # It also feeds compute_size_class, which would otherwise silently take the
+  # file-count branch for a Claude project (agy BLOCKER).
+  [ -n "$type" ] || type=claude
   compute_size_class
   printf 'path=\nkind=%s\ncontent_path=\naliases=\nother_candidates=\nline_count=0\nc7=\nsize_class=%s\n' \
     "$type" "$size_class"

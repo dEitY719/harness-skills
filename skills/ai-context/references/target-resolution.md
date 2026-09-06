@@ -34,6 +34,13 @@ mistaken for a clean pass. The fields are still printed on that path, with
 branch this row sends work to, and it needs `size_class` to pick a template.
 Read the fields, then branch on the exit status; never the other way round.
 
+`kind` is always concrete, because `create` takes both the template and the
+target filename from it: `--type` if given, else the name `--file` points at
+even when that file does not exist yet, else `claude` — the head of the same
+priority order `path` documents. `--file NEW.md` naming a target that has yet
+to be written is therefore the `create` case, not a "not found" error; the
+exit status stays 1, so `check` and `refactor` abort on it exactly as before.
+
 ## Resolution matrix
 
 `aliases` are never counted as extra files. A repo whose `AGENTS.md` is a
