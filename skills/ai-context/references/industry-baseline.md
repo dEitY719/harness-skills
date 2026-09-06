@@ -61,9 +61,13 @@ Encoded as: `A-AG1` Discovery, `A-AG2` Override / fallback,
   classifying every action as `read-only`, `execute`, or
   `auto_after_approval` / `always_draft`.
 - Recommends *thin orchestrator* — route, do not embed.
+- Claude Code reads `CLAUDE.md`, not `AGENTS.md`. A project targeting both
+  harnesses is told to keep ONE file and reach it twice — a symlink, or an
+  `@AGENTS.md` import — rather than maintain two copies that drift.
 
 Encoded as: `A-CL1` Reference-by-path, `A-CL2` Permission Control,
-`A-CL3` Thin Orchestrator, `A-CL4` Local + rules layout.
+`A-CL3` Thin Orchestrator, `A-CL4` Local + rules layout,
+`A-CL5` Cross-harness parity.
 
 ### Gemini CLI (GEMINI.md)
 

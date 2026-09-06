@@ -11,16 +11,7 @@
 ## Description
 
 Single entry point for AI context-injection files (`CLAUDE.md`, `AGENTS.md`,
-`GEMINI.md`). Replaces five legacy skills:
-
-- `agents-md:check`
-- `agents-md:create`
-- `agents-md:refactor`
-- `claude-md-check`
-- `claude-md-create`
-
-The legacy skills have been deleted (follow-up to dEitY719/dotfiles#539, see
-issue dEitY719/dotfiles#560).
+`GEMINI.md`) — one skill for `check`, `create` and `refactor` across all three.
 
 ## Actions
 
@@ -67,18 +58,6 @@ highest-priority one is audited — pass the path explicitly to target another.
 - Target is unreadable → abort with the underlying error.
 - Target is `SKILL.md` → route to `authoring:skill-check`.
 - Target is `*.sh` → route to `authoring:sh-check`.
-
-## Migration from legacy skills
-
-| Legacy command                 | New command                                |
-|--------------------------------|--------------------------------------------|
-| `/agents-md:check [path]`      | `/harness:ai-context check [path]`            |
-| `/agents-md:create`            | `/harness:ai-context create --type agents`    |
-| `/agents-md:refactor`          | `/harness:ai-context refactor --type agents`  |
-| `/claude-md-check [path]`      | `/harness:ai-context check [path]`            |
-| `/claude-md-create`            | `/harness:ai-context create --type claude`    |
-
-Legacy skill directories have been removed (issue dEitY719/dotfiles#560) — use the commands above.
 
 ## Output
 
