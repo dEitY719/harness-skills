@@ -117,8 +117,14 @@ check "empty dir line_count" 0       "$(get "$out" line_count)"
 #     the exit status stays 1 so check/refactor still abort.
 out=$work/newfile.out
 bash "$script" --file "$e/AGENTS.md" > "$out" 2>/dev/null || :
-check "create --file kind" agents "$(get "$out" kind)"
-check "create --file path" ""     "$(get "$out" path)"
+check "create --file kind" agents        "$(get "$out" kind)"
+#     ...and the requested destination survives, so a non-standard target is
+#     not silently replaced by the canonical one (PR #38 review, codex BLOCKER).
+check "create --file path" "$e/AGENTS.md" "$(get "$out" path)"
+out=$work/custom.out
+bash "$script" --file "$e/custom.md" --type agents > "$out" 2>/dev/null || :
+check "create --file custom path" "$e/custom.md" "$(get "$out" path)"
+check "create --file custom kind" agents         "$(get "$out" kind)"
 if bash "$script" --file "$e/AGENTS.md" >/dev/null 2>&1; then
   printf 'FAIL  create --file on a missing target: expected non-zero exit\n'
   fail=1

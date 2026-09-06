@@ -123,8 +123,13 @@ if [ "${#candidates[@]}" -eq 0 ]; then
   # file-count branch for a Claude project (agy BLOCKER).
   [ -n "$type" ] || type=claude
   compute_size_class
-  printf 'path=\nkind=%s\ncontent_path=\naliases=\nother_candidates=\nline_count=0\nc7=\nsize_class=%s\n' \
-    "$type" "$size_class"
+  # `path` carries the requested destination when `--file` named one. Emitting
+  # it empty lost a non-standard target: `create --file custom.md --type agents`
+  # would fall back to the canonical AGENTS.md (PR #38 review, codex BLOCKER).
+  # With no `--file` there is nothing to preserve, so it stays empty and
+  # `create` derives the name from `kind`.
+  printf 'path=%s\nkind=%s\ncontent_path=\naliases=\nother_candidates=\nline_count=0\nc7=\nsize_class=%s\n' \
+    "$file" "$type" "$size_class"
   die "no AI context file found in $dir" 1
 fi
 
