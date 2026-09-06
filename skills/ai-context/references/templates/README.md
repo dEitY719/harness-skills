@@ -1,23 +1,18 @@
 # Templates — harness:ai-context create
 
-The `create` action picks one of these templates based on `--type` and the
-size discovered during `Phase 0`.
+The `create` action picks one of these templates from `--type` and the
+`size_class` that `../../scripts/detect-context.sh` reports. The thresholds
+behind `size_class` are the script's; this page only maps the answer to a file,
+so that tuning them is one edit.
 
-## agents (AGENTS.md)
-
-| Size   | Heuristic                              | Template            |
-|--------|----------------------------------------|---------------------|
-| small  | < 20 files, single tech stack          | `agents-small.md`   |
-| medium | 20–100 files, 2–3 tech domains         | `agents-medium.md`  |
-| large  | 100+ files, multiple services          | `agents-large.md`   |
-
-## claude (CLAUDE.md, orchestrator)
-
-| Size     | Heuristic                  | Template             |
-|----------|----------------------------|----------------------|
-| simple   | 1–2 agents, single domain  | `claude-simple.md`   |
-| standard | 3–6 agents, multi-domain   | `claude-standard.md` |
-| large    | 7+ agents, enterprise      | `claude-large.md`    |
+| `--type` | `size_class` | Template             |
+|----------|--------------|----------------------|
+| agents   | `small`      | `agents-small.md`    |
+| agents   | `medium`     | `agents-medium.md`   |
+| agents   | `large`      | `agents-large.md`    |
+| claude   | `simple`     | `claude-simple.md`   |
+| claude   | `standard`   | `claude-standard.md` |
+| claude   | `large`      | `claude-large.md`    |
 
 ## gemini (GEMINI.md)
 

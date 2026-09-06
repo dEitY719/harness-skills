@@ -127,9 +127,7 @@ Spec source: <https://code.claude.com/docs/en/memory>.
   (`detect-context.sh` reports this as a non-empty `aliases`).
 - **WARN** — both files exist as independent copies; they will drift.
 - **N/A** — the project has only one context file.
-- Rationale: Claude Code reads `CLAUDE.md` and not `AGENTS.md`, and its memory
-  docs recommend a symlink or an import rather than two copies — see
-  `industry-baseline.md`.
+- Rationale: `industry-baseline.md`, Claude Code section.
 
 ---
 

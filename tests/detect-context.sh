@@ -11,7 +11,7 @@
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
-script=$root/skills/ai-context/lib/detect-context.sh
+script=$root/skills/ai-context/scripts/detect-context.sh
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 fail=0
@@ -50,6 +50,18 @@ bash "$script" --dir "$b" > "$out"
 check "import alias"     "$b/AGENTS.md"    "$(get "$out" aliases)"
 check "import lines"     420               "$(get "$out" line_count)"
 check "import c7"        WARN              "$(get "$out" c7)"
+
+# 2b. The same collapse in reverse, and a file that merely ENDS in `.md` is
+#     not a shim.
+b2=$work/import-reverse
+mkdir -p "$b2"
+printf '@GEMINI.md\n' > "$b2/AGENTS.md"
+printf '# real content\n\nsee also foo.md\n' > "$b2/GEMINI.md"
+out=$work/import-reverse.out
+bash "$script" --dir "$b2" > "$out"
+check "reverse path"     "$b2/AGENTS.md"   "$(get "$out" path)"
+check "reverse alias"    "$b2/GEMINI.md"   "$(get "$out" aliases)"
+check "reverse lines"    3                 "$(get "$out" line_count)"
 
 # 3. Genuinely distinct files stay distinct, and priority picks CLAUDE.md.
 c=$work/distinct
