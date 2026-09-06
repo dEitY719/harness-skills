@@ -52,6 +52,9 @@ Output directory: `docs/built-in-skills/<skill-name>/` (relative to the project 
 | README.md | docs/built-in-skills/<skill-name>/README.md | Korean MD |
 | PROMPT.md | docs/built-in-skills/<skill-name>/PROMPT.md | Verbatim  |
 
+**두 산출물 모두 임시 디렉터리에 먼저 쓴다.** 최종 경로에 바로 쓰면 뒤에서
+실패했을 때 이미 덮어쓴 기존 문서를 되돌릴 수 없다. 이동은 Step 3 에서 한다.
+
 Write `PROMPT.md` yourself, straight from the Step 1 prompt in context. Do not
 delegate it to an agent: a round-trip through another model cannot improve an
 exact copy, only corrupt it.
@@ -66,7 +69,8 @@ the prompt exists only in your context.
 
 ### Step 3: Confirm with user
 
-Wait for the agent to finish, then emit a deterministic verdict:
+Wait for the agent to finish. **두 파일이 모두 임시 디렉터리에 있을 때에만**
+`docs/built-in-skills/<skill-name>/` 로 옮기고, 그 뒤 판정을 낸다:
 
 ```
 [OK] harness:dissect-builtin
@@ -76,10 +80,8 @@ Wait for the agent to finish, then emit a deterministic verdict:
   Next:     /gh-pr:commit
 ```
 
-실패 시 — **이번 실행이 새로 만든** 산출물만 지워 반쪽짜리 디렉터리를 남기지
-않는다. Step 2 를 시작하기 전에 두 출력 경로 각각이 이미 있었는지 확인해 두고,
-없던 것만 지운다. 같은 `<skill-name>` 을 다시 문서화하는 실행이 실패했다고 해서
-먼저 있던 문서를 지우면 안 된다:
+실패 시 — 임시 디렉터리를 지우고 끝낸다. 최종 경로는 아직 건드린 적이 없으므로
+기존 문서는 자동으로 보존되고, 반쪽짜리 디렉터리도 생기지 않는다:
 
 ```
 [FAIL] harness:dissect-builtin
@@ -89,9 +91,10 @@ Wait for the agent to finish, then emit a deterministic verdict:
 
 ## Constraints
 
-- PROMPT.md must be an exact copy of the original prompt. Do not summarize, translate, or reformat.
-  The prompt exists only in context — there is no on-disk original to `cp` — so the copy is
-  model-mediated by construction. That is why it goes through one model hop, not two.
+- PROMPT.md reproduces the original prompt verbatim: do not summarize, translate, or reformat.
+  That is a fidelity target, not a verifiable guarantee — the prompt exists only in context,
+  so there is nothing to `cp` or diff against and byte-equality cannot be checked afterwards.
+  Fewer hops is the only lever, which is why the parent writes it directly: one hop, not two.
 - README.md is written in Korean. Use English only for technical terms.
 - Do not use the filename `SKILL.md` for output — it conflicts with Claude Code's skill loading mechanism.
 - If the target skill cannot be loaded (not a built-in skill), inform the user and suggest alternatives.
