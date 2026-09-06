@@ -56,8 +56,9 @@ Write `PROMPT.md` yourself, straight from the Step 1 prompt in context. Do not
 delegate it to an agent: a round-trip through another model cannot improve an
 exact copy, only corrupt it.
 
-Then launch one Agent to analyze the loaded prompt and write `README.md`.
-Brief: `references/readme-template.md`.
+Then launch one Agent to analyze the loaded prompt and write `README.md`. Tell
+it to read `skills/dissect-builtin/references/readme-template.md` and follow
+that brief.
 
 ### Step 3: Confirm with user
 
@@ -71,7 +72,7 @@ Wait for the agent to finish, then emit a deterministic verdict:
   Next:     /gh-pr:commit
 ```
 
-실패 시:
+실패 시 — 이미 쓴 산출물을 지워 반쪽짜리 디렉터리를 남기지 않는다:
 
 ```
 [FAIL] harness:dissect-builtin
@@ -82,6 +83,8 @@ Wait for the agent to finish, then emit a deterministic verdict:
 ## Constraints
 
 - PROMPT.md must be an exact copy of the original prompt. Do not summarize, translate, or reformat.
+  The prompt exists only in context — there is no on-disk original to `cp` — so the copy is
+  model-mediated by construction. That is why it goes through one model hop, not two.
 - README.md is written in Korean. Use English only for technical terms.
 - Do not use the filename `SKILL.md` for output — it conflicts with Claude Code's skill loading mechanism.
 - If the target skill cannot be loaded (not a built-in skill), inform the user and suggest alternatives.
