@@ -255,7 +255,8 @@
         </div>
         <h1 class="animate delay-1">harness-refactor 사용 결과</h1>
         <p class="lede animate delay-2">
-          <b>한 줄 요약</b> — 감사 리포트를 받아 low-risk 항목만 담은 워크플로우 파일 1개를 생성하고 실행해 하네스를 정리합니다.
+          <b>한 줄 요약</b> — 감사 리포트를 받아 low-risk 항목만 <code>args.changes</code> / <code>args.rejected</code> 로
+          분류한 뒤, 플러그인에 이미 배포된 워크플로우를 실행해 하네스를 정리합니다.
         </p>
 
         <div class="notrun animate delay-3" role="note">
@@ -266,7 +267,7 @@
           <div>
             <div class="ntitle">NOTE: 미실행 예시</div>
             <p>
-              이 스킬은 워크플로를 생성해 실행하고 사용자 하네스를 실제로 변경하므로 문서화 목적으로 실행하지 않았습니다.
+              이 스킬은 워크플로를 실행해 사용자 하네스를 실제로 변경하므로 문서화 목적으로 실행하지 않았습니다.
               명령 · 분류 규칙 · 출력 형식은 <code>skills/harness-refactor/SKILL.md</code> 인용이며 실행 로그가 아닙니다.
             </p>
           </div>
@@ -285,7 +286,7 @@
           <div class="pipe-arrow" aria-hidden="true">──▶</div>
           <div class="pipe-node out">
             <div class="k">산출물</div>
-            <div class="v">harness-refactor.js 생성 + 실행</div>
+            <div class="v">배포된 워크플로우 실행<br>(args.changes/args.rejected)</div>
           </div>
         </div>
       </div>
@@ -336,23 +337,24 @@
         <div class="rgrid">
           <article class="rcard">
             <h4>
-              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              .claude/workflows/harness-refactor.js
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              워크플로우 실행
             </h4>
             <p>
-              새로 작성되며 이전 파일을 덮어쓴다(이전 계획은 git log 에 보존).
-              <code>export const meta</code> 가 Pre-flight → Apply Changes → Verify → Final Report 4개 phase 를 선언하고
-              <code>ARCHIVE</code> / <code>SKILLS</code> / <code>ROOT</code> 상수를 정의한다.
+              <code>Workflow({ name: 'harness:harness-refactor', args: { changes, rejected } })</code>.
+              <code>workflows/harness-refactor.js</code> 는 이 플러그인에 이미 배포된 파일이며
+              <b>매 실행마다 새로 작성되지 않는다</b> — 바뀌는 것은 Step 2 에서 분류한 <code>args.changes</code> /
+              <code>args.rejected</code> 뿐이다. <code>export const meta</code> 가 Pre-flight → Apply Changes →
+              Verify → Final Report 4개 phase 를 선언한다.
             </p>
           </article>
 
           <article class="rcard">
             <h4>
-              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              워크플로우 실행
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Pre-flight → Apply Changes → Verify
             </h4>
             <p>
-              <code>Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })</code>.
               Pre-flight 는 대상 파일 존재 확인과 archive 디렉토리 생성만, Apply Changes 는 <code>parallel()</code> 로
               비중첩 파일 그룹별 에이전트, Verify 는 <code>wc -l</code> 비교와 <code>references/</code> 생성 확인.
             </p>
@@ -404,7 +406,7 @@
       <div class="wrap">
         근거: <code>skills/harness-refactor/SKILL.md</code> ·
         <code>references/classification-rules.md</code> ·
-        <code>references/workflow-template.md</code><br>
+        <code>workflows/harness-refactor.js</code><br>
         이 페이지에 적힌 어떤 수치도 실행 결과가 아니다 — 이 스킬은 문서화 목적으로 실행하지 않았다.
       </div>
     </footer>
