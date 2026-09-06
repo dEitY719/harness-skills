@@ -81,6 +81,15 @@ out=$work/typed.out
 bash "$script" --file "$d/docs-context.md" --type agents > "$out"
 check "forced kind"      agents            "$(get "$out" kind)"
 
+# 4b. Sizing follows --file to that file's own project, not the caller's cwd.
+f=$work/sized
+mkdir -p "$f/.claude/agents"
+printf '# ctx\n' > "$f/CLAUDE.md"
+for i in $(seq 1 7); do printf '# agent\n' > "$f/.claude/agents/a$i.md"; done
+out=$work/sized.out
+bash "$script" --file "$f/CLAUDE.md" > "$out"
+check "sized by target"  large             "$(get "$out" size_class)"
+
 # 5. No context file is a non-zero exit, not an empty success.
 e=$work/empty
 mkdir -p "$e"

@@ -7,7 +7,8 @@ is what to do with its output.
 
 SKILL.md Step 2 carries the invocation. Flags: `--file PATH` and `--type TYPE`
 (the skill's own overrides), plus `--dir DIR` to probe somewhere other than the
-cwd.
+cwd. `--file` moves `--dir` to that file's own directory unless `--dir` is
+given, so sizing inspects the target's project rather than the caller's cwd.
 
 `${CLAUDE_PLUGIN_ROOT}` resolves per the repo-root `references/plugin-root.md`.
 The script is a file on disk, so tier 3 (self-location) applies to it; if the

@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-dir=.
+dir=
 file=
 type=
 
@@ -50,6 +50,12 @@ import_target() {
     *) return 1 ;;
   esac
 }
+
+# Sizing inspects $dir, so an explicit --file must move it to that file's own
+# project -- otherwise `--file ../other/CLAUDE.md` sizes the caller's cwd.
+if [ -z "$dir" ]; then
+  if [ -n "$file" ]; then dir=$(dirname -- "$file"); else dir=.; fi
+fi
 
 candidates=()
 if [ -n "$file" ]; then
