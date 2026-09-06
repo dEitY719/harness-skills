@@ -1,0 +1,51 @@
+name: add-to-project
+
+# Reusable: put every newly opened issue of a caller repo on the unified
+# `skills-plugins` board (https://github.com/users/dEitY719/projects/9), so the
+# 16 *-skills repos share one kanban instead of one board each.
+#
+# Owned here for the same reason `skill-check.yml` is (dotfiles #1410 D-10):
+# the callers stay a stub, and a fix lands once.
+#
+# The board is user-scoped, which `GITHUB_TOKEN` cannot write — a PAT with the
+# `project` scope is required:
+#   gh secret set PROJECT_BOARD_PAT --repo <owner/repo> --body '<PAT>'
+# Without it the job soft-skips with a warning; it never fails a repo that has
+# not been provisioned yet.
+
+on:
+  workflow_call:
+    inputs:
+      project-url:
+        description: Target projectV2 URL.
+        type: string
+        required: false
+        default: https://github.com/users/dEitY719/projects/9
+    secrets:
+      PROJECT_BOARD_PAT:
+        description: PAT with the `project` scope. Absent = soft-skip.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Hoisted so the step-level `if` can test it — the `secrets` context is
+      # not available in a step `if`, but `env` is.
+      PAT: ${{ secrets.PROJECT_BOARD_PAT }}
+    steps:
+      - name: Warn when the board PAT is missing
+        if: env.PAT == ''
+        run: |
+          echo "::warning::PROJECT_BOARD_PAT is not set on ${{ github.repository }}; the issue was not added to the board. Set it with: gh secret set PROJECT_BOARD_PAT --repo ${{ github.repository }} --body '<PAT-with-project-scope>'"
+
+      - name: Add the issue to the board
+        if: env.PAT != ''
+        uses: actions/add-to-project@v2.0.0
+        with:
+          project-url: ${{ inputs.project-url }}
+          github-token: ${{ env.PAT }}
