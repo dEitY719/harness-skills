@@ -67,7 +67,7 @@ fabricate a `Task` call.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Codex
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Codex
 has neither tool nor JS runtime for these. Two options, in order of preference:
 
 1. Run the audit inline — the workflow's steps are an ordered read-only sweep of

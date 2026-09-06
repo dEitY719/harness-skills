@@ -80,7 +80,7 @@ right target. `SOUL.md` is **not** in the detect list — pass it explicitly wit
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Those
 are Claude Code tools backed by a JS runtime Hermes does not have.
 
 - Run the audit's sweeps with `read_file` / `search_files` / `terminal`, or fan

@@ -61,7 +61,7 @@ type name; read it as "an agent with no special role" and use `"general"`.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Those
 are Claude Code tools; OpenCode has no `Workflow` tool. Note the trap here:
 OpenCode's plugin system *is* JavaScript, so it looks like
 `harness-refactor.js` could just be run. It cannot — that file is written

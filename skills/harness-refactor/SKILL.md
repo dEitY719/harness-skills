@@ -36,18 +36,18 @@ Step 3 실패 시 이미 아카이브된 파일 경로를 함께 출력한다.
 
 ## Step 2: Low-risk 항목 분류
 
-리포트 항목을 워크플로우 포함 여부로 분류한다.
-분류 기준: `references/classification-rules.md` 참조.
-포함 항목은 `{ file, description }` 배열로 정리한다 — Step 3 이 그대로
-`Workflow` 의 `args.changes` 로 전달한다.
+리포트 항목을 워크플로우 포함 여부로 분류해 두 배열로 정리한다.
+분류 기준과 각 배열의 형식: `references/classification-rules.md` 참조.
 
-Step 2 에서 금지 항목으로 분류된 것은 이 배열에 넣지 않는다 — Final Report 의
-"Human Approval Required" 섹션에만 기록되도록 워크플로우에는 전달하지 않는다.
+- `changes` — 허용 항목, `{ file, description }`.
+- `rejected` — 금지 항목, `{ file, description, reason }`. 워크플로우에는
+  적용시키지 않고 Final Report 의 "Human Approval Required" 섹션에만
+  기록하도록 전달한다.
 
 ## Step 3: 워크플로우 실행
 
 ```
-Workflow({ name: 'harness:harness-refactor', args: { changes: <Step 2 배열> } })
+Workflow({ name: 'harness:harness-refactor', args: { changes: <Step 2 changes>, rejected: <Step 2 rejected> } })
 ```
 
 워크플로우 스크립트는 이 플러그인에 함께 배포된다: `workflows/harness-refactor.js`.

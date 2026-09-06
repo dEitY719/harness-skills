@@ -69,7 +69,7 @@ get a tidier history.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Those
 are Claude Code tools backed by a JS runtime Gemini does not have. Instead:
 
 - Run the audit's sweeps directly (`read_many_files`, `grep_search`,

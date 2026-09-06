@@ -65,7 +65,7 @@ this file wins — and update both.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })`; `harness:harness-refactor` calls
-`Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Kimi Code
+`Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })`. Kimi Code
 exposes no `Workflow` tool and no JS workflow runtime. Instead:
 
 - Run the audit's steps inline with `Read`/`Grep`/`Bash`, or fan the independent
