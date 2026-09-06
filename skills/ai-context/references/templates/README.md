@@ -30,7 +30,14 @@ and update this README.
 
 ---
 
-These templates were lifted verbatim from the legacy skills
-`agents-md:create` and `claude-md-create` so existing users see the same
-output. Updates land here first; legacy locations stay frozen for the
-shim period.
+## Why the `claude-*` templates stay (harness-skills#3)
+
+Claude Code ships `/init`, which bootstraps a CLAUDE.md and overlaps these
+three templates. They are kept anyway: `/init` is a Claude Code built-in, and
+this plugin ships to six harnesses (see the repo-root `references/*-tools.md`),
+five of which have no equivalent. Deleting them would leave
+`create --type claude` working on Claude Code only.
+
+On Claude Code, running `/init` first and then `harness:ai-context check
+--type claude` against its output is the better path; these templates are the
+portable fallback, not a competitor. Do not re-file this as dead code.

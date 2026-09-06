@@ -17,8 +17,6 @@ metadata:
 
 # harness:ai-context — Unified AI Context Doc Skill
 
-Replaces `agents-md:{check,create,refactor}` / `claude-md-{check,create}` (deleted in dEitY719/dotfiles#560 — see `references/help.md` migration table).
-
 ## Help
 
 If `$1` is `-h`, `--help`, or `help`, read `references/help.md` and output
@@ -26,34 +24,24 @@ its content verbatim, then stop. No file reads beyond that.
 
 ## Step 1: Parse Args
 
-Positional: `[action] [path]`. Recognised flags below.
-
-| Arg / Flag      | Description                                       | Default     |
-|-----------------|---------------------------------------------------|-------------|
-| `action`        | `check` / `create` / `refactor` / `help`          | `check`     |
-| `path`          | Explicit target file path                         | auto-detect |
-| `--file PATH`   | Same as positional `path`; takes precedence       | —           |
-| `--type TYPE`   | Force adapter: `agents` / `claude` / `gemini`     | from name   |
-| `-h` / `--help` | Print `references/help.md` verbatim and stop      | —           |
-
-Unknown action → print help and stop.
+Positional `[action] [path]`; flags `--file PATH`, `--type TYPE`, `-h`/`--help`.
+`action` defaults to `check`, and is one of `check` / `create` / `refactor` /
+`help`. Full table with defaults and precedence: `references/help.md`
+"Arguments". Unknown action → print help and stop.
 
 ## Step 2: Resolve Target File
 
-If `--file` (or positional `path`) is given, use it. Otherwise auto-detect
-in cwd in priority `CLAUDE.md` → `AGENTS.md` → `GEMINI.md`.
+Run the deterministic half — auto-detection, alias collapse, `line_count` /
+`c7`, and `size_class`:
 
-Collapse aliases first: candidates on the same inode (`readlink -f`), or a
-`CLAUDE.md` whose body is only an `@AGENTS.md` import, are one documented source.
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/ai-context/lib/detect-context.sh" \
+  [--file PATH] [--type TYPE]
+```
 
-| Situation             | check                                          | create / refactor                       |
-|-----------------------|------------------------------------------------|-----------------------------------------|
-| One file found        | audit it                                       | proceed against it                      |
-| Multiple files found  | audit highest-priority; rest as WARN           | print candidates and prompt; never auto |
-| No file found         | abort with hint: `harness:ai-context create`      | proceed (create) / abort (refactor)     |
-
-Map filename → `type`: `CLAUDE.md`→claude, `AGENTS.md`→agents, `GEMINI.md`→gemini.
-`--type` overrides this mapping for non-standard names.
+Read its `path` / `kind` / `other_candidates`. Output fields, the
+multiple-file and no-file matrix, and the by-hand fallback when
+`${CLAUDE_PLUGIN_ROOT}` cannot be resolved: `references/target-resolution.md`.
 
 ## Step 3: Dispatch by Action
 
@@ -65,13 +53,10 @@ ranges that drove each verdict. Never mutate the file.
 
 ### action=create (with confirmation)
 
-Run discovery (`Phase 0`):
-
-- `agents` — classify by project size: small (<20 files) / medium (20–100,
-  2–3 domains) / large (100+, multiple services).
-- `claude` — classify by agent count: simple (1–2) / standard (3–6) / large (7+).
-- `gemini` — not yet templated; offer the closest agents template with a
-  manual-edit hint.
+Step 2 already reported `size_class`; map it to a template with
+`references/templates/README.md`, which also records why the `claude-*`
+templates exist alongside Claude Code's own `/init`. `gemini` has no native
+template — offer the closest `agents-*` one with a manual-edit hint.
 
 Read the matching template from `references/templates/`, fill placeholders
 from discovery, present a plan, **wait for confirmation**, then write.
@@ -89,9 +74,7 @@ FAIL, else `[FAIL]`. Always end with a `Next:` line per the same file.
 
 ## Constraints
 
-- If any Step 1–3 step fails for a genuine reason (NOT a help print or an `authoring:skill-check` / `authoring:sh-check` routing stop — those are intentional early exits), report it via `references/report-template.md` with Verdict=`[FAIL]` and stop. The stop-on-error policy and `[FAIL]` report still apply to all other Step 1–3 failures.
-- `check` is audit-only — never mutate the file.
-- Always confirm before overwriting in `create` / `refactor`.
+- If any Step 1–3 step fails for a genuine reason (NOT a help print or an `authoring:skill-check` / `authoring:sh-check` routing stop — those are intentional early exits), report it via `references/report-template.md` with Verdict=`[FAIL]` and stop.
 - Auto-overwrite is never allowed when multiple context files exist.
 - Honor `--file` and `--type` overrides over auto-detection.
 - Cite `references/industry-baseline.md` for adapter-check rationale (Codex / Claude Code / Gemini CLI docs).

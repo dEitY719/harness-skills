@@ -121,6 +121,16 @@ Spec source: <https://code.claude.com/docs/en/memory>.
 - **WARN** — partial.
 - **N/A** — single-file project with no `.claude/` tree.
 
+### A-CL5. Cross-harness parity
+- **PASS** — `AGENTS.md` is a symlink to `CLAUDE.md`, or one file is a single
+  `@other.md` import of the other, so every harness reads the same text
+  (`detect-context.sh` reports this as a non-empty `aliases`).
+- **WARN** — both files exist as independent copies; they will drift.
+- **N/A** — the project has only one context file.
+- Rationale: Claude Code reads `CLAUDE.md` and not `AGENTS.md`, and its memory
+  docs recommend a symlink or an import rather than two copies — see
+  `industry-baseline.md`.
+
 ---
 
 ## Adapter `gemini` (GEMINI.md, Gemini CLI)
