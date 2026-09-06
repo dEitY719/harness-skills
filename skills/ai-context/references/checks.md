@@ -122,10 +122,16 @@ Spec source: <https://code.claude.com/docs/en/memory>.
 - **N/A** — single-file project with no `.claude/` tree.
 
 ### A-CL5. Cross-harness parity
-- **PASS** — `AGENTS.md` is a symlink to `CLAUDE.md`, or one file is a single
-  `@other.md` import of the other, so every harness reads the same text
-  (`detect-context.sh` reports this as a non-empty `aliases`).
-- **WARN** — both files exist as independent copies; they will drift.
+- **PASS** — a non-empty `aliases` **and an empty `other_candidates`**:
+  `AGENTS.md` is a symlink to `CLAUDE.md`, or one file is a single `@other.md`
+  import of the other, and nothing else is in play, so every harness reads the
+  same text.
+- **WARN** — independent copies exist; they will drift. That includes the mixed
+  case: a non-empty `aliases` alongside a non-empty `other_candidates`. Two of
+  the three files agreeing says nothing about the third, and reading only
+  `aliases` here passed `CLAUDE.md`-aliased-to-`GEMINI.md` while an independent
+  `AGENTS.md` drifted (PR #38 review, codex BLOCKER). **Both** fields decide
+  this check, never `aliases` alone.
 - **N/A** — the project has only one context file.
 - Rationale: `industry-baseline.md`, Claude Code section.
 

@@ -134,11 +134,40 @@ if bash "$script" --type bogus --dir "$e" >/dev/null 2>&1; then
 else
   printf 'ok    --type bogus rejected\n'
 fi
+
+# 7b. `--type` wins on EVERY path, never overwritten by a filename or by the
+#     create-path default. Every assignment to it is guarded by `[ -n "$type" ]`
+#     and this pins that (PR #38 review, agy read it the other way round).
+out=$work/forced-existing.out
+bash "$script" --dir "$a" --type gemini > "$out"
+check "--type beats filename" gemini "$(get "$out" kind)"
+out=$work/forced-empty.out
+bash "$script" --dir "$e" --type agents > "$out" 2>/dev/null || :
+check "--type beats create default" agents "$(get "$out" kind)"
 for t in agents claude gemini; do
   bash "$script" --type "$t" --dir "$e" >/dev/null 2>&1 && rc=0 || rc=$?
   # rc 1 = "no context file" (expected here); rc 2 = argument rejected.
   check "--type $t accepted" 1 "$rc"
 done
+
+# 7c. The mixed case A-CL5 must NOT call parity: an alias pair plus a genuinely
+#     independent third file. `aliases` is non-empty and `other_candidates` is
+#     too, so reading `aliases` alone would falsely PASS while the third file
+#     drifts (PR #38 review, codex BLOCKER + FOLLOW-UP).
+m=$work/mixed
+mkdir -p "$m"
+printf '# ctx\n' > "$m/CLAUDE.md"
+printf '@CLAUDE.md\n' > "$m/GEMINI.md"
+printf '# a different document entirely\n' > "$m/AGENTS.md"
+out=$work/mixed.out
+bash "$script" --dir "$m" > "$out"
+check "mixed path"    "$m/CLAUDE.md" "$(get "$out" path)"
+check "mixed aliases" "$m/GEMINI.md" "$(get "$out" aliases)"
+check "mixed others"  "$m/AGENTS.md" "$(get "$out" other_candidates)"
+grep -q 'other_candidates' "$root/skills/ai-context/references/checks.md" || {
+  printf 'FAIL  A-CL5 no longer consults other_candidates, so the mixed case can PASS again\n'
+  fail=1
+}
 
 # 8. `die` reports the message only — the exit code used to leak into it via
 #    "$*", so every `die "msg" 1` printed a stray trailing 1.
