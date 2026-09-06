@@ -56,7 +56,10 @@ context file — that is the layout Claude Code's own memory docs recommend
 | exit status 1             | abort with hint: `harness:ai-context create` | proceed (create) / abort (refactor)  |
 
 A non-empty `aliases` list is a PASS signal on adapter check A-CL5
-(`checks.md`): every harness reads the same text.
+(`checks.md`) **only when `other_candidates` is empty** — then every harness
+reads the same text. With both non-empty, two of the files agree and a third
+still drifts, which is a WARN. `checks.md` is the SSOT for that check; this
+line must not contradict it.
 
 `--type` overrides the filename mapping, for a context file kept under a
 non-standard name.
