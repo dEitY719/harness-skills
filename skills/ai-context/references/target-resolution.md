@@ -1,19 +1,18 @@
 # harness:ai-context — Target resolution
 
-The deterministic half of Step 2 lives in `../lib/detect-context.sh`. This page
+The deterministic half of Step 2 lives in `../scripts/detect-context.sh`. This page
 is what to do with its output.
 
 ## Running it
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/ai-context/lib/detect-context.sh" \
-  [--file PATH] [--type TYPE] [--dir DIR]
-```
+SKILL.md Step 2 carries the invocation. Flags: `--file PATH` and `--type TYPE`
+(the skill's own overrides), plus `--dir DIR` to probe somewhere other than the
+cwd.
 
 `${CLAUDE_PLUGIN_ROOT}` resolves per the repo-root `references/plugin-root.md`.
 The script is a file on disk, so tier 3 (self-location) applies to it; if the
-root cannot be resolved at all, carry out the three steps below by hand rather
-than guessing a path. Detection is cheap — this helper exists to spend the
+root cannot be resolved at all, apply the priority order and the matrix below
+by hand rather than guessing a path. Detection is cheap — this helper exists to spend the
 model's budget on C1–C6 and the adapter checks, not to gate the skill.
 
 ## Output fields
@@ -23,7 +22,6 @@ model's budget on C1–C6 and the adapter checks, not to gate the skill.
 | `path`             | The chosen target, by priority `CLAUDE.md` -> `AGENTS.md` -> `GEMINI.md` |
 | `kind`             | Adapter to run: `claude` / `agents` / `gemini` (`--type` wins) |
 | `content_path`     | The text a reader actually gets — a one-line `@other.md` import is followed |
-| `symlink_target`   | Non-empty when `path` is itself a symlink                   |
 | `aliases`          | Candidates that are the SAME source as `path` (same inode, or an import shim) |
 | `other_candidates` | Candidates that are genuinely distinct files                |
 | `line_count`, `c7` | Line count of `content_path` and its C7 verdict (`<=400` PASS, `<=500` WARN, else FAIL) |

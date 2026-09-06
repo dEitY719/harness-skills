@@ -35,7 +35,7 @@ Run the deterministic half — auto-detection, alias collapse, `line_count` /
 `c7`, and `size_class`:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/ai-context/lib/detect-context.sh" \
+bash "${CLAUDE_PLUGIN_ROOT}/skills/ai-context/scripts/detect-context.sh" \
   [--file PATH] [--type TYPE]
 ```
 

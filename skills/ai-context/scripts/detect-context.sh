@@ -40,9 +40,13 @@ kind_of() {
 # another context file, not a second source. Prints the imported name.
 import_target() {
   local body
-  body=$(grep -vE '^[[:space:]]*(#.*)?$' -- "$1" || true)
+  body=$({ grep -vE '^[[:space:]]*(#.*)?$' -- "$1" || true; } \
+         | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  # Exactly one meaningful line, and it is an import. A file with real content
+  # whose last line happens to end in `.md` is not a shim.
+  [ "$(printf '%s\n' "$body" | wc -l)" -eq 1 ] || return 1
   case "$body" in
-    @*.md) printf '%s' "${body#@}" ;;
+    @?*) printf '%s' "${body#@}" ;;
     *) return 1 ;;
   esac
 }
@@ -61,6 +65,7 @@ fi
 primary=${candidates[0]}
 primary_real=$(readlink -f -- "$primary")
 primary_import=$(import_target "$primary" || true)
+primary_base=$(basename -- "$primary")
 
 # Collapse aliases: same inode, or one file is only an import of the other.
 others=()
@@ -70,7 +75,7 @@ for c in "${candidates[@]:1}"; do
   c_import=$(import_target "$c" || true)
   if [ "$(readlink -f -- "$c")" = "$primary_real" ] \
      || [ "$primary_import" = "$c_base" ] \
-     || [ "$c_import" = "$(basename -- "$primary")" ]; then
+     || [ "$c_import" = "$primary_base" ]; then
     aliases+=("$c")
   else
     others+=("$c")
@@ -99,8 +104,13 @@ if [ "$type" = claude ]; then
   else size_class=large
   fi
 else
-  files=$({ git -C "$dir" ls-files 2>/dev/null || true; } | wc -l | tr -d ' ')
-  if [ "$files" -eq 0 ]; then
+  # Ask whether this IS a work tree before counting, so that a real git
+  # failure inside one is loud rather than collapsing to zero and quietly
+  # taking the filesystem branch (the swallow-and-fallback shape
+  # tests/self-checks-step.sh exists to keep out of this repo).
+  if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    files=$(git -C "$dir" ls-files | wc -l | tr -d ' ')
+  else
     files=$({ find "$dir" -type f -not -path '*/.git/*' 2>/dev/null || true; } | wc -l | tr -d ' ')
   fi
   if   [ "$files" -lt 20 ];  then size_class=small
@@ -114,7 +124,6 @@ join() { local IFS=,; printf '%s' "$*"; }
 printf 'path=%s\n'             "$primary"
 printf 'kind=%s\n'             "$type"
 printf 'content_path=%s\n'     "$content_path"
-printf 'symlink_target=%s\n'   "$(readlink -- "$primary" || true)"
 printf 'aliases=%s\n'          "$(join "${aliases[@]+"${aliases[@]}"}")"
 printf 'other_candidates=%s\n' "$(join "${others[@]+"${others[@]}"}")"
 printf 'line_count=%s\n'       "$line_count"
