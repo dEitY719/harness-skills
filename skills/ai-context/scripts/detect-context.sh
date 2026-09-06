@@ -13,7 +13,7 @@ dir=
 file=
 type=
 
-die() { printf '%s\n' "$*" >&2; exit "${2:-2}"; }
+die() { printf '%s\n' "$1" >&2; exit "${2:-2}"; }
 
 need_value() { [ "$#" -ge 2 ] || die "$1 needs a value"; }
 
@@ -26,6 +26,14 @@ while [ "$#" -gt 0 ]; do
     *) die "unknown argument: $1" ;;
   esac
 done
+
+# `--type` feeds `kind`, which names the adapter the agent then dispatches on.
+# An unlisted value used to sail through here and only surface as a missing
+# adapter or template much later, if at all (PR #38 review, codex BLOCKER).
+case "$type" in
+  '' | agents | claude | gemini) ;;
+  *) die "unknown --type: $type (expected agents, claude or gemini)" ;;
+esac
 
 kind_of() {
   case "$(basename -- "$1")" in
@@ -57,6 +65,31 @@ if [ -z "$dir" ]; then
   if [ -n "$file" ]; then dir=$(dirname -- "$file"); else dir=.; fi
 fi
 
+# Sizing heuristics: references/templates/README.md.
+compute_size_class() {
+if [ "$type" = claude ]; then
+  agents=$({ find "$dir/.claude/agents" -maxdepth 1 -name '*.md' 2>/dev/null || true; } | wc -l | tr -d ' ')
+  if   [ "$agents" -le 2 ]; then size_class=simple
+  elif [ "$agents" -le 6 ]; then size_class=standard
+  else size_class=large
+  fi
+else
+  # Ask whether this IS a work tree before counting, so that a real git
+  # failure inside one is loud rather than collapsing to zero and quietly
+  # taking the filesystem branch (the swallow-and-fallback shape
+  # tests/self-checks-step.sh exists to keep out of this repo).
+  if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    files=$(git -C "$dir" ls-files | wc -l | tr -d ' ')
+  else
+    files=$({ find "$dir" -type f -not -path '*/.git/*' 2>/dev/null || true; } | wc -l | tr -d ' ')
+  fi
+  if   [ "$files" -lt 20 ];  then size_class=small
+  elif [ "$files" -le 100 ]; then size_class=medium
+  else size_class=large
+  fi
+fi
+}
+
 candidates=()
 if [ -n "$file" ]; then
   [ -e "$file" ] || die "not found: $file" 1
@@ -66,7 +99,18 @@ else
     if [ -e "$dir/$name" ]; then candidates+=("$dir/$name"); fi
   done
 fi
-[ "${#candidates[@]}" -gt 0 ] || die "no AI context file found in $dir" 1
+# No context file. Exit status stays 1 — `check` aborts on it and an empty
+# result must never read as a clean pass — but `create` is the branch the
+# resolution matrix sends here, and it needs `size_class` to pick a template
+# (PR #38 review, codex BLOCKER: the create path was left with no sizing
+# input at all). So emit the fields that ARE knowable from $dir, on stdout,
+# before exiting.
+if [ "${#candidates[@]}" -eq 0 ]; then
+  compute_size_class
+  printf 'path=\nkind=%s\ncontent_path=\naliases=\nother_candidates=\nline_count=0\nc7=\nsize_class=%s\n' \
+    "$type" "$size_class"
+  die "no AI context file found in $dir" 1
+fi
 
 primary=${candidates[0]}
 primary_real=$(readlink -f -- "$primary")
@@ -102,28 +146,7 @@ elif [ "$line_count" -le 500 ]; then c7=WARN
 else c7=FAIL
 fi
 
-# Sizing heuristics: references/templates/README.md.
-if [ "$type" = claude ]; then
-  agents=$({ find "$dir/.claude/agents" -maxdepth 1 -name '*.md' 2>/dev/null || true; } | wc -l | tr -d ' ')
-  if   [ "$agents" -le 2 ]; then size_class=simple
-  elif [ "$agents" -le 6 ]; then size_class=standard
-  else size_class=large
-  fi
-else
-  # Ask whether this IS a work tree before counting, so that a real git
-  # failure inside one is loud rather than collapsing to zero and quietly
-  # taking the filesystem branch (the swallow-and-fallback shape
-  # tests/self-checks-step.sh exists to keep out of this repo).
-  if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    files=$(git -C "$dir" ls-files | wc -l | tr -d ' ')
-  else
-    files=$({ find "$dir" -type f -not -path '*/.git/*' 2>/dev/null || true; } | wc -l | tr -d ' ')
-  fi
-  if   [ "$files" -lt 20 ];  then size_class=small
-  elif [ "$files" -le 100 ]; then size_class=medium
-  else size_class=large
-  fi
-fi
+compute_size_class
 
 join() { local IFS=,; printf '%s' "$*"; }
 

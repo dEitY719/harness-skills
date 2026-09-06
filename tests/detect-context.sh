@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercises skills/ai-context/lib/detect-context.sh -- the deterministic half
+# Exercises skills/ai-context/scripts/detect-context.sh -- the deterministic half
 # of harness:ai-context Step 2 (harness-skills#3).
 #
 # The cases that matter are the ones prose kept getting wrong: an AGENTS.md
@@ -99,5 +99,36 @@ if bash "$script" --dir "$e" >/dev/null 2>&1; then
 else
   printf 'ok    empty dir exits non-zero\n'
 fi
+
+# 6. ...but it still prints the fields, because `create` is the branch the
+#    resolution matrix sends that row to and it needs size_class to pick a
+#    template (PR #38 review, codex BLOCKER).
+out=$work/empty.out
+bash "$script" --dir "$e" > "$out" 2>/dev/null || :
+check "empty dir size_class" small "$(get "$out" size_class)"
+check "empty dir path"       ""    "$(get "$out" path)"
+check "empty dir line_count" 0     "$(get "$out" line_count)"
+
+# 7. Only the three documented adapters are accepted; an unlisted --type must
+#    fail here rather than reach dispatch (PR #38 review, codex BLOCKER).
+if bash "$script" --type bogus --dir "$e" >/dev/null 2>&1; then
+  printf 'FAIL  --type bogus: expected rejection\n'
+  fail=1
+else
+  printf 'ok    --type bogus rejected\n'
+fi
+for t in agents claude gemini; do
+  bash "$script" --type "$t" --dir "$e" >/dev/null 2>&1 && rc=0 || rc=$?
+  # rc 1 = "no context file" (expected here); rc 2 = argument rejected.
+  check "--type $t accepted" 1 "$rc"
+done
+
+# 8. `die` reports the message only — the exit code used to leak into it via
+#    "$*", so every `die "msg" 1` printed a stray trailing 1.
+msg=$(bash "$script" --dir "$e" 2>&1 >/dev/null) || :
+case "$msg" in
+  *' 1') printf 'FAIL  die leaked the exit code into the message: %s\n' "$msg"; fail=1 ;;
+  *)     printf 'ok    die message carries no exit code\n' ;;
+esac
 
 exit "$fail"

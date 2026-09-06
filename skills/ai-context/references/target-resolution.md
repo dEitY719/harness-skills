@@ -29,7 +29,10 @@ model's budget on C1–C6 and the adapter checks, not to gate the skill.
 | `size_class`       | Template sizing for `create` — see `templates/README.md`     |
 
 Exit status is 1 when no context file exists, so an empty result is never
-mistaken for a clean pass.
+mistaken for a clean pass. The fields are still printed on that path, with
+`path` / `content_path` / `c7` empty and `line_count=0` — `create` is the
+branch this row sends work to, and it needs `size_class` to pick a template.
+Read the fields, then branch on the exit status; never the other way round.
 
 ## Resolution matrix
 
