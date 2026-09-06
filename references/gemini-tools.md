@@ -69,7 +69,7 @@ get a tidier history.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
 are Claude Code tools backed by a JS runtime Gemini does not have. Instead:
 
 - Run the audit's sweeps directly (`read_many_files`, `grep_search`,
@@ -78,8 +78,10 @@ are Claude Code tools backed by a JS runtime Gemini does not have. Instead:
   path is the contract `harness:harness-refactor` reads from — nothing about it
   is Claude-specific except the directory name, so keep it.
 - For `harness-refactor`, still write `.claude/workflows/harness-refactor.js`: it
-  is the reviewable plan of record, and a Claude Code session can execute it
-  later. Then apply the low-risk edits yourself with `replace` / `write_file`.
+  is the reviewable plan of record for a human to read (Claude Code's own skill
+  passes its change list through `Workflow` `args`, not this file, so a later
+  Claude Code session will not execute it). Then apply the low-risk edits
+  yourself with `replace` / `write_file`.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt via `Skill(skill: "<name>")`. `activate_skill`

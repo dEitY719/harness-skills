@@ -80,7 +80,7 @@ right target. `SOUL.md` is **not** in the detect list — pass it explicitly wit
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
 are Claude Code tools backed by a JS runtime Hermes does not have.
 
 - Run the audit's sweeps with `read_file` / `search_files` / `terminal`, or fan
@@ -88,8 +88,10 @@ are Claude Code tools backed by a JS runtime Hermes does not have.
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless —
   that path is the contract `harness:harness-refactor` reads from.
 - For `harness-refactor`, still write `.claude/workflows/harness-refactor.js`:
-  the reviewable plan of record, executable later from Claude Code. Then apply
-  its low-risk edits yourself with `patch`.
+  the reviewable plan of record for a human to read (Claude Code's own skill
+  passes its change list through `Workflow` `args`, not this file, so a later
+  Claude Code session will not execute it). Then apply its low-risk edits
+  yourself with `patch`.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. Hermes'

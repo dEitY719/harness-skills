@@ -68,7 +68,7 @@ repos were split up to serve.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
 are Claude Code tools; Antigravity has neither the tool nor the JS runtime.
 
 - Run the audit's sweeps directly, or fan them out with
@@ -76,8 +76,10 @@ are Claude Code tools; Antigravity has neither the tool nor the JS runtime.
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless —
   that path is the contract `harness:harness-refactor` reads from.
 - For `harness-refactor`, still write `.claude/workflows/harness-refactor.js`
-  (the reviewable plan of record, executable later from Claude Code), then apply
-  its low-risk edits yourself with `replace_file_content`.
+  (the reviewable plan for a human to read — Claude Code's own skill passes its
+  change list through `Workflow` `args`, not this file, so a later Claude Code
+  session will not execute it), then apply its low-risk edits yourself with
+  `replace_file_content`.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. Antigravity

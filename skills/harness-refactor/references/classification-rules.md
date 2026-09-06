@@ -2,6 +2,13 @@
 
 Step 2 에서 감사 리포트 항목을 분류할 때 적용한다.
 
+## 출력 형식
+
+허용 변경으로 분류한 항목은 `{ file, description }` 객체의 배열로 정리한다.
+`file` 은 대상 파일의 프로젝트 상대 경로, `description` 은 워크플로우의
+Apply Changes 에이전트가 그대로 실행할 수 있는 구체적 지시문이다. 이 배열이
+Step 3 의 `Workflow` 호출에 `args.changes` 로 그대로 전달된다.
+
 ## 허용 변경 (워크플로우에 포함)
 
 - CLAUDE.md / AGENTS.md 에서 중복·일반론 섹션 제거
