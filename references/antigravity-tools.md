@@ -54,8 +54,8 @@ applied" straight across a long run.
 - `"research"` for read-only sweeps — fanning out the
   `harness:harness-legacy-check` audit across `skills/`, hooks, settings, and
   workflows.
-- `"self"` for children that write — `harness:dissect-builtin`'s README.md
-  documentation writer.
+- `"self"` for children that write — `harness:dissect-builtin`'s
+  documentation-writing agent.
 
 ## Progressive disclosure
 
