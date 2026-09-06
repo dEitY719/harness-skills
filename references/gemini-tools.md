@@ -55,11 +55,12 @@ conserve.
 
 ## Subagent dispatch
 
-`harness:dissect-builtin` Step 2 asks for two agents launched in parallel — one
-writing `README.md`, one writing `PROMPT.md`. Gemini CLI supports this: issue
-two `invoke_agent` calls with `agent_name: "generalist"` in the same response.
-Fill the skill's prompt text into each call; the child follows the prompt it is
-given.
+`harness:dissect-builtin` Step 2 asks for ONE agent, writing `README.md`; the
+parent writes `PROMPT.md` itself, because a second model hop can only corrupt a
+verbatim copy. Issue a single `invoke_agent` call with
+`agent_name: "generalist"`. Fill the skill's prompt text into the call — both
+the brief and the raw prompt, since the child inherits neither the plugin path
+nor the parent's context.
 
 Keep dependent work sequential, but do not serialize independent agents just to
 get a tidier history.

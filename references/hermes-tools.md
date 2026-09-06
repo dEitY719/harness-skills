@@ -58,8 +58,9 @@ stops rather than guessing. Full rule:
 
 `delegate_task` with `role="leaf"`:
 
-- `harness:dissect-builtin` Step 2 wants two children in parallel (README.md
-  writer, PROMPT.md writer). Issue two `delegate_task` calls.
+- `harness:dissect-builtin` Step 2 wants ONE child (the README.md writer); the
+  parent writes PROMPT.md itself. Issue a single `delegate_task` call, carrying
+  both the brief and the raw prompt text.
 - The `harness:harness-legacy-check` audit's independent sweeps (context docs,
   skills, workflows, settings, hooks, MCP) fan out the same way.
 

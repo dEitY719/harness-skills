@@ -51,8 +51,8 @@ that step** — not up front.
 - `"explore"` for read-only sweeps — fanning out the
   `harness:harness-legacy-check` audit across context docs, `skills/`,
   workflows, settings, hooks, and MCP config.
-- `"general"` for children that write — `harness:dissect-builtin`'s two parallel
-  documentation writers (README.md and PROMPT.md).
+- `"general"` for children that write — `harness:dissect-builtin`'s single
+  README.md writer (the parent writes PROMPT.md itself).
 
 If a skill's prose says `Subagent (general-purpose):`, that is Claude Code's
 type name; read it as "an agent with no special role" and use `"general"`.
