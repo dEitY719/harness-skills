@@ -91,17 +91,14 @@ Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. OpenCode's
 built-ins. Run that skill from Claude Code, or supply the prompt by hand and
 start at Step 2.
 
-**Plugin cache belongs to Claude Code.** `harness:plugin-guide` scans
-`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/<marketplace>/<plugin>`,
-resolves installed plugins from
-`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json` (a
-`.plugins` object keyed by `"<plugin>@<marketplace>"`), and reads each
-marketplace's owner/repo from
-`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/known_marketplaces.json`
-(`[<marketplace>].source.repo`). All three are Claude Code artifacts. Readable
-from OpenCode with `bash` when they exist on this machine; otherwise the skill
-has no input and should stop rather than retarget itself at OpenCode's own
-plugin list, which has a different shape.
+**Plugin inventory belongs to the `claude` CLI.** `harness:plugin-guide`
+resolves installed plugins and their cache paths via `claude plugin list
+--json` / `claude plugin marketplace list --json` — Claude Code CLI
+subcommands, not config files. Runnable from OpenCode with `bash` exactly
+like any other CLI, provided the `claude` binary (the `@anthropic-ai/claude-code`
+npm package) is installed and on `$PATH` on this machine; when it isn't, the
+skill has no input and should stop rather than retarget itself at OpenCode's
+own plugin list, which has a different shape.
 
 ## Read-only and confirmation contracts
 

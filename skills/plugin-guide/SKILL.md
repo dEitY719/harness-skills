@@ -32,34 +32,34 @@ Positional: `<plugin-name> [output-root] [--force]`.
 | `[output-root]` | Directory the guide and its index live in; a `-`-prefixed token is a flag, never this | `docs/guide/plugins` | No |
 | `--force` | Regenerate even if the target doc already exists | off | No |
 
-Split `<plugin-name>` on `@` into `PLUGIN` and (optional) `MARKETPLACE`. The
-output filename is always `PLUGIN.md`. Missing arg → print `[FAIL]
-harness:plugin-guide — <plugin-name> 누락 (Step 1 args). Run
-/harness:plugin-guide -h for usage.` and stop. Set `OUT` = `[output-root]`
-(create it if absent).
+Split `<plugin-name>` on `@` into `PLUGIN` and (optional) `MARKETPLACE`. The output
+filename is always `PLUGIN.md`. Missing arg → print `[FAIL] harness:plugin-guide —
+<plugin-name> 누락 (Step 1 args). Run /harness:plugin-guide -h for usage.` and stop.
+Set `OUT` = `[output-root]` (create it if absent).
 
 ## Step 2: Verify Installed (F-2)
 
-Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against `claude plugin list
---json`'s `id` field — **never** substring `grep` (a plugin named `skills`
-would falsely match `example-skills@...`). Zero, one, or 2+ matches are each
-handled per `references/marketplace-resolution.md`, which also covers the
-not-installed case when `MARKETPLACE` itself is unknown.
+Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against `claude plugin list --json`'s
+`id` field — **never** substring `grep` (a plugin named `skills` would falsely match
+`example-skills@...`). Zero, one, or 2+ matches are each handled per
+`references/marketplace-resolution.md`, which also binds `INSTALL_PATH` from the
+matched entry for Step 3 and covers the not-installed case when `MARKETPLACE` itself
+is unknown.
 
 ## Step 3: Enumerate Skills (F-3)
 
-The matched entry's `installPath` is already the resolved version — no
+`INSTALL_PATH` (bound in Step 2) is already the resolved version — no
 further version lookup needed:
 
 ```bash
-find "<installPath>" -maxdepth 4 -iname SKILL.md
+find "$INSTALL_PATH" -maxdepth 4 -iname SKILL.md
 ```
 
 Zero `SKILL.md` found → this is the **no-skills error case**: print `[FAIL]
-harness:plugin-guide — 스킬 없음, 문서화 대상 아님 (Step 3 cache)` and stop.
-`claude plugin list` is Claude-Code-only; for every other harness see the
-repo-root `references/*-tools.md`. If skill count > 10, print ONE warning
-line (`스킬 N개 (>10) — YAGNI: 단일 파일로 생성`) and continue with a single file.
+harness:plugin-guide — 스킬 없음, 문서화 대상 아님 (Step 3 skills)` and stop. `claude
+plugin list` is Claude-Code-only; for every other harness see the repo-root
+`references/*-tools.md`. If skill count > 10, print ONE warning line (`스킬 N개
+(>10) — YAGNI: 단일 파일로 생성`) and continue with a single file.
 
 For each `SKILL.md`, read frontmatter `name`/`description` and skim the body for
 its one core rule → a 1-2 line "하는 일" summary (see `references/doc-template.md`).
