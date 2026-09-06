@@ -65,7 +65,7 @@ this file wins — and update both.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })`; `harness:harness-refactor` calls
-`Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Kimi Code
+`Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Kimi Code
 exposes no `Workflow` tool and no JS workflow runtime. Instead:
 
 - Run the audit's steps inline with `Read`/`Grep`/`Bash`, or fan the independent
@@ -73,8 +73,10 @@ exposes no `Workflow` tool and no JS workflow runtime. Instead:
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless — the
   path is the contract `harness:harness-refactor` reads from.
 - For `harness-refactor`, still generate `.claude/workflows/harness-refactor.js`
-  (it is the reviewable plan and a Claude Code session can execute it later),
-  then apply its low-risk edits yourself with `Edit`.
+  (the reviewable plan for a human to read — Claude Code's own skill passes its
+  change list through `Workflow` `args`, not this file, so a later Claude Code
+  session will not execute it), then apply its low-risk edits yourself with
+  `Edit`.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. Kimi cannot

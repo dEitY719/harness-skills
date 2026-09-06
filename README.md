@@ -15,7 +15,7 @@ the [shared per-harness tool mappings](#shared-assets) and the
 |-------|--------|--------------|
 | `ai-context` | `/harness:ai-context [check\|create\|refactor]` | Dispatcher for `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`: audits one read-only, authors a new one from a size-matched template, or splits a bloated one into nested files. Not for `SKILL.md` or `*.sh`. |
 | `harness-legacy-check` | `/harness:harness-legacy-check` | Read-only audit of the whole harness — context docs, skills, workflows, settings, hooks, MCP — saved to `.claude/reports/harness-legacy-check.md`. Changes nothing. |
-| `harness-refactor` | `/harness:harness-refactor` | Reads that report, classifies findings by risk, generates `.claude/workflows/harness-refactor.js` from the low-risk ones, and runs it. Anything risky lands in a "Human Approval Required" section instead. |
+| `harness-refactor` | `/harness:harness-refactor` | Reads that report, classifies findings by risk, and runs the low-risk ones through the plugin's shipped `workflows/harness-refactor.js`. Anything risky lands in a "Human Approval Required" section instead. |
 | `dissect-builtin` | `/harness:dissect-builtin <skill-name>` | Loads a Claude Code built-in skill and writes Korean docs (`README.md` + verbatim `PROMPT.md`) under `docs/built-in-skills/<name>/`. |
 | `plugin-guide` | `/harness:plugin-guide <plugin>[@<marketplace>]` | Generates a Korean guide for an installed plugin from its cached `SKILL.md` files and updates the plugins index. Never installs, never commits. |
 

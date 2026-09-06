@@ -5,22 +5,22 @@
 /harness:harness-refactor
 
 harness-legacy-check 감사 리포트를 바탕으로 low-risk 하네스 개선을 적용하는
-워크플로우를 생성하고 실행한다.
+워크플로우를 실행한다.
 
 ## 사전 조건
 
-현재 세션에 `/harness-legacy-check` 실행 결과가 있어야 한다.
-없으면 스킬이 중단하고 먼저 실행할 것을 안내한다.
+`.claude/reports/harness-legacy-check.md` 파일이 있어야 한다.
+없으면 스킬이 중단하고 `/harness:harness-legacy-check` 를 먼저 실행할 것을 안내한다.
 
 ## 실행 흐름
 
-1. 세션에서 harness-legacy-check 리포트 확인
+1. `.claude/reports/harness-legacy-check.md` 리포트 확인
 2. low-risk 항목 분류 (references/classification-rules.md 기준)
-3. .claude/workflows/harness-refactor.js 새로 작성 (이전 파일 덮어쓰기)
-4. 워크플로우 실행
-5. [OK]/[FAIL] 결과 요약 보고
+3. `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })` 실행
+4. [OK]/[FAIL] 결과 요약 보고
 
 ## 결과
 
-`.claude/workflows/harness-refactor.js` 가 갱신되고 워크플로우가 실행된다.
-이전 파일은 git log 에 보존된다.
+워크플로우 스크립트(`workflows/harness-refactor.js`)는 이 플러그인에 이미
+배포되어 있고 매 실행마다 다시 작성되지 않는다. 바뀌는 것은 분류된 변경
+목록(`args.changes`)뿐이며, 이 목록이 실제로 적용할 low-risk 변경을 정한다.

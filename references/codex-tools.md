@@ -67,7 +67,7 @@ fabricate a `Task` call.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Codex
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Codex
 has neither tool nor JS runtime for these. Two options, in order of preference:
 
 1. Run the audit inline — the workflow's steps are an ordered read-only sweep of
@@ -80,8 +80,10 @@ Either way the **output contract holds**: the report path is what
 `harness:harness-refactor` consumes, so do not relocate or rename it.
 
 For `harness-refactor`, still write `.claude/workflows/harness-refactor.js` — it
-is the durable, reviewable plan and it is what a Claude Code session will
-execute later — then carry out its steps with `apply_patch` yourself.
+is the durable, reviewable plan for a human to read (Claude Code's own skill
+passes its change list through `Workflow` `args`, not this file, so a later
+Claude Code session will not execute it) — then carry out its steps with
+`apply_patch` yourself.
 
 **No built-in skill catalog.** `harness:dissect-builtin` Step 1 does
 `Skill(skill: "<name>")` to load a Claude Code built-in's raw prompt. Codex has

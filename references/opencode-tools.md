@@ -61,7 +61,7 @@ type name; read it as "an agent with no special role" and use `"general"`.
 
 **No workflow runtime.** `harness:harness-legacy-check` calls
 `Workflow({ name: 'harness:harness-legacy-check' })` and `harness:harness-refactor`
-calls `Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })`. Those
+calls `Workflow({ name: 'harness:harness-refactor', args: { changes: [...] } })`. Those
 are Claude Code tools; OpenCode has no `Workflow` tool. Note the trap here:
 OpenCode's plugin system *is* JavaScript, so it looks like
 `harness-refactor.js` could just be run. It cannot — that file is written
@@ -75,8 +75,10 @@ Instead:
 - Write the report to `.claude/reports/harness-legacy-check.md` regardless —
   that path is the contract `harness:harness-refactor` reads from.
 - For `harness-refactor`, still generate `.claude/workflows/harness-refactor.js`:
-  it is the reviewable plan of record and a Claude Code session can execute it
-  later. Then apply its low-risk edits yourself with `apply_patch`.
+  it is the reviewable plan of record for a human to read (Claude Code's own
+  skill passes its change list through `Workflow` `args`, not this file, so a
+  later Claude Code session will not execute it). Then apply its low-risk
+  edits yourself with `apply_patch`.
 
 **No Claude Code built-in catalog.** `harness:dissect-builtin` Step 1 loads a
 Claude Code built-in's raw prompt with `Skill(skill: "<name>")`. OpenCode's

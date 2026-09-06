@@ -9,7 +9,7 @@ license: MIT
 metadata:
   model_recommendation:
     tier: sonnet
-    reason: "audit report classification + JS workflow generation + multi-agent orchestration"
+    reason: "audit report classification + multi-agent workflow orchestration for file edits"
     claude: prefer
     non_claude: advisory-only
 ---
@@ -23,42 +23,41 @@ If arg #1 is `-h`, `--help`, or `help`, read `references/help.md` verbatim and s
 ## Role
 
 harness-legacy-check 감사 리포트를 읽고 low-risk 항목만 골라
-`.claude/workflows/harness-refactor.js` 를 새로 작성한 뒤 실행한다.
-이전 harness-refactor.js 는 새 파일로 덮어쓴다 (git log 에 이전 계획 보존).
+`harness-refactor` 워크플로우에 전달해 실행한다.
+
+어느 단계든 실패하면 즉시 `[FAIL] harness:harness-refactor — <이유>` 출력 후 중단한다.
+Step 3 실패 시 이미 아카이브된 파일 경로를 함께 출력한다.
 
 ## Step 1: 감사 리포트 확인
 
-다음 순서로 리포트를 찾는다:
-
-1. `.claude/reports/harness-legacy-check.md` 파일이 있으면 읽어서 사용.
-2. 없으면 현재 세션에서 harness-legacy-check 출력을 찾는다.
-3. 둘 다 없으면: "harness-legacy-check 결과가 없습니다. 먼저 /harness-legacy-check 를 실행해 주세요." 출력 후 중단.
+`.claude/reports/harness-legacy-check.md` 파일이 있으면 읽어서 사용한다.
+없으면: "harness-legacy-check 결과가 없습니다. 먼저 /harness:harness-legacy-check 를
+실행해 주세요." 출력 후 중단.
 
 ## Step 2: Low-risk 항목 분류
 
 리포트 항목을 워크플로우 포함 여부로 분류한다.
 분류 기준: `references/classification-rules.md` 참조.
+포함 항목은 `{ file, description }` 배열로 정리한다 — Step 3 이 그대로
+`Workflow` 의 `args.changes` 로 전달한다.
 
-## Step 3: harness-refactor.js 생성
+Step 2 에서 금지 항목으로 분류된 것은 이 배열에 넣지 않는다 — Final Report 의
+"Human Approval Required" 섹션에만 기록되도록 워크플로우에는 전달하지 않는다.
 
-`.claude/workflows/` 디렉토리가 없으면 만든 뒤
-`.claude/workflows/harness-refactor.js` 를 새로 작성한다.
-파일 구조 및 설계 원칙: `references/workflow-template.md` 참조.
-
-Step 2 에서 금지 항목으로 분류된 것은 Final Report 의
-"Human Approval Required" 섹션에만 기록.
-
-## Step 4: 워크플로우 실행
+## Step 3: 워크플로우 실행
 
 ```
-Workflow({ scriptPath: '.claude/workflows/harness-refactor.js' })
+Workflow({ name: 'harness:harness-refactor', args: { changes: <Step 2 배열> } })
 ```
+
+워크플로우 스크립트는 이 플러그인에 함께 배포된다: `workflows/harness-refactor.js`.
+매 실행마다 모델이 다시 작성하지 않는다 — 바뀌는 것은 `args.changes` 뿐이다.
 
 `Workflow` 는 Claude Code 전용 도구다. 다른 하네스는 저장소 루트의
 `references/<harness>-tools.md` (codex / gemini / hermes / kimi / opencode / antigravity)
 에 적힌 대체 절차를 따른다.
 
-## Step 5: 완료 보고
+## Step 4: 완료 보고
 
 ```
 [OK] harness:harness-refactor — 완료
