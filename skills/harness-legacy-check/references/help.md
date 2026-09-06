@@ -9,5 +9,5 @@ harness:harness-legacy-check — AI 하네스 읽기 전용 감사
 ## 워크플로우가 동작하지 않을 때
 
 이 스킬은 내부적으로 Workflow 도구를 사용합니다. 실행되지 않거나 오류가
-발생하면 /config 에서 `Dynamic workflows` 가 true 인지 확인하세요 — 이 항목이
-Workflow 도구를 여는 유일한 스위치이며, false 면 /config 에서 직접 켤 수 있습니다.
+발생하면 /config 에서 Dynamic workflows 가 true 인지 확인하세요. Workflow 도구를
+여는 유일한 스위치이며, false 면 같은 화면에서 바로 켤 수 있습니다.
