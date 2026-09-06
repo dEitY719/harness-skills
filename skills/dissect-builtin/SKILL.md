@@ -57,11 +57,12 @@ delegate it to an agent: a round-trip through another model cannot improve an
 exact copy, only corrupt it.
 
 Then read `references/readme-template.md` yourself and launch one Agent to
-analyze the loaded prompt and write `README.md`, passing that brief in the
-Agent's prompt. Do not send the Agent to find the file: a subagent does not
-inherit this skill's base directory, so a repo-relative path resolves against
-the caller's project instead of the installed plugin — the same round-trip
-this step exists to remove.
+write `README.md`. A subagent inherits neither this skill's base directory nor
+the prompt Step 1 loaded into your context, so put **both** in the Agent's
+prompt: the brief you just read, and the raw prompt text itself. Sending the
+Agent to find either one leaves it analyzing nothing — a repo-relative path
+resolves against the caller's project rather than the installed plugin, and
+the prompt exists only in your context.
 
 ### Step 3: Confirm with user
 
