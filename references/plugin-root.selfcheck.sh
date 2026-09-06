@@ -13,7 +13,7 @@ set -eu
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
-mkdir -p "$WORK/plugin/lib/vendor/shell-common/functions" "$WORK/elsewhere" "$WORK/nohome"
+mkdir -p "$WORK/plugin/lib/vendor/shell-common/functions" "$WORK/elsewhere" "$WORK/nohome" "$WORK/emptyroot"
 # A real shell-common defines the function the proof looks for. An empty file
 # would satisfy an [ -f ] check and fail the proof — which is the upgrade.
 printf '_gh_resolve_host() { printf %%s github.com; }\n' \
@@ -188,6 +188,23 @@ refuses "$WORK/plugin" "CLAUDE_PLUGIN_ROOT is unset" \
     "no self-path must refuse even in the real checkout" \
     sh -c ". $WORK/plugin/lib/resolve-target.sh"
 
+# 8. `set -e` must not swallow the missing-shell-common case — the load-bearing
+#    bullet above claims the `[ -f ] && .` shape keeps a missing file from
+#    aborting a `set -e` caller before the tier-5 diagnostic runs. Assert that
+#    for real instead of taking the bullet's word for it: point tier 2 at a
+#    directory with no `lib/vendor/shell-common` at all (genuinely missing,
+#    not the hollow-but-present fixture assertion 1b already covers), source
+#    from a shell that has `set -e` on, and require the diagnostic to still
+#    print (a silent early exit would leave `$out` empty, and `refuses()`'s
+#    needle check already fails closed on that). The self-locating form's
+#    final checkpoint is the identical `unset -f` / `.` / `command -v` idiom —
+#    its fixture above replaces that checkpoint with a `PROVEN=` probe for
+#    assertions 5-7, so it cannot itself raise the failure this checks for;
+#    one exercise of the shared idiom is the evidence for both call sites.
+refuses "$WORK/elsewhere" "did not load a usable shell-common" \
+    "set -e must not swallow a missing shell-common" \
+    sh -c "set -e; CLAUDE_PLUGIN_ROOT=$WORK/emptyroot; export CLAUDE_PLUGIN_ROOT; . $WORK/block.sh"
+
 echo "ok  tier 2 resolves from CLAUDE_PLUGIN_ROOT"
 echo "ok  a file that defines nothing fails the proof"
 echo "ok  the pasted block refuses \$PWD even in the real checkout"
@@ -196,3 +213,4 @@ echo "ok  a failed resolution exports nothing"
 echo "ok  tier 2 wins over the self-path"
 echo "ok  bash/zsh reach tier 3 and prove out, other shells stop at tier 5"
 echo "ok  no self-path refuses even in the real checkout"
+echo "ok  set -e does not swallow a missing shell-common"
