@@ -26,11 +26,21 @@ jobs:
       # What stays is a set of this repo's own, which is also what dogfoods
       # the MERGE: the built-in set and this one both run, rather than this
       # one replacing it. The fact it gates is genuinely local - this is the
-      # only repo in the family shipping two workflow files, so a checkout
-      # pin can drift between them here and nowhere else.
+      # only repo in the family shipping more than one workflow file, so a
+      # checkout pin can drift between them here and nowhere else.
+      #
+      # The two checkout-running workflows are named one by one rather than
+      # globbed. Every file a glob matches must carry the pattern, so
+      # `.github/workflows/*.yml` failed the moment this repo grew a workflow
+      # that legitimately never checks out (`add-to-project.yml`, and the
+      # `board-sync.yml` stub in the other fifteen repos): the gate is about
+      # two pins agreeing, not about every workflow checking out. Adding a
+      # third checkout-running workflow means adding its line here - which the
+      # "matched no file" guard also enforces if one of these is renamed.
       consistency-checks: |
         action-pin:
-          '.github/workflows/*.yml': 'actions/checkout@(v\d+)'
+          .github/workflows/validate.yml: 'actions/checkout@(v\d+)'
+          .github/workflows/skill-check.yml: 'actions/checkout@(v\d+)'
 
   # Repo-local, deliberately NOT in skill-check.yml: that workflow is an API the
   # other fourteen repos call, and none of them ships this file. The convention's
