@@ -49,8 +49,9 @@
 /reload-plugins
 ```
 
-`<owner/repo>` comes from `claude plugin marketplace list --json`'s
-`[<marketplace>].repo`.
+`<owner/repo>` comes from `claude plugin marketplace list --json` (an array
+of `{name, source, repo, installLocation}`) — the `.repo` of the entry whose
+`.name == <marketplace>` (see `references/marketplace-resolution.md`).
 
 ## 출력 형식 (final report)
 
@@ -68,7 +69,5 @@ Skip case:
 Failure case (any of Step 1's missing-arg, Step 2's not-installed/ambiguous,
 or Step 3's no-skills branch):
 ```
-[FAIL] harness:plugin-guide — <이유>
-  Plugin:  <plugin, or `(없음)` if not given>
-  Step:    <Step 1 args | Step 2 resolve | Step 3 cache>
+[FAIL] harness:plugin-guide — <이유> (<Step 1 args | Step 2 resolve | Step 3 skills>)
 ```
