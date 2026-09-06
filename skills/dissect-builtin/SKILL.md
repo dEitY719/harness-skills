@@ -56,9 +56,12 @@ Write `PROMPT.md` yourself, straight from the Step 1 prompt in context. Do not
 delegate it to an agent: a round-trip through another model cannot improve an
 exact copy, only corrupt it.
 
-Then launch one Agent to analyze the loaded prompt and write `README.md`. Tell
-it to read `skills/dissect-builtin/references/readme-template.md` and follow
-that brief.
+Then read `references/readme-template.md` yourself and launch one Agent to
+analyze the loaded prompt and write `README.md`, passing that brief in the
+Agent's prompt. Do not send the Agent to find the file: a subagent does not
+inherit this skill's base directory, so a repo-relative path resolves against
+the caller's project instead of the installed plugin — the same round-trip
+this step exists to remove.
 
 ### Step 3: Confirm with user
 
@@ -72,7 +75,10 @@ Wait for the agent to finish, then emit a deterministic verdict:
   Next:     /gh-pr:commit
 ```
 
-실패 시 — 이미 쓴 산출물을 지워 반쪽짜리 디렉터리를 남기지 않는다:
+실패 시 — **이번 실행이 새로 만든** 산출물만 지워 반쪽짜리 디렉터리를 남기지
+않는다. Step 2 를 시작하기 전에 두 출력 경로 각각이 이미 있었는지 확인해 두고,
+없던 것만 지운다. 같은 `<skill-name>` 을 다시 문서화하는 실행이 실패했다고 해서
+먼저 있던 문서를 지우면 안 된다:
 
 ```
 [FAIL] harness:dissect-builtin
