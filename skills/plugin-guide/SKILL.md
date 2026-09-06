@@ -32,43 +32,43 @@ Positional: `<plugin-name> [output-root] [--force]`.
 | `[output-root]` | Directory the guide and its index live in; a `-`-prefixed token is a flag, never this | `docs/guide/plugins` | No |
 | `--force` | Regenerate even if the target doc already exists | off | No |
 
-Split `<plugin-name>` on `@` into `PLUGIN` and (optional) `MARKETPLACE`.
-The output filename is always `PLUGIN.md`. Missing arg → print
-`Run /harness:plugin-guide -h for usage.` and stop.
-Set `OUT` = `[output-root]` (create it if absent), `CFG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}`.
+Split `<plugin-name>` on `@` into `PLUGIN` and (optional) `MARKETPLACE`. The
+output filename is always `PLUGIN.md`. Missing arg → print `[FAIL]
+harness:plugin-guide — <plugin-name> 누락 (Step 1 args). Run
+/harness:plugin-guide -h for usage.` and stop. Set `OUT` = `[output-root]`
+(create it if absent).
 
 ## Step 2: Verify Installed (F-2)
 
-Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against the keys of
-`$CFG/plugins/installed_plugins.json`'s `plugins` object — **never** substring
-`grep` (a plugin named `skills` would falsely match `example-skills@...`). Zero,
-one, or 2+ matches (e.g. `superpowers` is installed under two marketplaces
-today) are each handled per `references/marketplace-resolution.md`, which also
-covers the not-installed case when `MARKETPLACE` itself is unknown.
+Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against `claude plugin list
+--json`'s `id` field — **never** substring `grep` (a plugin named `skills`
+would falsely match `example-skills@...`). Zero, one, or 2+ matches are each
+handled per `references/marketplace-resolution.md`, which also covers the
+not-installed case when `MARKETPLACE` itself is unknown.
 
-## Step 3: Locate Cache + Enumerate Skills (F-3)
+## Step 3: Enumerate Skills (F-3)
+
+The matched entry's `installPath` is already the resolved version — no
+further version lookup needed:
 
 ```bash
-find "$CFG/plugins/cache/<MARKETPLACE>/<PLUGIN>" -maxdepth 4 -iname SKILL.md
+find "<installPath>" -maxdepth 4 -iname SKILL.md
 ```
 
-If multiple version dirs exist, keep only the highest (`sort -V` on the
-version path component). Zero `SKILL.md` found → this is the **no-skills error
-case**: report `스킬 없음, 문서화 대상 아님` and stop. That cache is Claude-Code-only;
-for every other harness see the repo-root `references/*-tools.md`.
-
-If skill count > 10, print ONE warning line
-(`스킬 N개 (>10) — YAGNI: 단일 파일로 생성`) and continue with a single file.
-Do NOT build subdirectory-splitting logic.
+Zero `SKILL.md` found → this is the **no-skills error case**: print `[FAIL]
+harness:plugin-guide — 스킬 없음, 문서화 대상 아님 (Step 3 cache)` and stop.
+`claude plugin list` is Claude-Code-only; for every other harness see the
+repo-root `references/*-tools.md`. If skill count > 10, print ONE warning
+line (`스킬 N개 (>10) — YAGNI: 단일 파일로 생성`) and continue with a single file.
 
 For each `SKILL.md`, read frontmatter `name`/`description` and skim the body for
 its one core rule → a 1-2 line "하는 일" summary (see `references/doc-template.md`).
 
 ## Step 4: Idempotent Skip (Acceptance: safe re-run)
 
-If `$OUT/<PLUGIN>.md` already exists and `--force` was NOT passed:
-print `이미 문서화됨 — 재생성하려면 --force` and stop. Do NOT diff or merge
-sections. `--force` overwrites the file wholesale.
+If `$OUT/<PLUGIN>.md` already exists and `--force` was NOT passed: print
+`[SKIP] $OUT/<PLUGIN>.md 이미 존재 — 재생성하려면 --force` and stop. Do NOT
+diff or merge sections. `--force` overwrites the file wholesale.
 
 ## Step 5: Write the Doc (F-4, F-6)
 
@@ -87,9 +87,9 @@ line already links `./<PLUGIN>.md`, skip. Create `$OUT/README.md` with an
 
 ## Step 7: Report
 
-Print the report per `references/help.md` "출력 형식": `[OK]` verdict, files
-written/skipped, skill count, and the next step (review the doc, then commit
-manually — this skill never commits).
+Print the report per `references/help.md` "출력 형식": `[OK]`/`[SKIP]`/`[FAIL]`
+verdict, files written/skipped, skill count, and the next step (review the
+doc, then commit manually — this skill never commits).
 
 ## Constraints
 

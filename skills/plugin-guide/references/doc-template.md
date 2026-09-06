@@ -1,9 +1,9 @@
 # Generated Doc Template
 
 The output `<output-root>/<plugin>.md` is Korean and has exactly 3 fixed
-sections. Fill the placeholders `<...>` from the plugin's
-`installed_plugins.json` / `known_marketplaces.json` entries under
-`$CFG/plugins/` and from its cached `SKILL.md` files.
+sections. Fill the placeholders `<...>` from the matched `claude plugin list
+--json` / `claude plugin marketplace list --json` entries (Step 2) and from
+its cached `SKILL.md` files (Step 3).
 
 ## Skeleton
 
@@ -14,7 +14,7 @@ sections. Fill the placeholders `<...>` from the plugin's
 종합해 한국어로 요약. 영어 원문 복붙 금지.>
 
 - Marketplace: [`<owner/repo>`](https://github.com/<owner/repo>)
-- 설치 기록: `$CFG/plugins/installed_plugins.json` (`<plugin>@<marketplace>`), `$CFG/plugins/known_marketplaces.json`
+- 설치 기록: `claude plugin list` (`<plugin>@<marketplace>`)
 
 ## 1. 설치 방법
 
