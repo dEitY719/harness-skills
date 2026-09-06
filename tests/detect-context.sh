@@ -103,11 +103,28 @@ fi
 # 6. ...but it still prints the fields, because `create` is the branch the
 #    resolution matrix sends that row to and it needs size_class to pick a
 #    template (PR #38 review, codex BLOCKER).
+#    `kind` must be concrete or `create` has neither a template nor a target
+#    filename, so it defaults to the head of the documented priority order.
 out=$work/empty.out
 bash "$script" --dir "$e" > "$out" 2>/dev/null || :
-check "empty dir size_class" small "$(get "$out" size_class)"
-check "empty dir path"       ""    "$(get "$out" path)"
-check "empty dir line_count" 0     "$(get "$out" line_count)"
+check "empty dir kind"       claude  "$(get "$out" kind)"
+check "empty dir size_class" simple  "$(get "$out" size_class)"
+check "empty dir path"       ""      "$(get "$out" path)"
+check "empty dir line_count" 0       "$(get "$out" line_count)"
+
+# 6b. `create --file NEW.md` names a target that does not exist yet. That is
+#     the create case, not a hard error — the name carries the adapter, and
+#     the exit status stays 1 so check/refactor still abort.
+out=$work/newfile.out
+bash "$script" --file "$e/AGENTS.md" > "$out" 2>/dev/null || :
+check "create --file kind" agents "$(get "$out" kind)"
+check "create --file path" ""     "$(get "$out" path)"
+if bash "$script" --file "$e/AGENTS.md" >/dev/null 2>&1; then
+  printf 'FAIL  create --file on a missing target: expected non-zero exit\n'
+  fail=1
+else
+  printf 'ok    create --file on a missing target exits non-zero\n'
+fi
 
 # 7. Only the three documented adapters are accepted; an unlisted --type must
 #    fail here rather than reach dispatch (PR #38 review, codex BLOCKER).
