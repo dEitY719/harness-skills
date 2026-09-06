@@ -442,10 +442,9 @@
           <article class="step">
             <div class="step-head">
               <span class="step-n">STEP 2</span>
-              <span class="step-t">에이전트 2개 병렬 실행</span>
+              <span class="step-t">산출물 2개 쓰기</span>
             </div>
             <p>
-              Agent 도구로 두 에이전트를 <strong>한 메시지 안에서 동시에</strong> 띄운다.
               출력 디렉터리는 호출한 프로젝트 루트 기준
               <code>docs/built-in-skills/&lt;skill-name&gt;/</code> 이다.
             </p>
@@ -470,7 +469,7 @@
             </div>
             <div class="grid grid-2" style="margin-top:16px">
               <div class="card">
-                <h4>Agent 1 &mdash; README.md</h4>
+                <h4>README.md &mdash; 에이전트 1개</h4>
                 <p>
                   로드한 프롬프트를 분석해 한국어로 쓴다. 필수 항목은
                   &#9312; 한줄 요약 &#9313; 동작 단계(Phase) &#9314; 각 단계의 상세 체크 항목(있는 경우)
@@ -482,13 +481,15 @@
                   내장 스킬임을 밝히는 한 줄 설명 &rarr; <code>## 동작 요약</code> &rarr;
                   <code>## Phase N: ...</code> &rarr; <code>## 특징</code> 이지만,
                   <strong>고정 템플릿을 강요하지 말고 대상 스킬의 실제 단계에 맞춰 제목을 조정</strong>한다.
+                  브리프 전문은 <code>references/readme-template.md</code> 에 있다.
                 </p>
               </div>
               <div class="card">
-                <h4>Agent 2 &mdash; PROMPT.md</h4>
+                <h4>PROMPT.md &mdash; 부모가 직접</h4>
                 <p>
-                  원문 프롬프트를 그대로 쓴다. <strong>감싸는 제목도, 코드 펜스도 붙이지 않는다.</strong>
-                  원시 내용만 있는 그대로.
+                  컨텍스트에 이미 들어온 원문을 그대로 옮긴다. <strong>감싸는 제목도, 코드 펜스도 붙이지 않는다.</strong>
+                  정확한 사본을 만드는 일에 에이전트를 한 번 더 태우면 나아질 여지는 없고 망가질 여지만 생기므로
+                  위임하지 않는다.
                 </p>
               </div>
             </div>
@@ -499,7 +500,7 @@
               <span class="step-n">STEP 3</span>
               <span class="step-t">확인 및 판정</span>
             </div>
-            <p>두 에이전트가 모두 끝나기를 기다린 뒤 결정적 판정을 낸다.</p>
+            <p>에이전트가 끝나기를 기다린 뒤 결정적 판정을 낸다.</p>
             <div class="verdicts" style="margin-top:14px">
               <div class="verdict ok">
                 <div class="verdict-h">SUCCESS</div>
