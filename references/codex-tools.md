@@ -47,8 +47,9 @@ tree.
 
 ## Subagent dispatch
 
-`dissect-builtin` asks for two agents launched in parallel in one message. On
-Codex:
+`dissect-builtin` asks for ONE agent, writing `README.md` only — the parent
+writes `PROMPT.md` itself, since a second model hop can only corrupt a verbatim
+copy. On Codex:
 
 ```
 spawn_agent {fork_turns: "none", model: "...", reasoning_effort: "..."}

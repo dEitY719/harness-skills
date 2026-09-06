@@ -52,25 +52,26 @@ Output directory: `docs/built-in-skills/<skill-name>/` (relative to the project 
 | README.md | docs/built-in-skills/<skill-name>/README.md | Korean MD |
 | PROMPT.md | docs/built-in-skills/<skill-name>/PROMPT.md | Verbatim  |
 
-**두 산출물 모두 임시 디렉터리에 먼저 쓴다.** 최종 경로에 바로 쓰면 뒤에서
-실패했을 때 이미 덮어쓴 기존 문서를 되돌릴 수 없다. 이동은 Step 3 에서 한다.
+**두 산출물 모두 `docs/built-in-skills/.<skill-name>.staging/` 에 먼저 쓴다**
+(에이전트에게도 이 경로를 준다). 최종 경로에 바로 쓰면 실패했을 때 덮어쓴 기존
+문서를 되돌릴 수 없다. 이동은 Step 3 에서 한다.
 
 Write `PROMPT.md` yourself, straight from the Step 1 prompt in context. Do not
 delegate it to an agent: a round-trip through another model cannot improve an
 exact copy, only corrupt it.
 
-Then read `references/readme-template.md` yourself and launch one Agent to
-write `README.md`. A subagent inherits neither this skill's base directory nor
-the prompt Step 1 loaded into your context, so put **both** in the Agent's
-prompt: the brief you just read, and the raw prompt text itself. Sending the
-Agent to find either one leaves it analyzing nothing — a repo-relative path
-resolves against the caller's project rather than the installed plugin, and
-the prompt exists only in your context.
+Then read `references/readme-template.md` yourself and launch one Agent to write
+`README.md`. A subagent inherits neither this skill's base directory nor the
+prompt Step 1 loaded, so put **both** in its prompt: the brief you just read and
+the raw prompt text. Sending it to find either leaves it analyzing nothing — a
+repo-relative path resolves against the caller's project, not the plugin.
 
 ### Step 3: Confirm with user
 
-Wait for the agent to finish. **두 파일이 모두 임시 디렉터리에 있을 때에만**
-`docs/built-in-skills/<skill-name>/` 로 옮기고, 그 뒤 판정을 낸다:
+Wait for the agent to finish. **두 파일이 모두 스테이징에 있을 때에만** 옮긴다.
+디렉터리째 `mv` 하면 대상이 이미 있을 때 그 안으로 중첩되므로,
+`docs/built-in-skills/<skill-name>/` 를 만든 뒤 두 **파일**을 각각 덮어쓰고
+스테이징을 지운다. 그 뒤 판정:
 
 ```
 [OK] harness:dissect-builtin
@@ -80,8 +81,8 @@ Wait for the agent to finish. **두 파일이 모두 임시 디렉터리에 있�
   Next:     /gh-pr:commit
 ```
 
-실패 시 — 임시 디렉터리를 지우고 끝낸다. 최종 경로는 아직 건드린 적이 없으므로
-기존 문서는 자동으로 보존되고, 반쪽짜리 디렉터리도 생기지 않는다:
+실패 시 — 스테이징만 지운다. 최종 경로는 건드린 적이 없으므로 기존 문서가 그대로
+보존되고 반쪽짜리 디렉터리도 없다:
 
 ```
 [FAIL] harness:dissect-builtin
@@ -92,9 +93,8 @@ Wait for the agent to finish. **두 파일이 모두 임시 디렉터리에 있�
 ## Constraints
 
 - PROMPT.md reproduces the original prompt verbatim: do not summarize, translate, or reformat.
-  That is a fidelity target, not a verifiable guarantee — the prompt exists only in context,
-  so there is nothing to `cp` or diff against and byte-equality cannot be checked afterwards.
-  Fewer hops is the only lever, which is why the parent writes it directly: one hop, not two.
+  A fidelity target, not a verifiable guarantee — the prompt exists only in context, so there is
+  nothing to diff against. Fewer hops is the only lever: the parent writes it, one hop not two.
 - README.md is written in Korean. Use English only for technical terms.
 - Do not use the filename `SKILL.md` for output — it conflicts with Claude Code's skill loading mechanism.
 - If the target skill cannot be loaded (not a built-in skill), inform the user and suggest alternatives.
