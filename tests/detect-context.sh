@@ -50,6 +50,9 @@ bash "$script" --dir "$b" > "$out"
 check "import alias"     "$b/AGENTS.md"    "$(get "$out" aliases)"
 check "import lines"     420               "$(get "$out" line_count)"
 check "import c7"        WARN              "$(get "$out" c7)"
+#     `kind` follows content_path (AGENTS.md), not the CLAUDE.md shim's own
+#     name -- otherwise the wrong adapter's checks run against this text (#42).
+check "import kind"      agents            "$(get "$out" kind)"
 
 # 2b. The same collapse in reverse, and a file that merely ENDS in `.md` is
 #     not a shim.
@@ -62,6 +65,7 @@ bash "$script" --dir "$b2" > "$out"
 check "reverse path"     "$b2/AGENTS.md"   "$(get "$out" path)"
 check "reverse alias"    "$b2/GEMINI.md"   "$(get "$out" aliases)"
 check "reverse lines"    3                 "$(get "$out" line_count)"
+check "reverse kind"     gemini            "$(get "$out" kind)"
 
 # 3. Genuinely distinct files stay distinct, and priority picks CLAUDE.md.
 c=$work/distinct
@@ -187,6 +191,9 @@ out=$work/shared.out
 bash "$script" --dir "$sh3" > "$out"
 check "shared-import aliases" "$sh3/AGENTS.md" "$(get "$out" aliases)"
 check "shared-import others"  ""               "$(get "$out" other_candidates)"
+#     SHARED.md is not a recognised adapter name, so `kind` falls back to the
+#     CLAUDE.md shim's own name rather than reporting `unknown` (#42).
+check "shared-import kind"    claude           "$(get "$out" kind)"
 
 # 7e. A `--file` naming a non-standard filename with no --type must not report
 #     `kind=unknown`, which is not an adapter (PR #38 review, agy BLOCKER).
