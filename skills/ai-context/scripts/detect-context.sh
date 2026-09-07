@@ -181,7 +181,16 @@ if [ -n "$primary_import" ] && [ -e "$(dirname -- "$primary")/$primary_import" ]
   content_path=$(_realpath "$(dirname -- "$primary")/$primary_import")
 fi
 
-[ -n "$type" ] || type=$(kind_of "$primary")
+# `kind` names the adapter, so it must describe the text a reader actually
+# gets -- content_path -- not the shim candidate that pointed at it (#42). A
+# symlink target's own basename IS the shim's, so this changes nothing for
+# that case. Fall back to the shim's own name when content_path's basename
+# isn't one of the three adapters (e.g. both CLAUDE.md and AGENTS.md import a
+# shared SHARED.md): "unknown" is not an adapter any more than it was before.
+if [ -z "$type" ]; then
+  type=$(kind_of "$content_path")
+  [ "$type" = unknown ] && type=$(kind_of "$primary")
+fi
 
 line_count=$(wc -l < "$content_path" | tr -d ' ')
 if   [ "$line_count" -le 400 ]; then c7=PASS
