@@ -177,19 +177,31 @@ done
 
 # The text a reader actually gets: follow a one-line import to its target.
 content_path=$primary_real
+content_is_import=0
 if [ -n "$primary_import" ] && [ -e "$(dirname -- "$primary")/$primary_import" ]; then
   content_path=$(_realpath "$(dirname -- "$primary")/$primary_import")
+  content_is_import=1
 fi
 
-# `kind` names the adapter, so it must describe the text a reader actually
-# gets -- content_path -- not the shim candidate that pointed at it (#42). A
-# symlink target's own basename IS the shim's, so this changes nothing for
-# that case. Fall back to the shim's own name when content_path's basename
-# isn't one of the three adapters (e.g. both CLAUDE.md and AGENTS.md import a
+# `kind` names the adapter, so a one-line `@AGENTS.md` shim must derive it
+# from the imported text, not its own filename (#42): the adapter otherwise
+# runs the wrong check set against text authored to another harness's
+# conventions. Scoped to the import case ONLY, never a plain inode alias
+# (candidates sharing one real file via a filesystem symlink, no `@import`
+# involved): there the bytes are identical either way, so which name holds
+# the real inode is a storage detail, not a claim about which harness's
+# conventions the content follows -- `kind` keeps following priority order
+# (`kind_of "$primary"`), same as before #42, in both symlink directions.
+# Fall back to the shim's own name when the imported file's basename isn't
+# one of the three adapters (e.g. both CLAUDE.md and AGENTS.md import a
 # shared SHARED.md): "unknown" is not an adapter any more than it was before.
 if [ -z "$type" ]; then
-  type=$(kind_of "$content_path")
-  [ "$type" = unknown ] && type=$(kind_of "$primary")
+  if [ "$content_is_import" -eq 1 ]; then
+    type=$(kind_of "$content_path")
+    [ "$type" = unknown ] && type=$(kind_of "$primary")
+  else
+    type=$(kind_of "$primary")
+  fi
 fi
 
 line_count=$(wc -l < "$content_path" | tr -d ' ')

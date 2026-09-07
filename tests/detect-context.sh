@@ -39,6 +39,22 @@ check "symlink kind"     claude            "$(get "$out" kind)"
 check "symlink alias"    "$a/AGENTS.md"    "$(get "$out" aliases)"
 check "symlink others"   ""                "$(get "$out" other_candidates)"
 
+# 1b. The same alias in reverse -- CLAUDE.md itself is the symlink, AGENTS.md
+#     holds the real bytes. `kind` still follows priority order (claude), not
+#     the real inode's basename: this is a plain filesystem alias, not an
+#     `@import` shim, so which name happens to hold the inode carries no claim
+#     about whose conventions the (identical) text follows (gh-pr-review
+#     codex FOLLOW-UP on #42's fix -- this direction was untested).
+a2=$work/symlink-reverse
+mkdir -p "$a2"
+printf '# ctx\n' > "$a2/AGENTS.md"
+ln -s AGENTS.md "$a2/CLAUDE.md"
+out=$work/symlink-reverse.out
+bash "$script" --dir "$a2" > "$out"
+check "reverse-symlink kind"   claude            "$(get "$out" kind)"
+check "reverse-symlink alias"  "$a2/AGENTS.md"   "$(get "$out" aliases)"
+check "reverse-symlink others" ""                "$(get "$out" other_candidates)"
+
 # 2. A CLAUDE.md whose whole body is `@AGENTS.md` is an alias too, and the
 #    line budget is measured on the file a reader actually gets.
 b=$work/import
