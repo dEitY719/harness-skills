@@ -156,11 +156,13 @@ Because a change here lands in fourteen other repos, treat this file as an API:
 The version appears in seven manifests: `.claude-plugin/marketplace.json`,
 `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`,
 `.kimi-plugin/plugin.json`, `.hermes-plugin/plugin.yaml`,
-`gemini-extension.json`, and `package.json`. CI checks that they agree — bump
-all of them together — and, on a pull request, that a change to shipped content
-(`skills/`, `lib/`, `hooks/`, `commands/`, `agents/`) raised the version.
-Versioning is independent per repo (dEitY719/dotfiles#1410 D-9); this repo does
-not move in lockstep with its siblings.
+`gemini-extension.json`, and `package.json`. CI checks that they agree. Do not
+bump by hand for a patch change: after a merge to `main` that touched shipped
+content (`skills/`, `lib/`, `hooks/`, `commands/`, `agents/`), `version-bump.yml`
+bumps the patch in all seven and pushes the commit. A minor or major bump made
+by hand in the PR, across all seven, is respected. Versioning is independent
+per repo (dEitY719/dotfiles#1410 D-9); this repo does not move in lockstep with
+its siblings.
 
 ## No emojis
 

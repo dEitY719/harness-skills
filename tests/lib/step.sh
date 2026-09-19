@@ -16,11 +16,12 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2154,SC2034
 
-extract() {  # extract <step-name-prefix> <out-path>
-    python3 - "$root/.github/workflows/skill-check.yml" "$1" "$2" <<'PY'
+# The optional workflow file and job default to skill-check.yml's `validate`.
+extract() {  # extract <step-name-prefix> <out-path> [workflow-file] [job]
+    python3 - "$root/.github/workflows/${3:-skill-check.yml}" "$1" "$2" "${4:-validate}" <<'PY'
 import sys, pathlib, yaml
 wf = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-steps = [s for s in wf["jobs"]["validate"]["steps"]
+steps = [s for s in wf["jobs"][sys.argv[4]]["steps"]
          if s.get("name", "").startswith(sys.argv[2])]
 if len(steps) != 1:
     sys.exit(f"expected exactly one {sys.argv[2]!r} step, found {len(steps)}")

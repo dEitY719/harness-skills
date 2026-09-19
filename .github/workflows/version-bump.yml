@@ -1,0 +1,121 @@
+name: version-bump
+
+# Reusable post-merge version bump for every dEitY719/*-skills marketplace repo.
+#
+# Owner: dEitY719/harness-skills. Claude Code's marketplace auto-update keys
+# the installed plugin cache on `version`, so shipped content merged without a
+# bump never reaches a user who already has the plugin. Bumping here, after the
+# merge, instead of gating each PR keeps parallel PRs from colliding on the
+# same version line. Call it on push to main only, after validation passes:
+#
+#   jobs:
+#     version-bump:
+#       if: github.event_name == 'push'
+#       needs: validate
+#       permissions:
+#         contents: write
+#       uses: dEitY719/harness-skills/.github/workflows/version-bump.yml@main
+#
+# The bump commit is pushed with GITHUB_TOKEN, and a GITHUB_TOKEN push does not
+# trigger workflows, so the bump never re-runs itself.
+
+on:
+  workflow_call:
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Queued, never cancelled: each run must see the previous run's bump commit.
+    concurrency:
+      group: version-bump-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      # The branch tip, not the event sha: a run queued behind another sees that
+      # run's bump commit and pushes on top of it instead of being rejected.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Bump patch version when shipped content changed
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME:-}" != push ]; then
+              echo "ok    skipped: not a push"
+              exit 0
+          fi
+          # A new branch has no previous tip to diff against.
+          if [ -z "${BEFORE//0/}" ]; then
+              echo "ok    skipped: new branch, no previous commit"
+              exit 0
+          fi
+          shipped=(skills/ lib/ hooks/ commands/ agents/)
+          if git diff --quiet "$BEFORE" "$AFTER" -- "${shipped[@]}"; then
+              echo "ok    no shipped content changed"
+              exit 0
+          fi
+          # Read at the checked-out tip, not at AFTER: a hand bump in the PR, or
+          # an earlier run of this workflow, already moved it and wins.
+          export OLD NOW
+          OLD=$(git show "$BEFORE:.claude-plugin/plugin.json" | python3 -c 'import sys, json; print(json.load(sys.stdin)["version"])')
+          NOW=$(python3 -c 'import json; print(json.load(open(".claude-plugin/plugin.json", encoding="utf-8"))["version"])')
+          if [ "$OLD" != "$NOW" ]; then
+              echo "ok    version already moved $OLD -> $NOW"
+              exit 0
+          fi
+          # Exactly the sites "Version agrees across all manifests" in
+          # skill-check.yml reads. Only the version value is rewritten, so every
+          # other byte, key order and indentation included, stays as it was.
+          NEW=$(python3 - <<'PY'
+          import os, sys, json, re, pathlib
+          old = os.environ["NOW"]
+          m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", old)
+          if not m:
+              print(f"FAIL  version {old!r} is not plain X.Y.Z; bump it by hand", file=sys.stderr)
+              sys.exit(1)
+          new = f"{m[1]}.{m[2]}.{int(m[3]) + 1}"
+          q = re.escape(old)
+          sites = {
+              ".claude-plugin/plugin.json": lambda d: d["version"],
+              ".claude-plugin/marketplace.json": lambda d: d["plugins"][0]["version"],
+              ".codex-plugin/plugin.json": lambda d: d["version"],
+              ".kimi-plugin/plugin.json": lambda d: d["version"],
+              "gemini-extension.json": lambda d: d["version"],
+              "package.json": lambda d: d["version"],
+          }
+          for f, get in sites.items():
+              p = pathlib.Path(f)
+              if not p.exists():
+                  continue
+              p.write_text(re.sub(rf'("version"\s*:\s*"){q}"', rf'\g<1>{new}"',
+                                  p.read_text(encoding="utf-8")), encoding="utf-8")
+              if get(json.loads(p.read_text(encoding="utf-8"))) != new:
+                  print(f"FAIL  {f}: version not rewritten to {new}", file=sys.stderr)
+                  sys.exit(1)
+          p = pathlib.Path(".hermes-plugin/plugin.yaml")
+          if p.exists():
+              p.write_text(re.sub(rf"^(version:\s*){q}$", rf"\g<1>{new}",
+                                  p.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
+              if re.search(r"^version:\s*(\S+)", p.read_text(encoding="utf-8"), re.M).group(1) != new:
+                  print(f"FAIL  {p}: version not rewritten to {new}", file=sys.stderr)
+                  sys.exit(1)
+          print(new)
+          PY
+          )
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898583+github-actions[bot]@users.noreply.github.com' \
+              commit -qam "chore(release): bump version to $NEW" \
+              -m "Shipped content changed in ${BEFORE:0:7}..${AFTER:0:7}."
+          # A human push that landed after checkout rejects ours; replay once on
+          # top of it rather than lose the bump (the next run diffs only its own
+          # range, so it would never notice this one's shipped change).
+          git push -q origin "HEAD:$REF_NAME" \
+            || { git pull -q --rebase origin "$REF_NAME" && git push -q origin "HEAD:$REF_NAME"; }
+          echo "ok    bumped $OLD -> $NEW"

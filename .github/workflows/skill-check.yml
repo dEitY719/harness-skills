@@ -277,57 +277,6 @@ jobs:
           print("ok    all manifests agree")
           PY
 
-      # Claude Code's marketplace auto-update keys the plugin cache on
-      # `version`, so shipped content merged without a bump never reaches an
-      # installed user. The step above already made all seven manifests agree,
-      # so reading .claude-plugin/plugin.json alone is enough. Push to main is
-      # never gated: only a pull_request has a base to compare against.
-      - name: Version bumped when shipped content changes
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          set -euo pipefail
-          if [ "${EVENT_NAME:-}" != pull_request ]; then
-              echo "ok    skipped: not a pull_request"
-              exit 0
-          fi
-          # The checkout is depth 1 at the PR merge commit; a tree diff against
-          # the base tip needs no history, just that one commit.
-          git fetch -q --no-tags --depth=1 origin "$BASE_REF"
-          shipped=(skills/ lib/ hooks/ commands/ agents/)
-          if git diff --quiet FETCH_HEAD HEAD -- "${shipped[@]}"; then
-              echo "ok    no shipped content changed"
-              exit 0
-          fi
-          if ! git cat-file -e FETCH_HEAD:.claude-plugin/plugin.json 2>/dev/null; then
-              echo "ok    skipped: base has no .claude-plugin/plugin.json"
-              exit 0
-          fi
-          export BASE_JSON; BASE_JSON=$(git show FETCH_HEAD:.claude-plugin/plugin.json)
-          if ! python3 - <<'PY'
-          import os, sys, json, re, pathlib
-          base = json.loads(os.environ["BASE_JSON"])["version"]
-          head = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text(encoding="utf-8"))["version"]
-          def key(v):
-              return tuple(map(int, v.split("."))) if re.fullmatch(r"\d+(\.\d+)*", v) else None
-          kb, kh = key(base), key(head)
-          # Not plain dotted ints (a pre-release tag, say): any change counts.
-          if (kh > kb) if kb and kh else head != base:
-              print(f"ok    version bumped {base} -> {head}")
-              sys.exit(0)
-          if head == base:
-              print(f"FAIL  shipped content changed but version is still {base}")
-          else:
-              print(f"FAIL  shipped content changed but version went {base} -> {head}, not up")
-          print("      bump all seven manifests together; changed shipped files:")
-          sys.exit(1)
-          PY
-          then
-              git diff --name-only FETCH_HEAD HEAD -- "${shipped[@]}" | sed 's/^/      /'
-              exit 1
-          fi
-
       - name: Declared cross-file facts agree
         run: |
           set -euo pipefail

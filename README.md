@@ -152,10 +152,7 @@ a migration later.
 `workflow_call` reusable workflow owned by this repo (dEitY719/dotfiles#1410
 D-10). It validates manifests, skill frontmatter, progressive-disclosure line
 limits, the Codex description budget, version agreement, and shell scripts, and
-it runs the repo's own checks. On a pull request it also fails when `skills/`,
-`lib/`, `hooks/`, `commands/` or `agents/` changed but the version did not go
-up: Claude Code caches an installed plugin by version, so an unbumped edit
-never reaches its users.
+it runs the repo's own checks.
 
 Every `dEitY719/*-skills` repo calls it instead of copying it:
 
@@ -170,6 +167,24 @@ jobs:
 This repo calls it too, through a local `./` reference
 ([`validate.yml`](.github/workflows/validate.yml)), so a change to the shared
 workflow is proven on its own PR before a sibling repo picks it up.
+
+A second reusable workflow,
+[`.github/workflows/version-bump.yml`](.github/workflows/version-bump.yml),
+bumps the patch version after a merge. On a push to `main` that changed
+`skills/`, `lib/`, `hooks/`, `commands/` or `agents/`, it raises X.Y.Z to
+X.Y.(Z+1) in every manifest and pushes a `chore(release)` commit as
+`github-actions[bot]`: Claude Code caches an installed plugin by version, so an
+unbumped edit never reaches its users. A version the merged PR already moved by
+hand is left alone. Callers add one job next to `validate`:
+
+```yaml
+  version-bump:
+    if: github.event_name == 'push'
+    needs: validate
+    permissions:
+      contents: write
+    uses: dEitY719/harness-skills/.github/workflows/version-bump.yml@main
+```
 
 ### Where a repo's tests live
 
