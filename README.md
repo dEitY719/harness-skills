@@ -152,7 +152,10 @@ a migration later.
 `workflow_call` reusable workflow owned by this repo (dEitY719/dotfiles#1410
 D-10). It validates manifests, skill frontmatter, progressive-disclosure line
 limits, the Codex description budget, version agreement, and shell scripts, and
-it runs the repo's own checks.
+it runs the repo's own checks. On a pull request it also fails when `skills/`,
+`lib/`, `hooks/`, `commands/` or `agents/` changed but the version did not go
+up: Claude Code caches an installed plugin by version, so an unbumped edit
+never reaches its users.
 
 Every `dEitY719/*-skills` repo calls it instead of copying it:
 
