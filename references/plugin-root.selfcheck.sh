@@ -148,45 +148,65 @@ got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT=/OVERRIDE sh -c \
     ". $WORK/plugin/lib/resolve-target.sh" | head -1)
 [ "$got" = "ROOT=/OVERRIDE" ] || fail "tier 2 did not win over the self-path (got: $got)"
 
-# 6. the self-path branch, asserting what plugin-root.md actually claims:
-#    bash and zsh reach tier 3 and prove out; every other shell has no self-path
-#    and must stop at tier 5. Accepting "either one" would let the doc's
-#    per-shell claim rot unnoticed.
+# 6. the self-path branch, asserting what plugin-root.md actually claims: a
+#    shell that sets $ZSH_VERSION or $BASH_VERSION reaches tier 3 and proves
+#    out; one that sets neither has no self-path and must stop at tier 5.
+#    Accepting "either one" would let the doc's per-shell claim rot unnoticed.
 #
 #    Deduplicate by resolved binary: on Debian-family boxes /bin/sh IS dash, and
 #    running it twice under two names would report coverage that is not there.
-seen=""
+#
+#    Dispatch on what each shell IS, never on the name it was invoked under. A
+#    name list silently encodes "/bin/sh is not bash", which some minimal images
+#    break: bash exports $BASH_VERSION even as `sh`, so it reaches tier 3, and a
+#    name list would assert the tier-5 refusal against it and fail. Asking the
+#    shell the same question the snippet asks is the only sound classifier — and
+#    combined with the dedup above it also keeps the matrix from reporting four
+#    shells' coverage when four names resolve to one binary, which is why the
+#    names actually run are printed in the summary rather than kept private.
+has_selfpath() {  # has_selfpath <shell> — the snippet's own branch condition
+    [ "$("$1" -c 'if [ -n "${ZSH_VERSION-}" ] || [ -n "${BASH_VERSION-}" ]
+                  then printf yes; else printf no; fi')" = yes ]
+}
+
+seen="" covered="" noself=""
 for shell in sh dash bash zsh; do
     path=$(command -v "$shell" 2>/dev/null) || continue
     real=$(readlink -f "$path" 2>/dev/null || echo "$path")
     case " $seen " in *" $real "*) continue ;; esac
-    seen="$seen $real"
+    seen="$seen $real" covered="$covered $shell"
 
-    case "$shell" in
-        bash | zsh)
-            out=$(cd "$WORK/elsewhere" && clean "$shell" -c ". $WORK/plugin/lib/resolve-target.sh")
-            got=$(echo "$out" | head -1)
-            [ "$got" = "ROOT=$WORK/plugin" ] \
-                || fail "$shell should reach tier 3 (self-path) but gave: $got"
-            # Tier 3 found the real checkout, so the load must define the
-            # function. That is the proof, and it is what tier 3 buys.
-            echo "$out" | grep -q '^PROVEN=yes$' \
-                || fail "$shell reached tier 3 but the proof did not say PROVEN=yes"
-            ;;
-        *)
-            refuses "$WORK/elsewhere" "CLAUDE_PLUGIN_ROOT is unset" \
-                "$shell has no self-path and must stop at tier 5" \
-                "$shell" -c ". $WORK/plugin/lib/resolve-target.sh"
-            ;;
-    esac
+    if has_selfpath "$shell"; then
+        out=$(cd "$WORK/elsewhere" && clean "$shell" -c ". $WORK/plugin/lib/resolve-target.sh")
+        got=$(echo "$out" | head -1)
+        [ "$got" = "ROOT=$WORK/plugin" ] \
+            || fail "$shell sets \$BASH_VERSION/\$ZSH_VERSION so it must reach tier 3 (self-path), but gave: $got"
+        # Tier 3 found the real checkout, so the load must define the
+        # function. That is the proof, and it is what tier 3 buys.
+        echo "$out" | grep -q '^PROVEN=yes$' \
+            || fail "$shell reached tier 3 but the proof did not say PROVEN=yes"
+    else
+        [ -n "$noself" ] || noself="$shell"
+        refuses "$WORK/elsewhere" "CLAUDE_PLUGIN_ROOT is unset" \
+            "$shell has no self-path and must stop at tier 5" \
+            "$shell" -c ". $WORK/plugin/lib/resolve-target.sh"
+    fi
 done
 
 # 7. and no self-path must still stop at tier 5 once the cwd IS the checkout —
 #    the self-locating file's half of assertion 2. There is nothing left that
-#    would let the cwd stand in for a root.
-refuses "$WORK/plugin" "CLAUDE_PLUGIN_ROOT is unset" \
-    "no self-path must refuse even in the real checkout" \
-    sh -c ". $WORK/plugin/lib/resolve-target.sh"
+#    would let the cwd stand in for a root. Run it under a shell the loop above
+#    proved has none, not a bare `sh`: where /bin/sh is bash, `sh` reaches tier
+#    3 and this would be asserting the opposite claim. If every shell here has a
+#    self-path there is nothing to assert, and saying so beats a false "ok".
+if [ -n "$noself" ]; then
+    refuses "$WORK/plugin" "CLAUDE_PLUGIN_ROOT is unset" \
+        "no self-path must refuse even in the real checkout" \
+        "$noself" -c ". $WORK/plugin/lib/resolve-target.sh"
+    noself_note="ok  no self-path refuses even in the real checkout ($noself)"
+else
+    noself_note="skip  every shell here has a self-path; the no-self-path-in-checkout case did not run"
+fi
 
 # 8. `set -e` must not swallow the missing-shell-common case — the load-bearing
 #    bullet above claims the `[ -f ] && .` shape keeps a missing file from
@@ -211,6 +231,6 @@ echo "ok  the pasted block refuses \$PWD even in the real checkout"
 echo "ok  tier 5 stops loudly and names the path it tried"
 echo "ok  a failed resolution exports nothing"
 echo "ok  tier 2 wins over the self-path"
-echo "ok  bash/zsh reach tier 3 and prove out, other shells stop at tier 5"
-echo "ok  no self-path refuses even in the real checkout"
+echo "ok  self-path shells reach tier 3 and prove out, the rest stop at tier 5 (covered:$covered)"
+echo "$noself_note"
 echo "ok  set -e does not swallow a missing shell-common"
