@@ -313,8 +313,8 @@
             </h4>
             <p><code>/plugin install</code> 로 플러그인을 이미 설치했고, 그 안에 어떤 스킬이 들어 있는지
             팀이 읽을 한국어 문서로 남기고 싶을 때.</p>
-            <p>근거는 사람의 기억이 아니라 <code>$CLAUDE_CONFIG_DIR/plugins/cache/</code> 아래에 실제로
-            캐시된 <code>SKILL.md</code> 파일들이라, 설치돼 있지 않은 플러그인은 문서화 대상이 아니다.</p>
+            <p>근거는 사람의 기억이 아니라 <code>claude plugin list --json</code> 이 보고하는 설치 기록과
+            그 <code>installPath</code> 아래에 있는 <code>SKILL.md</code> 파일들이라, 설치돼 있지 않은 플러그인은 문서화 대상이 아니다.</p>
           </article>
           <article class="card avoid">
             <h4>
@@ -338,7 +338,8 @@
         <div class="sec-head"><span class="sec-num">02</span><h2>호출 형식과 인자</h2></div>
 <pre><code><span class="hl">/harness:plugin-guide</span> &lt;plugin&gt;[@&lt;marketplace&gt;] [--force]
 <span class="hl">/harness:plugin-guide</span> -h | --help | help</code></pre>
-        <p><code>references/help.md</code> 가 1차 근거다. 위치 인자 #1 은 플러그인 이름, #2 는 <code>--force</code>.
+        <p><code>references/help.md</code> 가 1차 근거다. 위치 인자 #1 은 플러그인 이름, #2 는 출력 루트 디렉터리다.
+        <code>-</code> 로 시작하는 토큰은 언제나 플래그이지 <code>[output-root]</code> 가 아니다.
         플러그인 이름은 <code>@</code> 를 기준으로 <code>PLUGIN</code> 과 (선택) <code>MARKETPLACE</code> 로 쪼개지며,
         <strong>출력 파일명은 언제나 <code>PLUGIN.md</code></strong> 다 — marketplace 이름은 파일명에 들어가지 않는다.</p>
 
@@ -346,7 +347,8 @@
           <table>
             <thead><tr><th>인자</th><th>기본값</th><th>설명</th></tr></thead>
             <tbody>
-              <tr><td><code>&lt;plugin&gt;[@&lt;marketplace&gt;]</code></td><td>— (필수)</td><td>문서화할 플러그인. marketplace 를 생략하면 <code>plugins.json</code> 에서 추론한다</td></tr>
+              <tr><td><code>&lt;plugin&gt;[@&lt;marketplace&gt;]</code></td><td>— (필수)</td><td>문서화할 플러그인. marketplace 를 생략하면 <code>claude plugin list --json</code> 의 설치 기록에서 추론한다</td></tr>
+              <tr><td><code>[output-root]</code></td><td><code>docs/guide/plugins</code></td><td>가이드 문서와 인덱스를 쓸 디렉터리. 없으면 만든다</td></tr>
               <tr><td><code>--force</code></td><td><code>off</code></td><td>대상 문서가 이미 있어도 재생성. <strong>파일 전체를 덮어쓴다</strong></td></tr>
               <tr><td><code>-h</code> / <code>--help</code> / <code>help</code></td><td>—</td><td><code>references/help.md</code> 를 그대로 출력하고 중단. 파일 읽기/쓰기 없음</td></tr>
             </tbody>
@@ -354,9 +356,10 @@
         </div>
 
 <pre><code>/harness:plugin-guide ponytail@ponytail        <span class="cm"># marketplace 명시</span>
-/harness:plugin-guide andrej-karpathy-skills  <span class="cm"># plugins.json 에서 추론</span>
+/harness:plugin-guide andrej-karpathy-skills  <span class="cm"># 설치 기록에서 추론</span>
+/harness:plugin-guide ponytail docs/plugins   <span class="cm"># 다른 출력 루트</span>
 /harness:plugin-guide ponytail --force        <span class="cm"># 기존 문서 덮어쓰고 재생성</span></code></pre>
-        <p class="text-secondary">인자를 아예 주지 않으면 <code>Run /harness:plugin-guide -h for usage.</code> 만 출력하고 멈춘다.</p>
+        <p class="text-secondary">인자를 아예 주지 않으면 <code>[FAIL] harness:plugin-guide — &lt;plugin-name&gt; 누락 (Step 1 args). Run /harness:plugin-guide -h for usage.</code> 를 출력하고 멈춘다.</p>
       </div>
     </section>
 
@@ -368,22 +371,22 @@
           <li>
             <span class="dot" aria-hidden="true">1</span>
             <h4>인자 파싱</h4>
-            <p><code>&lt;plugin-name&gt;</code> 을 <code>@</code> 로 분리하고, 저장소 루트 <code>ROOT</code> 와 설정 디렉터리 <code>CFG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}</code> 를 잡는다.</p>
+            <p><code>&lt;plugin-name&gt;</code> 을 <code>@</code> 로 분리하고, 출력 루트 <code>OUT</code> 을 <code>[output-root]</code>(기본 <code>docs/guide/plugins</code>)으로 잡는다. 없으면 만든다.</p>
           </li>
           <li>
             <span class="dot" aria-hidden="true">2</span>
             <h4>설치 확인</h4>
-            <p><code>claude/plugin/plugins.json</code> 의 <code>plugins</code> 배열(원소는 <code>"&lt;plugin&gt;@&lt;marketplace&gt;"</code> 문자열)에 대해 <strong><code>@</code> 앞 세그먼트만 정확히 비교</strong>한다. 자세한 분기는 <code>references/marketplace-resolution.md</code>.</p>
+            <p><code>claude plugin list --json</code> 의 각 항목 <code>id</code>(<code>"&lt;plugin&gt;@&lt;marketplace&gt;"</code> 꼴)에 대해 <strong><code>@</code> 앞 세그먼트만 정확히 비교</strong>한다. 일치한 항목의 <code>installPath</code> 가 그대로 <code>INSTALL_PATH</code> 가 된다. 자세한 분기는 <code>references/marketplace-resolution.md</code>.</p>
           </li>
           <li>
             <span class="dot" aria-hidden="true">3</span>
-            <h4>캐시 탐색과 스킬 열거</h4>
-            <p><code>find "$CFG/plugins/cache/&lt;MARKETPLACE&gt;/&lt;PLUGIN&gt;" -maxdepth 4 -iname SKILL.md</code>. 버전 디렉터리가 여러 개면 <code>sort -V</code> 로 <strong>가장 높은 버전만</strong> 남긴다. 각 <code>SKILL.md</code> 에서 frontmatter 의 <code>name</code> / <code>description</code> 을 읽고 본문을 훑어 핵심 규칙 1개를 뽑아 "하는 일" 1-2줄 요약을 만든다.</p>
+            <h4>스킬 열거</h4>
+            <p><code>INSTALL_PATH</code> 는 이미 해석된 버전의 경로이므로 추가 버전 탐색이 없다: <code>find "$INSTALL_PATH" -maxdepth 4 -iname SKILL.md</code>. 각 <code>SKILL.md</code> 에서 frontmatter 의 <code>name</code> / <code>description</code> 을 읽고 본문을 훑어 핵심 규칙 1개를 뽑아 "하는 일" 1-2줄 요약을 만든다.</p>
           </li>
           <li>
             <span class="dot" aria-hidden="true">4</span>
             <h4>멱등 스킵</h4>
-            <p><code>docs/guide/plugins/&lt;PLUGIN&gt;.md</code> 가 이미 있고 <code>--force</code> 가 없으면 <code>이미 문서화됨 — 재생성하려면 --force</code> 를 출력하고 멈춘다. 기존 문서를 diff 하거나 섹션 단위로 병합하지 않는다.</p>
+            <p><code>$OUT/&lt;PLUGIN&gt;.md</code> 가 이미 있고 <code>--force</code> 가 없으면 <code>[SKIP] $OUT/&lt;PLUGIN&gt;.md 이미 존재 — 재생성하려면 --force</code> 를 출력하고 멈춘다. 기존 문서를 diff 하거나 섹션 단위로 병합하지 않는다.</p>
           </li>
           <li>
             <span class="dot" aria-hidden="true">5</span>
@@ -393,12 +396,12 @@
           <li>
             <span class="dot" aria-hidden="true">6</span>
             <h4>인덱스 갱신</h4>
-            <p><code>docs/guide/plugins/README.md</code> 의 <code>## Index</code> 목록 안, 마지막 <code>- [...]</code> 항목 뒤이자 다음 <code>##</code> 헤더 앞에 <code>- [&lt;PLUGIN&gt;](./&lt;PLUGIN&gt;.md) — &lt;한 줄 한국어 요약&gt;</code> 을 삽입한다. 파일 끝에 무작정 append 하지 않는다. 이미 <code>./&lt;PLUGIN&gt;.md</code> 를 링크하는 줄이 있으면 스킵(멱등).</p>
+            <p><code>$OUT/README.md</code> 의 <code>## Index</code> 목록 안, 마지막 <code>- [...]</code> 항목 뒤이자 다음 <code>##</code> 헤더 앞에 <code>- [&lt;PLUGIN&gt;](./&lt;PLUGIN&gt;.md) — &lt;한 줄 한국어 요약&gt;</code> 을 삽입한다. 파일 끝에 무작정 append 하지 않는다. 이미 <code>./&lt;PLUGIN&gt;.md</code> 를 링크하는 줄이 있으면 스킵(멱등). <code>$OUT/README.md</code> 자체가 없으면 <code>## Index</code> 헤딩과 함께 새로 만든다.</p>
           </li>
           <li>
             <span class="dot" aria-hidden="true">7</span>
             <h4>보고</h4>
-            <p><code>references/help.md</code> 의 "출력 형식" 대로 <code>[OK]</code> 판정, 쓴/스킵한 파일, 스킬 개수, 그리고 다음 단계(문서 검토 후 수동 커밋)를 출력한다.</p>
+            <p><code>references/help.md</code> 의 "출력 형식" 대로 <code>[OK]</code> / <code>[SKIP]</code> / <code>[FAIL]</code> 판정, 쓴/스킵한 파일, 스킬 개수, 그리고 다음 단계(문서 검토 후 수동 커밋)를 출력한다.</p>
           </li>
         </ol>
       </div>
@@ -411,21 +414,30 @@
 
         <div class="callout stop">
           <h4>substring grep 금지 — Step 2 의 핵심 규칙</h4>
-          <p>marketplace 해석은 반드시 <code>claude/plugin/plugins.json</code> 의 <code>plugins</code> 배열을 기준으로 하고,
+          <p>marketplace 해석은 반드시 <code>claude plugin list --json</code> 의 <code>id</code> 를 기준으로 하고,
           <code>grep "PLUGIN@"</code> 같은 부분 문자열 검색을 쓰지 않는다. <code>skills</code> 라는 이름의 플러그인을 찾을 때
           <code>example-skills@anthropic-agent-skills</code> 가 함께 걸려 엉뚱한 플러그인을 문서화하게 되기 때문이다.
-          <code>jq</code> 로 <code>split("@")[0] == $p</code> 를 비교한다.</p>
+          <code>jq</code> 로 <code>split("@")[0] == $p</code> 를 비교한다. 같은 <code>id</code> 가 <code>user</code> 와 <code>project</code> 두 scope 로
+          중복될 수 있는데 그건 marketplace 중의성이 아니므로, 후보를 세기 전에 <code>id</code> 로 dedupe 하고 <code>project</code> scope 를 우선한다.</p>
           <ul class="branches">
-            <li class="b1"><span class="badge">1건</span><span>그 항목의 <code>@</code> 뒤를 <code>MARKETPLACE</code> 로 삼고 진행.</span></li>
-            <li class="b0"><span class="badge">0건</span><span>미설치. <code>MARKETPLACE</code> 를 알면 <code>marketplaces.json</code> 에서 <code>owner/repo</code> 를 찾아 설치 안내를 출력하고 멈춘다. 모르면 안내를 <strong>지어내지 않고</strong> <code>&lt;plugin&gt;@&lt;marketplace&gt;</code> 형태로 재실행하라고만 알린다.</span></li>
+            <li class="b1"><span class="badge">1건</span><span>그 항목의 <code>@</code> 뒤를 <code>MARKETPLACE</code> 로, <code>installPath</code> 를 <code>INSTALL_PATH</code> 로 삼고 진행.</span></li>
+            <li class="b0"><span class="badge">0건</span><span>미설치. <code>MARKETPLACE</code> 를 알면 <code>claude plugin marketplace list --json</code> 에서 <code>.repo</code> 를 찾아 설치 안내를 출력하고 멈춘다. 모르면 안내를 <strong>지어내지 않고</strong> <code>&lt;plugin&gt;@&lt;marketplace&gt;</code> 형태로 재실행하라고만 알린다.</span></li>
             <li class="bn"><span class="badge">2건+</span><span>같은 이름이 여러 marketplace 에 설치된 경우(현재 <code>superpowers</code> 가 그렇다). <strong>어느 쪽인지 추측하지 않고 멈춘다.</strong> 후보 목록을 출력하고 명시적인 <code>&lt;plugin&gt;@&lt;marketplace&gt;</code> 로 재실행하게 한다.</span></li>
           </ul>
+        </div>
+
+        <div class="callout stop" style="margin-top:16px">
+          <h4>CLI 자체가 실패하면 미설치로 읽지 않는다</h4>
+          <p><code>claude plugin list --json</code> 이 실행되지 않는 경우(Claude Code 세션이 아니거나 CLI 가 없을 때) 빈 결과를
+          0건으로 취급하면 이미 설치된 플러그인을 다시 설치하라고 안내하게 된다. 미설치 분기로 떨어지지 말고 원인을 그대로
+          밝히고 멈춘다. <code>claude plugin list</code> 는 Claude Code 전용이므로 다른 하네스는 저장소 루트의
+          <code>references/&lt;harness&gt;-tools.md</code> 를 따른다.</p>
         </div>
 
         <div class="grid2" style="margin-top:16px">
           <article class="card">
             <h4>no-skills 에러 케이스</h4>
-            <p>캐시 디렉터리에서 <code>SKILL.md</code> 를 <strong>0개</strong> 발견하면 <code>스킬 없음, 문서화 대상 아님</code> 을 보고하고 멈춘다. 빈 문서를 만들지 않는다.</p>
+            <p><code>INSTALL_PATH</code> 아래에서 <code>SKILL.md</code> 를 <strong>0개</strong> 발견하면 <code>[FAIL] harness:plugin-guide — 스킬 없음, 문서화 대상 아님 (Step 3 skills)</code> 을 보고하고 멈춘다. 빈 문서를 만들지 않는다.</p>
           </article>
           <article class="card">
             <h4>스킬이 11개 이상이어도 파일은 하나</h4>
@@ -455,7 +467,7 @@
             </li>
             <li>
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><line x1="5.4" y1="14.6" x2="14.6" y2="5.4"/></svg>
-              <span><code>docs/guide/README.md</code> 에 이미 있는 <code>plugins/</code> 링크는 건드리지 않는다(정말로 없을 때만 추가).</span>
+              <span><code>$OUT</code> 바깥은 건드리지 않는다. 쓰는 파일은 <code>$OUT/&lt;PLUGIN&gt;.md</code> 와 <code>$OUT/README.md</code> 둘뿐이고, 상위 디렉터리의 인덱스를 찾아 고치지 않는다.</span>
             </li>
           </ul>
         </article>
