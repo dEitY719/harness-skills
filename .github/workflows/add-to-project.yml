@@ -1,6 +1,6 @@
 name: add-to-project
 
-# Reusable: put every newly opened issue of a caller repo on the unified
+# Reusable: put every newly opened issue or pull request of a caller repo on the unified
 # `skills-plugins` board (https://github.com/users/dEitY719/projects/9), so the
 # 16 *-skills repos share one kanban instead of one board each.
 #
@@ -41,9 +41,9 @@ jobs:
       - name: Warn when the board PAT is missing
         if: env.PAT == ''
         run: |
-          echo "::warning::PROJECT_BOARD_PAT is not set on ${{ github.repository }}; the issue was not added to the board. Set it with: gh secret set PROJECT_BOARD_PAT --repo ${{ github.repository }} --body '<PAT-with-project-scope>'"
+          echo "::warning::PROJECT_BOARD_PAT is not set on ${{ github.repository }}; the item was not added to the board. Set it with: gh secret set PROJECT_BOARD_PAT --repo ${{ github.repository }} --body '<PAT-with-project-scope>'"
 
-      - name: Add the issue to the board
+      - name: Add the item to the board
         if: env.PAT != ''
         uses: actions/add-to-project@v2.0.0
         with:
