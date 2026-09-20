@@ -659,7 +659,17 @@ jobs:
           # is the one exclusion -- hardcoded rather than an input, for the
           # same reason the regex is. Inert in every other repo: they link to
           # that page rather than copy it, so the path does not exist there.
+          #
+          # A consumer's own prose must WORD the ban rather than quote it, or
+          # that page becomes the file failing its own rule
+          # (claudecode-skills#10). No exclusion is offered for it: an input
+          # here is a switch, and one repo's doc is not worth one.
           SELF = "references/plugin-root.md"
+          # TRACKED files only, like every other discovery in this workflow:
+          # an untracked scratch file must not be able to fail a repo's gate.
+          # The corollary bites when this is run by hand -- a file you have
+          # just created is invisible to it until `git add`, so the summary
+          # line prints the count it actually scanned.
           files = subprocess.run(["git", "ls-files"], capture_output=True,
                                  text=True, check=True).stdout.split()
           if not files:
@@ -686,8 +696,11 @@ jobs:
               print("Guard the variable instead: "
                     '[ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || <tier 5>; '
                     "see references/plugin-root.md.")
+              print("Prose that has to describe the banned shape should word "
+                    "it, not quote it -- a quoted literal fails this gate.")
               sys.exit(1)
-          print(f"ok    no empty-default or cwd path splices ({len(files)} tracked file(s))")
+          print(f"ok    no empty-default or cwd path splices "
+                f"({len(files)} tracked file(s); untracked files are not scanned)")
           PY
 
       - name: Repo self-checks pass (tests/)
