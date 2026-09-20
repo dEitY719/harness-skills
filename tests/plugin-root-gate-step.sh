@@ -44,24 +44,35 @@ commit_bad() {  # commit_bad <shell-line>
     git -C "$fixture" -c user.email=t@t -c user.name=t commit -qm bad
 }
 
-commit_bad '_SC="${CLAUDE_PLUGIN_ROOT:-}/lib/vendor/shell-common"'
-expect "an empty default spliced into a path fails" "$fixture" 1 \
-    'lib/bad.sh:2: _SC="${CLAUDE_PLUGIN_ROOT:-}/lib/vendor/shell-common"'
+# This file must not SPELL the shape it is testing, or it becomes the file
+# failing the gate -- which is exactly what happened the first time it was
+# committed, and the same trap claudecode-skills#10 hit in its CLAUDE.md. Each
+# case is assembled from its default instead: the `%s` sits where the `:-`
+# would, so no line here ever matches. Same reasoning as gh-pr-skills'
+# tests/plugin-root-tier5.sh, which states the pattern in prose for this
+# reason; the gate offers no self-exclusion beyond the convention page itself.
+splice() {  # splice <default> -> one banned line, assembled not quoted
+    printf '_SC="${CLAUDE_PLUGIN_ROOT%s}/lib/vendor/shell-common"' "$1"
+}
 
-commit_bad '_SC="${CLAUDE_PLUGIN_ROOT-}/lib/vendor/shell-common"'
-expect "the \${VAR-} form (no colon) fails too" "$fixture" 1 \
+commit_bad "$(splice ':-')"
+expect "an empty default spliced into a path fails" "$fixture" 1 \
+    "lib/bad.sh:2: $(splice ':-')"
+
+commit_bad "$(splice '-')"
+expect "the no-colon form fails too" "$fixture" 1 \
     "caller-controlled or empty path default"
 
-commit_bad '_SC="${CLAUDE_PLUGIN_ROOT:-$PWD}/lib/vendor/shell-common"'
+commit_bad "$(splice ':-$PWD')"
 expect "a \$PWD default fails (retired tier 4)" "$fixture" 1 \
     "caller-controlled or empty path default"
 
-commit_bad '_SC="${CLAUDE_PLUGIN_ROOT:-.}/lib/vendor/shell-common"'
-expect "a . default fails -- the form claudecode-skills#5 shipped" "$fixture" 1 \
+commit_bad "$(splice ':-.')"
+expect "a cwd-dot default fails -- the form claudecode-skills#5 shipped" "$fixture" 1 \
     "caller-controlled or empty path default"
 
-commit_bad '_SC="${CLAUDE_PLUGIN_ROOT:-$(pwd)}/lib/vendor/shell-common"'
-expect "a \$(pwd) default fails" "$fixture" 1 \
+commit_bad "$(splice ':-$(pwd)')"
+expect "a pwd-substitution default fails" "$fixture" 1 \
     "caller-controlled or empty path default"
 
 # The failure has to be actionable: name the file and line, and say what to do

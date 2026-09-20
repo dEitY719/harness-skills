@@ -401,6 +401,17 @@ The one exclusion is this file, which quotes the banned patterns to show them. N
 sibling repo needs it — they link here rather than copying, so the path does not
 exist there and the filter is inert.
 
+**Your own prose must word the ban, not quote it.** A consumer repo that spells
+`${VAR:-.}/` in its `CLAUDE.md` to explain the rule becomes the one file failing
+it (`claudecode-skills#10`). Say "a defaulted expansion spliced straight into a
+path" and link here for the literal; the exclusion is not extended, because an
+exclusion list is a switch and this gate deliberately has none.
+
+The gate reads **tracked** files, so an untracked scratch file cannot fail a
+repo's CI — and, running the one-liner by hand, a file you have just created is
+invisible to it until `git add`. The step prints the count it scanned for that
+reason.
+
 Driven off `git ls-files` rather than a `skills lib` path list, for the same
 reason this repo's emoji check is: the carriers live in different directories in
 different siblings, and a literal path list exits 2 on the repos that have no
