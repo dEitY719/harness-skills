@@ -96,13 +96,14 @@ if [ ! -f "$_SC/functions/gh_host.sh" ]; then
 fi
 unset -f _gh_resolve_host 2>/dev/null || :
 unalias _gh_resolve_host 2>/dev/null || :
+export SHELL_COMMON="$_SC"                                                           # before the load
 [ -f "$_SC/functions/gh_host.sh" ] && . "$_SC/functions/gh_host.sh"
 [ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ] || {             # tier 5
+    unset SHELL_COMMON
     printf '[gh-pr:merge] %s did not load a usable shell-common. On Claude Code this is a broken install; on any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' \
         "$_SC" >&2
     return 1 2>/dev/null || exit 1
 }
-export SHELL_COMMON="$_SC"
 ```
 
 Seven things are load-bearing:
@@ -136,7 +137,19 @@ Seven things are load-bearing:
   `|| :` does not catch it. `|| :` on the `unset -f` and the `unalias` is
   likewise for `zsh`, which returns non-zero when there was no function or alias
   to clear — the normal case.
-- `export` sits after the proof, never inside the fallback branch.
+- **`export SHELL_COMMON` sits before the load and is undone if the proof
+  fails** (`harness-skills#37`). It used to sit after the proof, which reads
+  safer and is wrong: every vendored helper resolves its own siblings through
+  `${SHELL_COMMON:-$HOME/dotfiles/shell-common}` *at source time*, so on the
+  tier-2 path it looked under a `$HOME/dotfiles` that a plugin-only install does
+  not have, silently skipped `dotfiles_root.sh`'s `_dotfiles_root_guard_self`
+  guard, and printed a warning per helper on every run. Setting it afterwards is
+  too late for the only consumer that reads it. The observable contract is
+  unchanged — after this block `SHELL_COMMON` is set if and only if a helper
+  proved out — because the tier-5 arm `unset`s it again. That `unset` is not
+  optional: leaving a tree that failed to load in `SHELL_COMMON` is the
+  poisoned-export bug of `gh-resolve-skills#8`, and unsetting is what lets every
+  later `${SHELL_COMMON:-...}` fall back to its own default instead.
 - The skill name in the message is a literal, not a `$VAR` these blocks do not
   bind — an unbound name printing empty is the same class of bug.
 - `return 1 2>/dev/null || exit 1`, not a bare `exit 1`. The same text gets
@@ -174,9 +187,10 @@ if [ -z "$_root" ]; then
 fi
 unset -f _gh_resolve_host 2>/dev/null || :
 unalias _gh_resolve_host 2>/dev/null || :
-[ -f "$_root/lib/vendor/shell-common/functions/gh_host.sh" ] \
-    && . "$_root/lib/vendor/shell-common/functions/gh_host.sh"
+export SHELL_COMMON="$_root/lib/vendor/shell-common"             # before the load
+[ -f "$SHELL_COMMON/functions/gh_host.sh" ] && . "$SHELL_COMMON/functions/gh_host.sh"
 [ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ] || {  # tier 5
+    unset SHELL_COMMON
     printf '[resolve-target] no plugin root: %s holds no usable lib/vendor/shell-common.\n' "$_root" >&2
     return 1 2>/dev/null || exit 1
 }
@@ -235,7 +249,11 @@ Banned, in shell and in a fenced block alike:
   `harness-skills#22`; see "There is no tier 4" above. `.` is the spelling
   `claudecode-skills#5` actually shipped, so the gate below must name all three.
 - `"$CLAUDE_PLUGIN_ROOT/..."` — no default at all
-- `export`ing any path before the load has proved it
+- **leaving** any path exported once the load has failed to prove it. Setting
+  `SHELL_COMMON` before the `.` is required, not banned — the helpers read it
+  while they source (`harness-skills#37`). What poisons the run is not setting
+  it early, it is still being set after the proof said no, so the tier-5 arm
+  `unset`s it.
 
 Allowed: a non-empty default nobody downstream can write
 (`${VAR:-$HOME/dotfiles}`), or bind-then-guard
