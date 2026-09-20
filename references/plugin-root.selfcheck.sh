@@ -16,8 +16,24 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 mkdir -p "$WORK/plugin/lib/vendor/shell-common/functions" "$WORK/elsewhere" "$WORK/nohome" "$WORK/emptyroot"
 # A real shell-common defines the function the proof looks for. An empty file
 # would satisfy an [ -f ] check and fail the proof — which is the upgrade.
-printf '_gh_resolve_host() { printf %%s github.com; }\n' \
-    >"$WORK/plugin/lib/vendor/shell-common/functions/gh_host.sh"
+#
+# It also does what every real vendored helper does at SOURCE time: resolve a
+# sibling through ${SHELL_COMMON:-$HOME/dotfiles/shell-common} and warn when
+# that misses. dEitY719/dotfiles' gh_host.sh and gh_pr_edit_safe.sh both reach
+# for dotfiles_root.sh this way, and the warning is the observable that
+# harness-skills#37 is about — so the fixture reproduces the lookup rather than
+# just defining the function.
+cat >"$WORK/plugin/lib/vendor/shell-common/functions/gh_host.sh" <<'HELPER'
+_sib="${SHELL_COMMON:-$HOME/dotfiles/shell-common}/functions/dotfiles_root.sh"
+if [ -f "$_sib" ]; then
+    . "$_sib"
+else
+    printf '[gh_host] %s missing — #1454 guard skipped.\n' "$_sib" >&2
+fi
+_gh_resolve_host() { printf %s github.com; }
+HELPER
+printf '_dotfiles_root_guard_self() { :; }\n' \
+    >"$WORK/plugin/lib/vendor/shell-common/functions/dotfiles_root.sh"
 
 # --- the pasted-block snippet, byte-verbatim from plugin-root.md -------------
 # (only the trailing `printf 'RESOLVED=...'` probe is added, so the assertions
@@ -35,13 +51,14 @@ if [ ! -f "$_SC/functions/gh_host.sh" ]; then
 fi
 unset -f _gh_resolve_host 2>/dev/null || :
 unalias _gh_resolve_host 2>/dev/null || :
+export SHELL_COMMON="$_SC"
 [ -f "$_SC/functions/gh_host.sh" ] && . "$_SC/functions/gh_host.sh"
 [ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ] || {
+    unset SHELL_COMMON
     printf '[gh-pr:merge] %s did not load a usable shell-common. On Claude Code this is a broken install; on any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' \
         "$_SC" >&2
     return 1 2>/dev/null || exit 1
 }
-export SHELL_COMMON="$_SC"
 printf 'RESOLVED=%s\n' "$SHELL_COMMON"
 BLOCK
 
@@ -72,8 +89,8 @@ fi
 printf 'ROOT=%s\n' "$_root"
 unset -f _gh_resolve_host 2>/dev/null || :
 unalias _gh_resolve_host 2>/dev/null || :
-[ -f "$_root/lib/vendor/shell-common/functions/gh_host.sh" ] \
-    && . "$_root/lib/vendor/shell-common/functions/gh_host.sh"
+export SHELL_COMMON="$_root/lib/vendor/shell-common"
+[ -f "$SHELL_COMMON/functions/gh_host.sh" ] && . "$SHELL_COMMON/functions/gh_host.sh"
 if [ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ]; then
     printf 'PROVEN=yes\n'
 else
@@ -176,6 +193,19 @@ for shell in $SHELLS; do
         || fail "$shell: a stale alias must not block a genuine load (got: $got)"
 done
 
+# 1d. SHELL_COMMON must already be set while the helper is SOURCED
+#     (harness-skills#37). Every vendored helper resolves its siblings through
+#     ${SHELL_COMMON:-$HOME/dotfiles/shell-common} at source time, so exporting
+#     after the proof is too late: on the tier-2 path the helper looked under a
+#     $HOME/dotfiles that a plugin-only install does not have and skipped its
+#     guard, quietly, once per helper. The observable is the helper's own
+#     warning on stderr — the block resolves either way, which is why this went
+#     unnoticed, and why asserting the exit status alone would not catch it.
+err=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" \
+    sh "$WORK/block.sh" 2>&1 >/dev/null) || true
+[ -z "$err" ] \
+    || fail "the helper could not find its sibling while sourcing — SHELL_COMMON was set too late (got: $err)"
+
 # 2. the retired tier 4 — the cwd genuinely IS the checkout, and the block must
 #    STILL refuse. This is the case that used to succeed by guessing $PWD, and
 #    the reason harness-skills#22 dropped it: a hostile PR is also "the cwd".
@@ -194,12 +224,29 @@ case "$out" in
     *) ;;
 esac
 
-# 4. the failure must not export a poisoned SHELL_COMMON.
+# 4. the failure must not export a poisoned SHELL_COMMON. Both tier-5 arms get
+#    their own case, because they now fail in different ways: the first bails
+#    before SHELL_COMMON is ever set, while the second bails AFTER the block set
+#    it for the helpers to read (harness-skills#37) and has to take it back. One
+#    assertion covering only the first arm would have called the `unset` covered
+#    while never running it.
 got=$(cd "$WORK/elsewhere" && clean sh -c \
     ". $WORK/block.sh; printf 'leaked=%s\n' \"\${SHELL_COMMON-UNSET}\"" 2>/dev/null || true)
 case "$got" in
     *leaked=UNSET*) ;;
-    *) fail "SHELL_COMMON was exported despite the failure (got: $got)" ;;
+    *) fail "SHELL_COMMON was exported despite the tier-5 bail (got: $got)" ;;
+esac
+
+# 4b. the proof-failure arm: tier 2 resolved, the block exported SHELL_COMMON so
+#     the helper could read it, and then the load did not prove out. The `unset`
+#     in that arm is what keeps a tree that failed to load from outranking every
+#     later ${SHELL_COMMON:-...} default — gh-resolve-skills#8's poisoning,
+#     reached by the other road.
+got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/hollow" sh -c \
+    ". $WORK/block.sh; printf 'leaked=%s\n' \"\${SHELL_COMMON-UNSET}\"" 2>/dev/null || true)
+case "$got" in
+    *leaked=UNSET*) ;;
+    *) fail "SHELL_COMMON survived a failed proof (got: $got)" ;;
 esac
 
 # 5. tier 2 beats everything, in one shell — the branch it takes is plain POSIX
@@ -266,9 +313,10 @@ echo "ok  tier 2 resolves from CLAUDE_PLUGIN_ROOT"
 echo "ok  a file that defines nothing fails the proof"
 echo "ok  a PATH executable or alias owning the name does not pass the proof"
 echo "ok  a stale alias does not block a genuine load"
+echo "ok  SHELL_COMMON is already set while the helper is sourced"
 echo "ok  the pasted block refuses \$PWD even in the real checkout"
 echo "ok  tier 5 stops loudly and names the path it tried"
-echo "ok  a failed resolution exports nothing"
+echo "ok  a failed resolution exports nothing, from either tier-5 arm"
 echo "ok  tier 2 wins over the self-path"
 echo "ok  self-path shells reach tier 3 and prove out, the rest stop at tier 5 (covered:$SHELLS)"
 echo "$noself_note"
