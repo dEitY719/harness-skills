@@ -180,10 +180,14 @@ sourced by a *relative* path (`. lib/resolve-target.sh`) also fails that
 pattern, and declining is the right answer there too: the cwd it would have to
 guess from is the caller's, not the plugin's.
 
-zsh and bash reach tier 3. `dash` and `sh` have no self-path at all, so with
-`CLAUDE_PLUGIN_ROOT` unset they stop at tier 5 — same as any pasted block, and
-for the same reason: nothing left is knowable. Tier 3 is a bonus, never a
-guarantee; the proof is what holds.
+What decides the tier is whether the shell sets `$ZSH_VERSION` or
+`$BASH_VERSION`, not the name it was invoked under. zsh and bash reach tier 3;
+`dash`, and any other shell setting neither, has no self-path at all, so with
+`CLAUDE_PLUGIN_ROOT` unset it stops at tier 5 — same as any pasted block, and
+for the same reason: nothing left is knowable. `sh` belongs to whichever group
+`/bin/sh` actually is: bash invoked as `sh` still exports `$BASH_VERSION` and
+still reaches tier 3, which some minimal container images make the normal case.
+Tier 3 is a bonus, never a guarantee; the proof is what holds.
 
 Both snippets on this page are asserted by
 [`plugin-root.selfcheck.sh`](plugin-root.selfcheck.sh), which runs them across
@@ -210,9 +214,11 @@ reviewers passed it.
 Banned, in shell and in a fenced block alike:
 
 - `"${VAR:-}/..."` and `"${VAR-}/..."` — an explicitly empty default spliced into a path
-- `"${VAR:-$PWD}/..."` — a non-empty default that the caller, or a PR under
-  review, controls. It fixes the root-collapse bug and opens the one in
-  `harness-skills#22`; see "There is no tier 4" above.
+- `"${VAR:-$PWD}/..."`, `"${VAR:-.}/..."`, `"${VAR:-$(pwd)}/..."` — three
+  spellings of one non-empty default that the caller, or a PR under review,
+  controls. They fix the root-collapse bug and open the one in
+  `harness-skills#22`; see "There is no tier 4" above. `.` is the spelling
+  `claudecode-skills#5` actually shipped, so the gate below must name all three.
 - `"$CLAUDE_PLUGIN_ROOT/..."` — no default at all
 - `export`ing any path before the load has proved it
 
@@ -220,15 +226,23 @@ Allowed: a non-empty default nobody downstream can write
 (`${VAR:-$HOME/dotfiles}`), or bind-then-guard
 (`_root="${VAR:-}"; [ -n "$_root" ] || <tier 3/5>`).
 
-One grep is the gate. It has no false positives — an empty default, or a `$PWD`
-default, immediately followed by `/` is always the defect, and a guarded
-`[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]` does not match it:
+One grep is the gate. It has no false positives — an empty default, or a default
+that names the cwd, immediately followed by `/` is always the defect, and a
+guarded `[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]` does not match it:
 
 ```sh
-git ls-files -z | xargs -0 grep -nE '\$\{[A-Za-z_][A-Za-z0-9_]*:?-(\$PWD)?\}/' \
+git ls-files -z \
+  | xargs -0 grep -nE '\$\{[A-Za-z_][A-Za-z0-9_]*:?-(\$PWD|\$\(pwd\)|\.)?\}/' \
   | grep -v '^references/plugin-root\.md:' \
-  || echo "ok  no empty-default or \$PWD path splices"
+  || echo "ok  no empty-default or cwd path splices"
 ```
+
+The alternation is the whole gate: a `$PWD`-only one passed `${VAR:-.}/` and
+`${VAR:-$(pwd)}/`, which are the same caller-controlled path by another name —
+and `:-.` is the form that slipped into `gh-issue-skills`' auto-labels prologue
+(its PR #35) after that repo had already run this grep clean. Widening it costs
+no false positives: an allowed default (`${VAR:-$HOME/dotfiles}/`) still names
+something the caller cannot write, so it still does not match.
 
 The one exclusion is this file, which quotes the banned patterns to show them. No
 sibling repo needs it — they link here rather than copying, so the path does not
