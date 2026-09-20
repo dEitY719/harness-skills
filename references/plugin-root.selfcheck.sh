@@ -1,5 +1,5 @@
 #!/bin/sh
-# references/plugin-root.selfcheck.sh — assert the two canonical snippets in
+# references/plugin-root.selfcheck.sh — assert the three canonical snippets in
 # plugin-root.md behave as that file claims. Same convention as
 # gh-issue-skills' lib/resolve-target.selfcheck.sh: the check lives beside the
 # thing it checks.
@@ -34,6 +34,32 @@ _gh_resolve_host() { printf %s github.com; }
 HELPER
 printf '_dotfiles_root_guard_self() { :; }\n' \
     >"$WORK/plugin/lib/vendor/shell-common/functions/dotfiles_root.sh"
+
+# The soft loader's helper. Separate from gh_host.sh on purpose: the soft form
+# exists for a step that is optional, and a fixture that reused the host
+# resolver would be asserting the soft shape over a helper no skill is allowed
+# to lose.
+cat >"$WORK/plugin/lib/vendor/shell-common/functions/gh_project_status.sh" <<'BOARD'
+_sib="${SHELL_COMMON:-$HOME/dotfiles/shell-common}/functions/dotfiles_root.sh"
+[ -f "$_sib" ] || printf '[gh_project_status] %s missing — guard skipped.\n' "$_sib" >&2
+_gh_project_status_sync() { printf %s synced; }
+BOARD
+
+# A board tree that exists and defines nothing — the soft form's equivalent of
+# $WORK/hollow, and what isolates the proof from the load. Without it, every
+# "imposter" case below would be satisfied by the load simply missing, and
+# would pass just as well against the exit-status proof it is meant to reject.
+mkdir -p "$WORK/hollowboard/lib/vendor/shell-common/functions"
+: >"$WORK/hollowboard/lib/vendor/shell-common/functions/gh_project_status.sh"
+
+# A tree an earlier HARD block would have proved and exported — it defines the
+# host resolver — but which ships no board helper. Assertion 12a needs exactly
+# this: pointing SHELL_COMMON at a complete tree would let the soft block load
+# from tier 1 and succeed, so the restore arm would never run and the assertion
+# would pass without testing anything.
+mkdir -p "$WORK/proven/functions"
+printf '_gh_resolve_host() { printf %%s github.com; }\n' \
+    >"$WORK/proven/functions/gh_host.sh"
 
 # --- the pasted-block snippet, byte-verbatim from plugin-root.md -------------
 # (only the trailing `printf 'RESOLVED=...'` probe is added, so the assertions
@@ -97,6 +123,33 @@ else
     printf 'PROVEN=no\n'
 fi
 SELF
+
+# --- the soft warn-and-skip snippet, verbatim from plugin-root.md ------------
+# (the real call inside the success arm is replaced by a SYNCED= probe — there
+#  is no gh to call here — and a trailing LEFT= probe is added so the
+#  restore-vs-unset assertions can read what the block handed back. The
+#  resolution, the proof and the failure arm are byte-identical to the doc.)
+cat >"$WORK/soft.sh" <<'SOFT'
+_SC="${SHELL_COMMON:-$HOME/dotfiles/shell-common}"
+if [ ! -f "$_SC/functions/gh_project_status.sh" ]; then
+    [ -z "${CLAUDE_PLUGIN_ROOT:-}" ] ||
+        _SC="$CLAUDE_PLUGIN_ROOT/lib/vendor/shell-common"
+fi
+_sc_was=${SHELL_COMMON+set} _sc_prev="${SHELL_COMMON-}"
+unset -f _gh_project_status_sync 2>/dev/null || :
+unalias _gh_project_status_sync 2>/dev/null || :
+export SHELL_COMMON="$_SC"
+[ -f "$_SC/functions/gh_project_status.sh" ] && . "$_SC/functions/gh_project_status.sh"
+if [ "$(command -v _gh_project_status_sync 2>/dev/null)" = _gh_project_status_sync ]; then
+    printf 'SYNCED=%s\n' "$(_gh_project_status_sync)"
+else
+    if [ -n "$_sc_was" ]; then export SHELL_COMMON="$_sc_prev"; else unset SHELL_COMMON; fi
+    printf '[gh-pr:commit] no usable shell-common under %s — board sync skipped; the commit itself is unaffected.\n' \
+        "$_SC" >&2
+fi
+unset _sc_was _sc_prev
+printf 'LEFT=%s\n' "${SHELL_COMMON-UNSET}"
+SOFT
 
 # env -u for every variable that could mask a tier, so the machine running this
 # does not decide the outcome.
@@ -170,6 +223,8 @@ refuses "$WORK/elsewhere" "did not load a usable shell-common" \
 mkdir -p "$WORK/bin"
 printf '#!/bin/sh\nprintf hijacked\n' >"$WORK/bin/_gh_resolve_host"
 chmod +x "$WORK/bin/_gh_resolve_host"
+printf '#!/bin/sh\nprintf hijacked\n' >"$WORK/bin/_gh_project_status_sync"
+chmod +x "$WORK/bin/_gh_project_status_sync"
 for shell in $SHELLS; do
     refuses "$WORK/elsewhere" "did not load a usable shell-common" \
         "$shell: a PATH executable named _gh_resolve_host must not pass the proof" \
@@ -191,6 +246,20 @@ for shell in $SHELLS; do
         "alias _gh_resolve_host=true; . $WORK/block.sh" 2>/dev/null) || true
     [ "$got" = "RESOLVED=$WORK/plugin/lib/vendor/shell-common" ] \
         || fail "$shell: a stale alias must not block a genuine load (got: $got)"
+done
+
+# 1c-bis. ...and an inherited FUNCTION must not pass either — the case `unset -f`
+#     exists for, and the one the fixtures above could not see: they each run in
+#     a fresh shell where no such function exists, so dropping `unset -f` changed
+#     nothing and every assertion stayed green. A block sourced into a shell that
+#     already defines the name is the normal case in these skills, where several
+#     blocks run in sequence, and there an inherited definition certifies a tree
+#     that loaded nothing.
+for shell in $SHELLS; do
+    refuses "$WORK/elsewhere" "did not load a usable shell-common" \
+        "$shell: a function inherited from the caller must not pass the proof" \
+        CLAUDE_PLUGIN_ROOT="$WORK/hollow" "$shell" -c \
+        "_gh_resolve_host() { printf %s stale; }; . $WORK/block.sh"
 done
 
 # 1d. SHELL_COMMON must already be set while the helper is SOURCED
@@ -309,9 +378,131 @@ refuses "$WORK/elsewhere" "did not load a usable shell-common" \
     "set -e must not swallow a missing shell-common" \
     sh -c "set -e; CLAUDE_PLUGIN_ROOT=$WORK/emptyroot; export CLAUDE_PLUGIN_ROOT; . $WORK/block.sh"
 
+# --- the soft warn-and-skip form (harness-skills#60) -------------------------
+# Same proof, same export ordering, a different failure arm. Each assertion
+# below is about the part that DIFFERS; the shared parts are exercised by 1b-1d
+# above over the same idiom.
+#
+# 9. It resolves and runs, from tier 2, exactly like the hard form.
+got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" sh "$WORK/soft.sh")
+case "$got" in
+    *SYNCED=synced*) ;;
+    *) fail "the soft loader did not resolve and run from tier 2 (got: $got)" ;;
+esac
+
+# 10. It WARNS and CONTINUES rather than stopping — exit 0, the optional step
+#     skipped, and the warning naming the path it tried. A soft block that
+#     exits non-zero is a hard block with a friendly message, and a soft block
+#     that says nothing is the silent skip the doc's condition 4 forbids: both
+#     are asserted, because each alone passes for the other's bug.
+if ! out=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/emptyroot" \
+    sh "$WORK/soft.sh" 2>&1); then
+    fail "the soft loader stopped the run instead of skipping the step (got: $out)"
+fi
+case "$out" in
+    *"board sync skipped"*) ;;
+    *) fail "the soft loader skipped silently — no warning (got: $out)" ;;
+esac
+case "$out" in
+    *"$WORK/emptyroot/lib/vendor/shell-common"*) ;;
+    *) fail "the soft loader's warning does not name the path it tried (got: $out)" ;;
+esac
+case "$out" in
+    *SYNCED=*) fail "the soft loader ran the step although the proof failed (got: $out)" ;;
+    *) ;;
+esac
+
+# 11. The proof is the same proof, per shell. A false pass here is worse than
+#     in the hard form: nothing stops, no warning prints, and the optional step
+#     is reported done while an imposter answered for it.
+#     $WORK/hollowboard, not $WORK/emptyroot: with the helper genuinely absent
+#     the load fails on its own and every shape below "passes", including the
+#     exit-status one. The hollow tree makes the proof the only thing deciding.
+for shell in $SHELLS; do
+    out=$(cd "$WORK/elsewhere" && clean PATH="$WORK/bin:$PATH" \
+        CLAUDE_PLUGIN_ROOT="$WORK/hollowboard" "$shell" "$WORK/soft.sh" 2>&1) || true
+    case "$out" in
+        *"board sync skipped"*) ;;
+        *) fail "$shell: a PATH executable owning the name passed the soft proof (got: $out)" ;;
+    esac
+    out=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/hollowboard" "$shell" -c \
+        "alias _gh_project_status_sync=true; . $WORK/soft.sh" 2>&1) || true
+    case "$out" in
+        *"board sync skipped"*) ;;
+        *) fail "$shell: an alias owning the name passed the soft proof (got: $out)" ;;
+    esac
+    out=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/hollowboard" "$shell" -c \
+        "_gh_project_status_sync() { printf %s stale; }; . $WORK/soft.sh" 2>&1) || true
+    case "$out" in
+        *"board sync skipped"*) ;;
+        *) fail "$shell: a function inherited from the caller passed the soft proof (got: $out)" ;;
+    esac
+    # ...and the `unalias` that closes the alias case must not cost a real load,
+    # the same mirror assertion 1c makes for the hard form. This is the one that
+    # fails when `unalias` is dropped, since the refusals above are satisfied by
+    # any refusal at all.
+    out=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" "$shell" -c \
+        "alias _gh_project_status_sync=true; . $WORK/soft.sh" 2>/dev/null) || true
+    case "$out" in
+        *SYNCED=synced*) ;;
+        *) fail "$shell: a stale alias blocked a genuine soft load (got: $out)" ;;
+    esac
+done
+
+# 11b. SHELL_COMMON must be set while the SOFT helper is sourced too — the same
+#      harness-skills#37 observable as assertion 1d, asserted separately
+#      because the soft block builds its own path and could regress alone. The
+#      helper warns on stderr when its sibling lookup misses; a clean run and a
+#      successful sync together are the evidence.
+out=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" \
+    sh "$WORK/soft.sh" 2>&1 >/dev/null) || true
+[ -z "$out" ] \
+    || fail "the soft helper could not find its sibling while sourcing — SHELL_COMMON was set too late (got: $out)"
+
+# 12. The failure arm RESTORES SHELL_COMMON; it does not unset it. This is the
+#     one place the soft form deliberately departs from the hard one, and both
+#     directions have to hold or the invariant "set iff a helper proved out"
+#     breaks on one side:
+#
+#     12a. handed a proven value, the block must hand it straight back. A hard
+#          block bound it in an earlier step and required code after this one
+#          reads it, so clearing it here would let an OPTIONAL step's failure
+#          take the run down — soft mode's blast radius, inverted.
+got=$(cd "$WORK/elsewhere" && env -u DOTFILES_ROOT HOME="$WORK/nohome" \
+    SHELL_COMMON="$WORK/proven" CLAUDE_PLUGIN_ROOT="$WORK/emptyroot" \
+    sh "$WORK/soft.sh" 2>/dev/null) || true
+case "$got" in
+    *SYNCED=*) fail "12a did not reach the failure arm — the fixture tree answered the load (got: $got)" ;;
+esac
+case "$got" in
+    *"LEFT=$WORK/proven"*) ;;
+    *) fail "the soft failure arm destroyed an earlier block's proven SHELL_COMMON (got: $got)" ;;
+esac
+
+#     12b. handed nothing, it must leave nothing — the hard arm's `unset`, and
+#          the half that keeps a tree which failed to load from being exported
+#          (gh-resolve-skills#8).
+got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/emptyroot" \
+    sh "$WORK/soft.sh" 2>/dev/null) || true
+case "$got" in
+    *LEFT=UNSET*) ;;
+    *) fail "the soft failure arm left the tree it just rejected exported (got: $got)" ;;
+esac
+
+#     12c. an EMPTY inherited SHELL_COMMON is restored as empty, not as unset.
+#          `${VAR+set}` / `${VAR-}` distinguish the two; the `:` forms do not,
+#          and a save written with them silently converts one to the other in
+#          the exact case the save exists for.
+got=$(cd "$WORK/elsewhere" && env -u DOTFILES_ROOT HOME="$WORK/nohome" \
+    SHELL_COMMON= CLAUDE_PLUGIN_ROOT="$WORK/emptyroot" sh "$WORK/soft.sh" 2>/dev/null) || true
+case "$got" in
+    'LEFT=') ;;
+    *) fail "an empty SHELL_COMMON was not restored as empty — the save used the \`:\` forms (got: $got)" ;;
+esac
+
 echo "ok  tier 2 resolves from CLAUDE_PLUGIN_ROOT"
 echo "ok  a file that defines nothing fails the proof"
-echo "ok  a PATH executable or alias owning the name does not pass the proof"
+echo "ok  a PATH executable, alias or inherited function owning the name does not pass the proof"
 echo "ok  a stale alias does not block a genuine load"
 echo "ok  SHELL_COMMON is already set while the helper is sourced"
 echo "ok  the pasted block refuses \$PWD even in the real checkout"
@@ -321,3 +512,8 @@ echo "ok  tier 2 wins over the self-path"
 echo "ok  self-path shells reach tier 3 and prove out, the rest stop at tier 5 (covered:$SHELLS)"
 echo "$noself_note"
 echo "ok  set -e does not swallow a missing shell-common"
+echo "ok  the soft loader resolves and runs from tier 2"
+echo "ok  the soft loader warns and continues instead of stopping, naming the path"
+echo "ok  a PATH executable, alias or inherited function does not pass the soft proof either, and a stale alias does not block a real one (covered:$SHELLS)"
+echo "ok  SHELL_COMMON is already set while the soft helper is sourced"
+echo "ok  the soft failure arm restores SHELL_COMMON, exports no failed tree, and keeps unset and empty apart"

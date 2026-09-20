@@ -80,9 +80,40 @@ consolation prize.
 not a path-resolution problem at all. The agent already holds the root; that is
 exactly the value tier 2 wants it to export.
 
+## Hard or soft: pick the failure mode before the shape
+
+Every snippet on this page below resolves a root and then loads a helper from
+it. What differs is what happens when the load does not prove out, and that is
+a property of the **skill's contract**, not of the loader:
+
+- **Hard stop** — the skill's output is wrong or absent without this helper, so
+  the run ends: `return 1 2>/dev/null || exit 1`. This is the default, and the
+  two forms below are both hard.
+- **Soft warn-and-skip** — the helper drives a step the skill already documents
+  as optional, so the run continues with that step disabled and one warning.
+  The form is at "Canonical form — soft warn-and-skip loader".
+
+A loader may be soft only when **all four** hold. This is a test, not a
+preference — the wrong answer here is how an optional-looking step turns out to
+have been load-bearing:
+
+1. the skill's own contract already says the step is optional (a board sync, a
+   label nicety, a metrics comment) — not merely that it is cheap to lose;
+2. the skill's primary artifact is correct and complete without it;
+3. **nothing downstream reads what it loaded.** A loader that binds a value a
+   later step consumes is not optional, however peripheral it looks — if it
+   skips, the later step gets an unbound or stale value and that is a hard
+   failure wearing a soft coat;
+4. skipping is **observable**: one warning naming the path it tried. Silence
+   makes "the helper was missing" indistinguishable from "there was nothing to
+   do", and the second is the reading everyone defaults to.
+
+Fail any one of them and the loader is hard. Target binding, argument parsing
+and anything the report quotes are hard; there is no third option.
+
 ## Canonical form — pasted block
 
-The shape every `github-target.md` / `board-sync-*.md` site should converge on:
+Hard stop. The shape every `github-target.md` site should converge on:
 
 ```sh
 _SC="${DOTFILES_ROOT:-$HOME/dotfiles}/shell-common"                                  # tier 1
@@ -159,7 +190,7 @@ Seven things are load-bearing:
 
 ## Canonical form — a `.sh` file that can locate itself
 
-Prefer this: move the block into `lib/<name>.sh` and let the pasted block shrink
+Hard stop. Prefer this: move the block into `lib/<name>.sh` and let the pasted block shrink
 to one `.` line. `gh-issue-skills#11`'s `lib/resolve-target.sh` is the reference
 implementation.
 
@@ -218,13 +249,94 @@ for the same reason: nothing left is knowable. `sh` belongs to whichever group
 still reaches tier 3, which some minimal container images make the normal case.
 Tier 3 is a bonus, never a guarantee; the proof is what holds.
 
-Both snippets on this page are asserted by
+All three snippets on this page are asserted by
 [`plugin-root.selfcheck.sh`](plugin-root.selfcheck.sh), which runs them across
 every shell present and checks that tier 5 stops, names the path it tried, and
 exports nothing; that a file which defines nothing fails the proof, and neither
-does a `PATH` executable or an alias that merely owns the name; and that neither
-snippet resolves from the cwd even when the cwd genuinely is the checkout. Run it before changing either snippet, and copy its tier-5 case into a
-rollout PR's test plan.
+does a `PATH` executable or an alias that merely owns the name; that neither
+hard snippet resolves from the cwd even when the cwd genuinely is the checkout;
+and that the soft loader warns instead of stopping, still refuses an imposter,
+and hands back the `SHELL_COMMON` it was given rather than clearing it. Run it
+before changing any snippet, and copy its tier-5 case into a rollout PR's test
+plan.
+
+## Canonical form — soft warn-and-skip loader
+
+For a step the four-part test above admits. `gh-pr-skills`' board-sync blocks
+are the motivating set (`harness-skills#60`): projectV2 bookkeeping that must
+never cost a commit, a PR or a merge.
+
+```sh
+_SC="${SHELL_COMMON:-$HOME/dotfiles/shell-common}"                                   # tier 1
+if [ ! -f "$_SC/functions/gh_project_status.sh" ]; then
+    [ -z "${CLAUDE_PLUGIN_ROOT:-}" ] ||                                              # tier 2
+        _SC="$CLAUDE_PLUGIN_ROOT/lib/vendor/shell-common"
+fi
+_sc_was=${SHELL_COMMON+set} _sc_prev="${SHELL_COMMON-}"                              # save
+unset -f _gh_project_status_sync 2>/dev/null || :
+unalias _gh_project_status_sync 2>/dev/null || :
+export SHELL_COMMON="$_SC"                                                           # before the load
+[ -f "$_SC/functions/gh_project_status.sh" ] && . "$_SC/functions/gh_project_status.sh"
+if [ "$(command -v _gh_project_status_sync 2>/dev/null)" = _gh_project_status_sync ]; then
+    _gh_project_status_sync issue <N> "In progress" --only-from Backlog || :
+else                                                                                 # tier 5, soft
+    if [ -n "$_sc_was" ]; then export SHELL_COMMON="$_sc_prev"; else unset SHELL_COMMON; fi
+    printf '[gh-pr:commit] no usable shell-common under %s — board sync skipped; the commit itself is unaffected.\n' \
+        "$_SC" >&2
+fi
+unset _sc_was _sc_prev
+```
+
+Everything load-bearing in the hard form is load-bearing here **unchanged** —
+`unset -f` + `unalias`, `export SHELL_COMMON` before the `.`, the `[ -f ]` load
+guard, the output-comparing proof, the message naming the path. Read that list;
+it is not restated. Four things differ, and only the first is a real design
+decision:
+
+- **The failure arm restores `SHELL_COMMON`; it does not unset it.** The hard
+  form can unset unconditionally because it never returns to its caller. This
+  one does, and in the consumers it is normally *not* the first loader in the
+  run — the board-sync blocks open on `${SHELL_COMMON:-...}` precisely because
+  a hard block bound it in an earlier step. Unsetting there would let an
+  optional step's failure knock out the proven value every *required*
+  `${SHELL_COMMON:-...}` after it reads, so a missing board helper would take
+  the rest of the run down with it: the exact blast radius soft mode exists to
+  avoid, inverted.
+
+  The invariant is unchanged, not weakened. Across both forms it is
+  **`SHELL_COMMON` is set if and only if a helper proved out** — and restoring
+  is what keeps it true in both directions, because the value being restored is
+  one that *did* prove out, in an earlier block. The hard arm's `unset` is the
+  same rule in the case where there was nothing to restore. Leaving the
+  *failed* tree exported is still `gh-resolve-skills#8` and still banned; this
+  differs from that in which value survives, not in whether a bad one does.
+
+  `${VAR+set}` and `${VAR-}`, not `${VAR:+...}` / `${VAR:-...}`: the `:` forms
+  cannot tell unset from empty, and restoring an empty `SHELL_COMMON` as unset
+  is a silent behaviour change in the one case the save exists to preserve.
+
+- **One failure arm instead of two.** There is no early `[ -n
+  "${CLAUDE_PLUGIN_ROOT:-}" ]` bail, because a soft block has nothing to bail
+  *to* — an unset variable simply leaves `_SC` at tier 1, the load misses, and
+  the single arm below handles it with the same message. The `[ -z ... ] ||`
+  around the tier-2 assignment is still required, and for the ordinary reason:
+  it is what keeps `$CLAUDE_PLUGIN_ROOT/...` from composing `/lib/vendor/...`
+  out of an empty variable.
+
+- **Tier 5 still means stop, and still names the path.** What stops is the
+  optional step, not the run. Keeping the number is deliberate: there is no
+  extra tier here, only a smaller thing being abandoned, and a block that
+  degrades without saying which path it tried is not tier 5 at all — it is the
+  silent skip condition 4 above forbids.
+
+- **The call itself keeps its own `|| :`.** The proof says the function is
+  loaded; it says nothing about the API call inside it succeeding. That is a
+  second, unrelated soft failure and it needs its own suppression.
+
+A soft block's proof is not the weaker case. A false pass in the hard form
+stops the run, which is visible; here it calls whatever owns the name —
+a `PATH` executable, an inherited function, an alias — prints no warning at
+all, and reports the optional step as done.
 
 ## Rule: never concatenate a possibly-empty variable into a path
 
@@ -249,11 +361,12 @@ Banned, in shell and in a fenced block alike:
   `harness-skills#22`; see "There is no tier 4" above. `.` is the spelling
   `claudecode-skills#5` actually shipped, so the gate below must name all three.
 - `"$CLAUDE_PLUGIN_ROOT/..."` — no default at all
-- **leaving** any path exported once the load has failed to prove it. Setting
-  `SHELL_COMMON` before the `.` is required, not banned — the helpers read it
-  while they source (`harness-skills#37`). What poisons the run is not setting
-  it early, it is still being set after the proof said no, so the tier-5 arm
-  `unset`s it.
+- **leaving the failed path exported** once the load has not proved out.
+  Setting `SHELL_COMMON` before the `.` is required, not banned — the helpers
+  read it while they source (`harness-skills#37`). What poisons the run is not
+  setting it early, it is *that tree* still being set after the proof said no.
+  A hard block `unset`s it; a soft block restores whatever it was handed, which
+  is the same rule wherever there was nothing to hand back.
 
 Allowed: a non-empty default nobody downstream can write
 (`${VAR:-$HOME/dotfiles}`), or bind-then-guard
