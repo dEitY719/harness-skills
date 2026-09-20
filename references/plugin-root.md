@@ -95,8 +95,9 @@ if [ ! -f "$_SC/functions/gh_host.sh" ]; then
     _SC="$CLAUDE_PLUGIN_ROOT/lib/vendor/shell-common"                                # tier 2
 fi
 unset -f _gh_resolve_host 2>/dev/null || :
+unalias _gh_resolve_host 2>/dev/null || :
 [ -f "$_SC/functions/gh_host.sh" ] && . "$_SC/functions/gh_host.sh"
-command -v _gh_resolve_host >/dev/null 2>&1 || {                                     # tier 5
+[ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ] || {             # tier 5
     printf '[gh-pr:merge] %s did not load a usable shell-common. On Claude Code this is a broken install; on any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' \
         "$_SC" >&2
     return 1 2>/dev/null || exit 1
@@ -104,24 +105,37 @@ command -v _gh_resolve_host >/dev/null 2>&1 || {                                
 export SHELL_COMMON="$_SC"
 ```
 
-Six things are load-bearing:
+Seven things are load-bearing:
 
 - **Tier 2 is never defaulted into a path.** `[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]`
   guards the assignment instead. That is what keeps tier 2 from collapsing to the
   filesystem root without reaching for a default like `:-$PWD` — see "There is no
   tier 4" above for why that default is not the way out.
-- **The `unset -f` / `. ` / `command -v` proof**, converged on over three review
-  rounds in `gh-issue-skills#14`. `unset -f` first means the `command -v` after
-  the load proves *this* load, in *this* shell, defined the function — not one
-  inherited from an earlier block, not a half-sourced file, not a directory
-  sitting at that path. It says **nothing** about who put the file there:
-  provenance is closed by there being no tier that guesses a root, not by this
-  check. An existence test answers "is there a file" and no more, which is why it
-  is no longer the last word.
+- **The `unset -f` / `unalias` / `. ` / `command -v` proof**, converged on over
+  three review rounds in `gh-issue-skills#14`. Clearing the name first means the
+  test after the load proves *this* load, in *this* shell, defined the function
+  — not one inherited from an earlier block, not a half-sourced file, not a
+  directory sitting at that path. It says **nothing** about who put the file
+  there: provenance is closed by there being no tier that guesses a root, not by
+  this check. An existence test answers "is there a file" and no more, which is
+  why it is no longer the last word.
+- **The proof compares `command -v`'s output to the bare name; it does not just
+  check its exit status** (`harness-skills#36`). `command -v` answers "is this
+  name runnable", not "is this name a function": with the helper loading but
+  defining nothing, a `PATH` executable called `_gh_resolve_host` passes the
+  exit-status form in all four of `sh`, `dash`, `bash` and `zsh`, and an alias
+  passes it in three. POSIX pins the output instead — a function or built-in
+  prints the bare name, an external command its pathname, an alias a
+  reinput-able `alias ...` string — so one `=` separates them with no
+  non-POSIX `type -t` / `declare -F` / `typeset -f`, none of which `dash` has.
+  `unalias` is the other half: without it a live alias outranks the function
+  the load just defined in `sh`, `dash` and `zsh` (and in `zsh` stops it being
+  defined at all), turning a good load into a false tier 5.
 - The `[ -f ]` in front of the `.` is a **load guard, not the proof**. `.` is a
   special built-in, so a missing file aborts a `set -e` `dash`/`sh` outright and
-  `|| :` does not catch it. `|| :` on the `unset -f` is likewise for `zsh`, which
-  returns non-zero when the function was never defined — the normal case.
+  `|| :` does not catch it. `|| :` on the `unset -f` and the `unalias` is
+  likewise for `zsh`, which returns non-zero when there was no function or alias
+  to clear — the normal case.
 - `export` sits after the proof, never inside the fallback branch.
 - The skill name in the message is a literal, not a `$VAR` these blocks do not
   bind — an unbound name printing empty is the same class of bug.
@@ -159,9 +173,10 @@ if [ -z "$_root" ]; then
     esac
 fi
 unset -f _gh_resolve_host 2>/dev/null || :
+unalias _gh_resolve_host 2>/dev/null || :
 [ -f "$_root/lib/vendor/shell-common/functions/gh_host.sh" ] \
     && . "$_root/lib/vendor/shell-common/functions/gh_host.sh"
-command -v _gh_resolve_host >/dev/null 2>&1 || {                 # tier 5
+[ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ] || {  # tier 5
     printf '[resolve-target] no plugin root: %s holds no usable lib/vendor/shell-common.\n' "$_root" >&2
     return 1 2>/dev/null || exit 1
 }
@@ -192,9 +207,9 @@ Tier 3 is a bonus, never a guarantee; the proof is what holds.
 Both snippets on this page are asserted by
 [`plugin-root.selfcheck.sh`](plugin-root.selfcheck.sh), which runs them across
 every shell present and checks that tier 5 stops, names the path it tried, and
-exports nothing; that a file which defines nothing fails the proof; and that
-neither snippet resolves from the cwd even when the cwd genuinely is the
-checkout. Run it before changing either snippet, and copy its tier-5 case into a
+exports nothing; that a file which defines nothing fails the proof, and neither
+does a `PATH` executable or an alias that merely owns the name; and that neither
+snippet resolves from the cwd even when the cwd genuinely is the checkout. Run it before changing either snippet, and copy its tier-5 case into a
 rollout PR's test plan.
 
 ## Rule: never concatenate a possibly-empty variable into a path

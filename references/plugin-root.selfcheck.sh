@@ -34,8 +34,9 @@ if [ ! -f "$_SC/functions/gh_host.sh" ]; then
     _SC="$CLAUDE_PLUGIN_ROOT/lib/vendor/shell-common"
 fi
 unset -f _gh_resolve_host 2>/dev/null || :
+unalias _gh_resolve_host 2>/dev/null || :
 [ -f "$_SC/functions/gh_host.sh" ] && . "$_SC/functions/gh_host.sh"
-command -v _gh_resolve_host >/dev/null 2>&1 || {
+[ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ] || {
     printf '[gh-pr:merge] %s did not load a usable shell-common. On Claude Code this is a broken install; on any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' \
         "$_SC" >&2
     return 1 2>/dev/null || exit 1
@@ -70,9 +71,10 @@ if [ -z "$_root" ]; then
 fi
 printf 'ROOT=%s\n' "$_root"
 unset -f _gh_resolve_host 2>/dev/null || :
+unalias _gh_resolve_host 2>/dev/null || :
 [ -f "$_root/lib/vendor/shell-common/functions/gh_host.sh" ] \
     && . "$_root/lib/vendor/shell-common/functions/gh_host.sh"
-if command -v _gh_resolve_host >/dev/null 2>&1; then
+if [ "$(command -v _gh_resolve_host 2>/dev/null)" = _gh_resolve_host ]; then
     printf 'PROVEN=yes\n'
 else
     printf 'PROVEN=no\n'
@@ -101,6 +103,32 @@ refuses() {  # refuses <dir> <needle> <label> <cmd>...
     esac
 }
 
+# --- the shell matrix, discovered once ---------------------------------------
+# Deduplicate by resolved binary: on Debian-family boxes /bin/sh IS dash, and
+# running it twice under two names would report coverage that is not there.
+#
+# Classify by what each shell IS, never by the name it was invoked under. A name
+# list silently encodes "/bin/sh is not bash", which some minimal images break:
+# bash exports $BASH_VERSION even as `sh`, so it reaches tier 3, and a name list
+# would assert the tier-5 refusal against it and fail. Asking the shell the same
+# question the snippet asks is the only sound classifier — and combined with the
+# dedup it also keeps the matrix from reporting four shells' coverage when four
+# names resolve to one binary, which is why the names actually run are printed
+# in the summary rather than kept private.
+has_selfpath() {  # has_selfpath <shell> — the snippet's own branch condition
+    [ "$("$1" -c 'if [ -n "${ZSH_VERSION-}" ] || [ -n "${BASH_VERSION-}" ]
+                  then printf yes; else printf no; fi')" = yes ]
+}
+
+SHELLS="" seen="" noself=""
+for shell in sh dash bash zsh; do
+    path=$(command -v "$shell" 2>/dev/null) || continue
+    real=$(readlink -f "$path" 2>/dev/null || echo "$path")
+    case " $seen " in *" $real "*) continue ;; esac
+    seen="$seen $real" SHELLS="$SHELLS $shell"
+    has_selfpath "$shell" || { [ -n "$noself" ] || noself="$shell"; }
+done
+
 # 1. tier 2 — the variable is set, cwd is irrelevant.
 got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" sh "$WORK/block.sh")
 [ "$got" = "RESOLVED=$WORK/plugin/lib/vendor/shell-common" ] \
@@ -114,6 +142,39 @@ mkdir -p "$WORK/hollow/lib/vendor/shell-common/functions"
 refuses "$WORK/elsewhere" "did not load a usable shell-common" \
     "a hollow gh_host.sh must fail the proof, not pass an existence check" \
     CLAUDE_PLUGIN_ROOT="$WORK/hollow" sh "$WORK/block.sh"
+
+# 1c. the proof must test for a FUNCTION, not for a runnable name
+#     (harness-skills#36). `command -v name >/dev/null` — the shape this
+#     replaced — answers "is this name runnable", so with the hollow helper
+#     above it passes whenever something else in scope owns the name: a PATH
+#     executable in all four shells, an alias in three. Both are asserted per
+#     shell because the shells disagree about the alias, and a one-shell check
+#     would have called the old form fixed after testing only bash.
+mkdir -p "$WORK/bin"
+printf '#!/bin/sh\nprintf hijacked\n' >"$WORK/bin/_gh_resolve_host"
+chmod +x "$WORK/bin/_gh_resolve_host"
+for shell in $SHELLS; do
+    refuses "$WORK/elsewhere" "did not load a usable shell-common" \
+        "$shell: a PATH executable named _gh_resolve_host must not pass the proof" \
+        PATH="$WORK/bin:$PATH" CLAUDE_PLUGIN_ROOT="$WORK/hollow" "$shell" "$WORK/block.sh"
+
+    refuses "$WORK/elsewhere" "did not load a usable shell-common" \
+        "$shell: an alias named _gh_resolve_host must not pass the proof" \
+        CLAUDE_PLUGIN_ROOT="$WORK/hollow" "$shell" -c \
+        "alias _gh_resolve_host=true; . $WORK/block.sh"
+
+    # ...and the `unalias` that closes the alias case must not cost a real
+    # load: with an alias in scope AND a helper that genuinely defines the
+    # function, the block still has to resolve. Without the `unalias`, sh,
+    # dash and zsh all let the alias outrank the function (zsh never even
+    # defines it), turning a good load into a false tier 5.
+    # `|| true` so `set -e` cannot kill the script on the failing path before
+    # fail() names which assertion broke — same reason assertion 4 has it.
+    got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT="$WORK/plugin" "$shell" -c \
+        "alias _gh_resolve_host=true; . $WORK/block.sh" 2>/dev/null) || true
+    [ "$got" = "RESOLVED=$WORK/plugin/lib/vendor/shell-common" ] \
+        || fail "$shell: a stale alias must not block a genuine load (got: $got)"
+done
 
 # 2. the retired tier 4 — the cwd genuinely IS the checkout, and the block must
 #    STILL refuse. This is the case that used to succeed by guessing $PWD, and
@@ -152,30 +213,7 @@ got=$(cd "$WORK/elsewhere" && clean CLAUDE_PLUGIN_ROOT=/OVERRIDE sh -c \
 #    shell that sets $ZSH_VERSION or $BASH_VERSION reaches tier 3 and proves
 #    out; one that sets neither has no self-path and must stop at tier 5.
 #    Accepting "either one" would let the doc's per-shell claim rot unnoticed.
-#
-#    Deduplicate by resolved binary: on Debian-family boxes /bin/sh IS dash, and
-#    running it twice under two names would report coverage that is not there.
-#
-#    Dispatch on what each shell IS, never on the name it was invoked under. A
-#    name list silently encodes "/bin/sh is not bash", which some minimal images
-#    break: bash exports $BASH_VERSION even as `sh`, so it reaches tier 3, and a
-#    name list would assert the tier-5 refusal against it and fail. Asking the
-#    shell the same question the snippet asks is the only sound classifier — and
-#    combined with the dedup above it also keeps the matrix from reporting four
-#    shells' coverage when four names resolve to one binary, which is why the
-#    names actually run are printed in the summary rather than kept private.
-has_selfpath() {  # has_selfpath <shell> — the snippet's own branch condition
-    [ "$("$1" -c 'if [ -n "${ZSH_VERSION-}" ] || [ -n "${BASH_VERSION-}" ]
-                  then printf yes; else printf no; fi')" = yes ]
-}
-
-seen="" covered="" noself=""
-for shell in sh dash bash zsh; do
-    path=$(command -v "$shell" 2>/dev/null) || continue
-    real=$(readlink -f "$path" 2>/dev/null || echo "$path")
-    case " $seen " in *" $real "*) continue ;; esac
-    seen="$seen $real" covered="$covered $shell"
-
+for shell in $SHELLS; do
     if has_selfpath "$shell"; then
         out=$(cd "$WORK/elsewhere" && clean "$shell" -c ". $WORK/plugin/lib/resolve-target.sh")
         got=$(echo "$out" | head -1)
@@ -186,7 +224,6 @@ for shell in sh dash bash zsh; do
         echo "$out" | grep -q '^PROVEN=yes$' \
             || fail "$shell reached tier 3 but the proof did not say PROVEN=yes"
     else
-        [ -n "$noself" ] || noself="$shell"
         refuses "$WORK/elsewhere" "CLAUDE_PLUGIN_ROOT is unset" \
             "$shell has no self-path and must stop at tier 5" \
             "$shell" -c ". $WORK/plugin/lib/resolve-target.sh"
@@ -227,10 +264,12 @@ refuses "$WORK/elsewhere" "did not load a usable shell-common" \
 
 echo "ok  tier 2 resolves from CLAUDE_PLUGIN_ROOT"
 echo "ok  a file that defines nothing fails the proof"
+echo "ok  a PATH executable or alias owning the name does not pass the proof"
+echo "ok  a stale alias does not block a genuine load"
 echo "ok  the pasted block refuses \$PWD even in the real checkout"
 echo "ok  tier 5 stops loudly and names the path it tried"
 echo "ok  a failed resolution exports nothing"
 echo "ok  tier 2 wins over the self-path"
-echo "ok  self-path shells reach tier 3 and prove out, the rest stop at tier 5 (covered:$covered)"
+echo "ok  self-path shells reach tier 3 and prove out, the rest stop at tier 5 (covered:$SHELLS)"
 echo "$noself_note"
 echo "ok  set -e does not swallow a missing shell-common"
