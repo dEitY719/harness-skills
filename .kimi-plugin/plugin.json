@@ -1,6 +1,6 @@
 {
   "name": "harness",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Audit, refactor, and document your AI coding harness: context docs, harness config, built-in skills, installed plugins.",
   "author": {
     "name": "dEitY719",

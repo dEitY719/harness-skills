@@ -1,6 +1,6 @@
 {
   "name": "harness",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Manage the AI coding harness itself: check and author CLAUDE.md/AGENTS.md/GEMINI.md context docs, audit and refactor harness config, dissect built-in skills, and document installed plugins.",
   "author": {
     "name": "dEitY719",

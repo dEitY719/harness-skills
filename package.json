@@ -1,6 +1,6 @@
 {
   "name": "harness-skills",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Skills for auditing, refactoring, and documenting an AI coding harness",
   "type": "module",
   "main": ".opencode/plugins/harness.js",
