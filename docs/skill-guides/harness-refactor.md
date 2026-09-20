@@ -48,9 +48,13 @@
    실행해 주세요." 를 출력하고 **중단한다**. 리포트를 지어내거나 감사를 즉석에서 대신 하지
    않는다.
 2. **Step 2 — risk 분류.** 리포트의 각 항목을 `references/classification-rules.md` 기준으로
-   워크플로우에 넣을 것(허용 변경)과 넣지 않을 것(절대 금지)으로 가른다. 이 분류가 이 스킬의
-   안전 계약 전부다 — 아래 "주의사항과 제약" 에 두 목록을 그대로 옮겨 둔다.
-3. **Step 3 — 워크플로우 실행.**
+   워크플로우에 넣을 것(허용 변경)과 넣지 않을 것(절대 금지)으로 가른다. 이 분류와 Step 3 의
+   사전 승인이 이 스킬의 안전 계약이다 — 아래 "주의사항과 제약" 에 두 목록을 그대로 옮겨 둔다.
+3. **Step 3 — 실행 전 사용자 승인.** 분류 결과(`changes` 는 파일별 한 줄, `rejected` 는 건수와
+   사유)를 출력하고 "이대로 적용할까요?" 에 대한 응답을 기다린다. 승인 전에는 `Workflow` 를
+   호출하지 않고, 거부 시 `[FAIL] harness:harness-refactor — 사용자 미승인` 으로 중단한다.
+   이 시점까지 디스크에 쓴 것은 없다.
+4. **Step 4 — 워크플로우 실행.**
 
    ```
    Workflow({ name: 'harness:harness-refactor', args: { changes: <Step 2 changes>, rejected: <Step 2 rejected> } })
@@ -64,7 +68,7 @@
    아카이브 후 수정하고 구조화된 결과를 돌려줌) → Verify (`wc -l` 비교와 `references/` 파일
    생성 여부 확인) → Final Report. Step 2 에서 금지로 분류된 `rejected` 항목은 워크플로우
    본문에 적용되지 않고 Final Report 의 "Human Approval Required" 섹션에만 기록된다.
-4. **Step 4 — 완료 보고.** `[OK] harness:harness-refactor — 완료` 아래에 변경 파일 수,
+5. **Step 5 — 완료 보고.** `[OK] harness:harness-refactor — 완료` 아래에 변경 파일 수,
    생성된 `references/` 수, 아카이브 수, human review 필요 항목 수, 그리고 다음 행동
    (`git diff` 확인 후 `/gh-pr:commit`)을 적는다. 실패 시
    `[FAIL] harness:harness-refactor — <이유>`.
@@ -74,7 +78,8 @@
 **이 스킬은 파일을 바꾼다.** 짝 스킬과 헷갈리기 쉬운 지점이다. `harness-legacy-check` 는
 read-only 이지만, `harness-refactor` 가 실행하는 워크플로우는
 CLAUDE.md/AGENTS.md/SKILL.md/settings.json 을 실제로 수정한다. 호출 전에 작업 트리가 깨끗한지
-확인하고, 호출 후에는 `git diff` 를 사람이 읽는 것이 전제다.
+확인한다. 사전 게이트는 Step 3 의 사용자 승인이고, 호출 후 `git diff` 검토는 그 뒤의 2차
+확인이다.
 
 **허용 변경 (워크플로우에 포함)** — CLAUDE.md/AGENTS.md 의 중복·일반론 섹션 제거, 특정 작업
 절차를 전역 지침에서 skill 로 이동, 긴 SKILL.md 를 `SKILL.md + references/` 구조로 분리,
@@ -97,6 +102,6 @@ allowed-tools 권한 확대, 프로젝트 애플리케이션 코드 수정, 테�
 **중단 조건** — 감사 리포트를 어느 경로로도 찾지 못하면 아무것도 하지 않고 멈춘다. 이때
 스킬은 감사를 대신 실행하지 않으며, `/harness-legacy-check` 를 먼저 돌리라고만 안내한다.
 
-**하네스 의존성** — Step 3 은 Claude Code 의 `Workflow` 도구를, 병렬 적용은 서브에이전트
+**하네스 의존성** — Step 4 는 Claude Code 의 `Workflow` 도구를, 병렬 적용은 서브에이전트
 오케스트레이션을 전제한다. 다른 하네스에서는 해당 기능의 대응 도구를 `references/*-tools.md`
 매핑에서 찾아야 하고, metadata 상 non-Claude 하네스에서는 advisory-only 다.

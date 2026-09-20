@@ -10,7 +10,7 @@ Step 2 에서 감사 리포트 항목을 분류할 때 적용한다.
 
 - **`changes`** (허용 변경) — `{ file, description }` 객체의 배열.
   `description` 은 워크플로우의 Apply Changes 에이전트가 그대로 실행할 수
-  있는 구체적 지시문이다. Step 3 의 `Workflow` 호출에 `args.changes` 로
+  있는 구체적 지시문이다. Step 4 의 `Workflow` 호출에 `args.changes` 로
   전달된다.
 - **`rejected`** (절대 금지 항목) — `{ file, description, reason }` 객체의
   배열. `reason` 은 아래 금지 목록 중 어떤 항목에 해당하는지 짧게 적는다.

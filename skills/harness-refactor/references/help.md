@@ -16,8 +16,9 @@ harness-legacy-check 감사 리포트를 바탕으로 low-risk 하네스 개선�
 
 1. `.claude/reports/harness-legacy-check.md` 리포트 확인
 2. low-risk 항목 분류 (references/classification-rules.md 기준)
-3. `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })` 실행
-4. [OK]/[FAIL] 결과 요약 보고
+3. 분류 결과 요약 출력 후 **사용자 승인 대기** — 승인 전에는 아무것도 쓰지 않는다
+4. `Workflow({ name: 'harness:harness-refactor', args: { changes: [...], rejected: [...] } })` 실행
+5. [OK]/[FAIL] 결과 요약 보고
 
 ## 결과
 

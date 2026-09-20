@@ -26,7 +26,7 @@ harness-legacy-check 감사 리포트를 읽고 low-risk 항목만 골라
 `harness-refactor` 워크플로우에 전달해 실행한다.
 
 어느 단계든 실패하면 즉시 `[FAIL] harness:harness-refactor — <이유>` 출력 후 중단한다.
-Step 3 실패 시 이미 아카이브된 파일 경로를 함께 출력한다.
+Step 4 실패 시 이미 아카이브된 파일 경로를 함께 출력한다.
 
 ## Step 1: 감사 리포트 확인
 
@@ -44,7 +44,20 @@ Step 3 실패 시 이미 아카이브된 파일 경로를 함께 출력한다.
   적용시키지 않고 Final Report 의 "Human Approval Required" 섹션에만
   기록하도록 전달한다.
 
-## Step 3: 워크플로우 실행
+## Step 3: 실행 전 사용자 승인
+
+워크플로우의 Apply Changes 단계가 파일을 실제로 수정하므로, 호출 전 승인이
+이 스킬의 유일한 사전 게이트다. Step 5 가 안내하는 `git diff` 는 사후 검토일 뿐이다.
+
+1. Step 2 결과를 요약 출력한다 — `changes` 는 `<file> — <description>` 한 줄씩,
+   `rejected` 는 건수와 사유만.
+2. "이대로 적용할까요?" 를 묻고 **응답을 기다린다**. 승인 전에는 Step 4 로
+   넘어가지 않는다.
+3. 사용자가 목록을 줄이면 줄인 목록으로 Step 3 을 다시 한다. 거부하면
+   `[FAIL] harness:harness-refactor — 사용자 미승인` 출력 후 중단 — 이때까지
+   디스크에 쓴 것은 없다.
+
+## Step 4: 워크플로우 실행
 
 ```
 Workflow({ name: 'harness:harness-refactor', args: { changes: <Step 2 changes>, rejected: <Step 2 rejected> } })
@@ -57,7 +70,7 @@ Workflow({ name: 'harness:harness-refactor', args: { changes: <Step 2 changes>, 
 `references/<harness>-tools.md` (codex / gemini / hermes / kimi / opencode / antigravity)
 에 적힌 대체 절차를 따른다.
 
-## Step 4: 완료 보고
+## Step 5: 완료 보고
 
 ```
 [OK] harness:harness-refactor — 완료

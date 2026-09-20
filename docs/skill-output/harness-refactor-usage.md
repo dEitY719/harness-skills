@@ -26,6 +26,8 @@ harness-legacy-check 리포트  ──▶  /harness:harness-refactor  ──▶ 
 
 ## 3. 결과 (실행 시)
 
+- **실행 전 사용자 승인** — 분류 결과를 요약 출력하고 승인을 기다린다. 승인 전에는
+  `Workflow` 를 호출하지 않으며, 거부 시 `[FAIL] ... — 사용자 미승인` 으로 중단한다.
 - **워크플로우 실행** — `Workflow({ name: 'harness:harness-refactor', args: { changes, rejected } })`.
   `workflows/harness-refactor.js` 는 이 플러그인에 이미 배포된 파일이며 **매 실행마다 새로
   작성되지 않는다** — 바뀌는 것은 Step 2 에서 분류한 `args.changes` / `args.rejected` 뿐이다.
