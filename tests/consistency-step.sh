@@ -26,7 +26,7 @@ extract "Declared cross-file facts" "$step"
 # be a real repo: discovery is `git ls-files`, so that an untracked scratch
 # file cannot fail a caller's gate.
 fixture=$work/repo
-mkdir -p "$fixture/skills/a" "$fixture/.claude-plugin" "$fixture/.codex-plugin"
+mkdir -p "$fixture/skills/a" "$fixture/skills/b" "$fixture/.claude-plugin" "$fixture/.codex-plugin"
 printf 'MIT License\n\nCopyright (c) 2026\n' > "$fixture/LICENSE"
 printf '{\n  "license": "MIT"\n}\n' > "$fixture/package.json"
 printf '{\n  "license": "MIT"\n}\n' > "$fixture/.claude-plugin/plugin.json"
@@ -108,6 +108,56 @@ expect "an unparseable regex is rejected, not a traceback" "$fixture" 1 "bad reg
 
 CONSISTENCY_CHECKS='just a string'
 expect "a non-mapping input is rejected, not a traceback" "$fixture" 1 "must be a mapping"
+
+# A vendored directory with a different license (authoring-skills#14). Without
+# a declaration the built-in set must go red -- that is the signal, and it has
+# to keep working.
+export CONSISTENCY_CHECKS=""
+printf -- '---\nname: b\nlicense: Apache-2.0\n---\n' > "$fixture/skills/b/SKILL.md"
+git -C "$fixture" add -A
+git -C "$fixture" -c user.email=t@t -c user.name=t commit -qm vendored
+export LICENSE_EXCEPTIONS=""
+expect "an undeclared second license still fails the built-in set" "$fixture" 1 \
+    "license: sites disagree: ['Apache-2.0', 'MIT']"
+
+LICENSE_EXCEPTIONS='skills/b/SKILL.md: Apache-2.0'
+expect "a declared exception passes, named as an exception" "$fixture" 0 \
+    "ok    license: skills/b/SKILL.md = Apache-2.0 (declared exception)"
+expect "...and the remaining sites still have to agree" "$fixture" 0 \
+    "ok    license = MIT across 5 file(s)"
+
+# The exception is a gate of its own, not an opt-out: it names the value the
+# file must carry, so a third value is still a failure.
+LICENSE_EXCEPTIONS='skills/b/SKILL.md: GPL-3.0'
+expect "a declared exception carrying another value fails" "$fixture" 1 \
+    "skills/b/SKILL.md is declared as GPL-3.0 but carries Apache-2.0"
+
+# An exception for a file that moved away is an exception nobody is checking.
+LICENSE_EXCEPTIONS='skills/gone/SKILL.md: Apache-2.0'
+expect "an exception matching no file fails" "$fixture" 1 \
+    "license-exceptions: glob 'skills/gone/SKILL.md' matched no file"
+
+LICENSE_EXCEPTIONS='just a string'
+expect "a non-mapping exception input is rejected, not a traceback" "$fixture" 1 \
+    "license-exceptions must be a mapping"
+
+# Exceptions are scoped to the built-in license set: a caller's own set is the
+# caller's business, and silently exempting files from it would be the same
+# quiet hole this step exists to close.
+LICENSE_EXCEPTIONS='skills/b/SKILL.md: Apache-2.0'
+CONSISTENCY_CHECKS=$(cat <<'YAML'
+demo:
+  'skills/*/SKILL.md': '^license:\s*(\S+)'
+YAML
+)
+expect "an exception does not leak into a caller's own set" "$fixture" 1 \
+    "demo: sites disagree: ['Apache-2.0', 'MIT']"
+
+export LICENSE_EXCEPTIONS=""
+export CONSISTENCY_CHECKS=""
+rm -rf "$fixture/skills/b"
+git -C "$fixture" add -A
+git -C "$fixture" -c user.email=t@t -c user.name=t commit -qm cleanup
 
 # This repo's real declaration, run against this repo -- and, alongside it, the
 # built-in set validate.yml no longer restates. Together they are the merge
