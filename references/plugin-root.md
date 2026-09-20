@@ -372,9 +372,12 @@ Allowed: a non-empty default nobody downstream can write
 (`${VAR:-$HOME/dotfiles}`), or bind-then-guard
 (`_root="${VAR:-}"; [ -n "$_root" ] || <tier 3/5>`).
 
-One grep is the gate. It has no false positives — an empty default, or a default
-that names the cwd, immediately followed by `/` is always the defect, and a
-guarded `[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]` does not match it:
+One grep is the gate, and **it runs in CI for every repo in the family** — as
+the "No caller-controlled path defaults (plugin-root tier 4)" step of
+[`.github/workflows/skill-check.yml`](../.github/workflows/skill-check.yml),
+the reusable workflow this repo owns. It is a built-in with no input: a caller
+that could switch it off is a caller that can ship the defect. You do not need
+to copy it anywhere. To run the same check by hand:
 
 ```sh
 git ls-files -z \
@@ -382,6 +385,10 @@ git ls-files -z \
   | grep -v '^references/plugin-root\.md:' \
   || echo "ok  no empty-default or cwd path splices"
 ```
+
+It has no false positives — an empty default, or a default that names the cwd,
+immediately followed by `/` is always the defect, and a guarded
+`[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]` does not match it.
 
 The alternation is the whole gate: a `$PWD`-only one passed `${VAR:-.}/` and
 `${VAR:-$(pwd)}/`, which are the same caller-controlled path by another name —
@@ -409,12 +416,16 @@ Every hit must sit inside a guard that already ran — `[ -n "$VAR" ]` — and b
 followed by the load proof before anything trusts it. Read them; do not "fix" a
 guarded one.
 
-The gate belongs in `.github/workflows/skill-check.yml` — the reusable workflow
-this repo owns — but **only after the rollout lands**. Adding it today turns CI
-red in the five siblings that still carry the defect, which is the wrong order
-and is what `CLAUDE.md`'s "never add a check a sibling repo cannot pass" rule
-forbids. Until then it runs per rollout PR, and this repo runs its own
-self-check in `validate.yml`.
+The move into `skill-check.yml` waited for the consumer rollout of
+`harness-skills#35`/`#36`/`#37` to finish (`harness-skills#59`), because adding
+it sooner would have turned CI red at once in every sibling still carrying the
+defect — the wrong order, and what `CLAUDE.md`'s "never add a check a sibling
+repo cannot pass" rule forbids. Now that every consumer is on the current form
+the gate is shared, and `tests/plugin-root-gate-step.sh` exercises the shipped
+step against a fixture for each of the four spellings. This repo additionally
+runs `plugin-root.selfcheck.sh` from `validate.yml`, which is a different
+check: the gate is about text nobody should write, the self-check is about the
+snippets on this page behaving as it claims.
 
 ## Per-harness answers
 

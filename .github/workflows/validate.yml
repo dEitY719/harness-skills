@@ -54,8 +54,10 @@ jobs:
     uses: ./.github/workflows/version-bump.yml
 
   # Repo-local, deliberately NOT in skill-check.yml: that workflow is an API the
-  # other fourteen repos call, and none of them ships this file. The convention's
-  # own gate grep moves there once the rollout lands (references/plugin-root.md).
+  # other fourteen repos call, and none of them ships this file. The
+  # convention's gate grep DID move there (harness-skills#59), but it is a
+  # different check -- the gate is about text nobody should write, this is
+  # about the snippets on that page behaving as documented.
   plugin-root-selfcheck:
     runs-on: ubuntu-latest
     steps:
