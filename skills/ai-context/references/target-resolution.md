@@ -10,9 +10,11 @@ SKILL.md Step 2 carries the invocation. Flags: `--file PATH` and `--type TYPE`
 cwd. `--file` moves `--dir` to that file's own directory unless `--dir` is
 given, so sizing inspects the target's project rather than the caller's cwd.
 
-`${CLAUDE_PLUGIN_ROOT}` resolves per the repo-root `references/plugin-root.md`.
-The script is a file on disk, so tier 3 (self-location) applies to it; if the
-root cannot be resolved at all, apply the priority order and the matrix below
+The block resolves per the repo-root `references/plugin-root.md`, pasted-block
+form: tier 1 is `HERMES_SKILL_DIR` (a single-skill install, where the script
+sits at `scripts/` under the skill dir), tier 2 `CLAUDE_PLUGIN_ROOT`, each
+guarded and proved by `[ -f ]`, and no cwd fallback. With neither set it
+prints `[FAIL]` (tier 5); then apply the priority order and the matrix below
 by hand rather than guessing a path. Detection is cheap — this helper exists to spend the
 model's budget on C1–C6 and the adapter checks, not to gate the skill.
 

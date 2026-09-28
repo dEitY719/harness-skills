@@ -226,4 +226,20 @@ case "$msg" in
   *)     printf 'ok    die message carries no exit code\n' ;;
 esac
 
+# 9. SKILL.md Step 2's pasted block (harness-skills#64): with no root it stops
+#    with [FAIL] instead of running `bash /skills/...` from an empty variable,
+#    and it never resolves from the cwd, even when the cwd is this checkout.
+block=$work/step2.sh
+awk '/^```bash$/ { f = 1; next } /^```$/ { if (f) exit } f' "$root/skills/ai-context/SKILL.md" |
+  sed 's/ \[--file PATH\] \[--type TYPE\]//; s/\[--file PATH\] \[--type TYPE\]//' > "$block"
+rc=0; msg=$(cd "$root" && env -u CLAUDE_PLUGIN_ROOT -u HERMES_SKILL_DIR bash "$block" 2>&1) || rc=$?
+case "$rc:$msg" in
+  1:'[FAIL]'*) printf 'ok    step 2 block stops with [FAIL] when unresolved\n' ;;
+  *)           printf 'FAIL  step 2 block unresolved: rc=%s msg=%s\n' "$rc" "$msg"; fail=1 ;;
+esac
+check "step 2 block via CLAUDE_PLUGIN_ROOT" claude \
+  "$(cd "$e" && env -u HERMES_SKILL_DIR CLAUDE_PLUGIN_ROOT="$root" bash "$block" | sed -n 's/^kind=//p')"
+check "step 2 block via HERMES_SKILL_DIR" claude \
+  "$(cd "$e" && env -u CLAUDE_PLUGIN_ROOT HERMES_SKILL_DIR="$root/skills/ai-context" bash "$block" | sed -n 's/^kind=//p')"
+
 exit "$fail"
