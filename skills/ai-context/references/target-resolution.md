@@ -13,8 +13,9 @@ given, so sizing inspects the target's project rather than the caller's cwd.
 The block resolves per the repo-root `references/plugin-root.md`, pasted-block
 form: tier 1 is `HERMES_SKILL_DIR` — the override this skill documents by name,
 for a single-skill install where the script sits at `scripts/` under the skill
-dir; Hermes substitutes it into the SKILL.md text, any other single-skill
-install exports it — tier 2 `CLAUDE_PLUGIN_ROOT`, each
+dir; Hermes substitutes it into the SKILL.md text (only the exact
+`${HERMES_SKILL_DIR}` token, hence that spelling in the block), any other
+single-skill install exports it — tier 2 `CLAUDE_PLUGIN_ROOT`, each
 guarded and proved by `[ -f ]`, and no cwd fallback. With neither set it
 prints `[FAIL]` (tier 5); then apply the priority order and the matrix below
 by hand rather than guessing a path. Detection is cheap — this helper exists to spend the

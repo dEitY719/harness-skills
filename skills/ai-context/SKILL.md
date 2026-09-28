@@ -36,7 +36,7 @@ Run the deterministic half — auto-detection, alias collapse, `line_count` /
 
 ```bash
 _dc=""
-if [ -n "${HERMES_SKILL_DIR:-}" ]; then _dc="$HERMES_SKILL_DIR/scripts/detect-context.sh"
+if [ -n "${HERMES_SKILL_DIR}" ]; then _dc="${HERMES_SKILL_DIR}/scripts/detect-context.sh"
 elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then _dc="$CLAUDE_PLUGIN_ROOT/skills/ai-context/scripts/detect-context.sh"
 fi
 [ -n "$_dc" ] && [ -f "$_dc" ] || { printf '[FAIL] plugin root unresolved (tried: %s). Export HERMES_SKILL_DIR=<this skill dir> (single-skill install) or CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' "${_dc:-nothing}" >&2; return 1 2>/dev/null || exit 1; }

@@ -241,5 +241,13 @@ check "step 2 block via CLAUDE_PLUGIN_ROOT" claude \
   "$(cd "$e" && env -u HERMES_SKILL_DIR CLAUDE_PLUGIN_ROOT="$root" bash "$block" | sed -n 's/^kind=//p')"
 check "step 2 block via HERMES_SKILL_DIR" claude \
   "$(cd "$e" && env -u CLAUDE_PLUGIN_ROOT HERMES_SKILL_DIR="$root/skills/ai-context" bash "$block" | sed -n 's/^kind=//p')"
+# Hermes does not export HERMES_SKILL_DIR: it rewrites the exact token
+# `${HERMES_SKILL_DIR}` in the SKILL.md text (agent/skill_preprocessing.py) and
+# leaves `$HERMES_SKILL_DIR` / `${HERMES_SKILL_DIR:-}` alone. Simulate that
+# rewrite with nothing exported (harness-skills#66 review).
+sub=$work/step2-hermes.sh
+sed "s|\${HERMES_SKILL_DIR}|$root/skills/ai-context|g" "$block" > "$sub"
+check "step 2 block via Hermes text substitution" claude \
+  "$(cd "$e" && env -u CLAUDE_PLUGIN_ROOT -u HERMES_SKILL_DIR bash "$sub" 2>/dev/null | sed -n 's/^kind=//p')"
 
 exit "$fail"

@@ -45,8 +45,12 @@ passes for a working one. Read the error; it prints the paths it tried.
 Hermes exports no plugin-root variable. When a skill hands you a shell
 block that reads `${CLAUDE_PLUGIN_ROOT}`, `export` it yourself to the directory
 you read the `SKILL.md` from, before running the block — otherwise the block
-stops rather than guessing. Full rule:
-[`plugin-root.md`](plugin-root.md).
+stops rather than guessing. The one exception is `${HERMES_SKILL_DIR}`, which
+Hermes substitutes into the `SKILL.md` text (it is not exported): a skill that
+documents it resolves at tier 1 from its own skill directory
+(`${HERMES_SKILL_DIR}/scripts/...`, spelled exactly so), which is what a
+single-skill install needs.
+Full rule: [`plugin-root.md`](plugin-root.md).
 
 ## Progressive disclosure
 
