@@ -33,10 +33,27 @@ you want — proved by loading it, not by checking that something is there.
 
 | # | Tier | Available to |
 |---|------|--------------|
-| 1 | An override the skill documents by name (`$DOTFILES_ROOT`, `$GH_VERIFY_ROOT`) | everything |
+| 1 | An override the skill documents by name (`$DOTFILES_ROOT`, `$GH_VERIFY_ROOT`, `$HERMES_SKILL_DIR` — the last names the **skill** directory, not the plugin root) | everything |
 | 2 | `$CLAUDE_PLUGIN_ROOT`, when non-empty | everything |
 | 3 | The asking file's own directory, trimmed by its known suffix | a file on disk only |
 | 5 | **Stop, naming the path tried and the way out** | everything |
+
+`$HERMES_SKILL_DIR` is tier 1, not a new tier, and it differs from the other two
+examples in two ways:
+
+- **It is rooted at the skill, not the plugin.** It points at the one skill
+  directory of a single-skill install, so a block looks under
+  `$HERMES_SKILL_DIR/scripts/...` — never `$HERMES_SKILL_DIR/../..` to climb back
+  to a plugin root. A single-skill install has no `../..` that belongs to it.
+- **It is text, not an environment variable.** Hermes substitutes
+  `${HERMES_SKILL_DIR}` into the `SKILL.md` body before the agent reads it; it
+  exports nothing. Any other single-skill install (`npx skills add` and the like)
+  gets the same tier only if the user exports it by hand.
+
+The reference implementation is `skills/ai-context/SKILL.md` Step 2
+(`harness-skills#64`): `$HERMES_SKILL_DIR` (tier 1) → `$CLAUDE_PLUGIN_ROOT`
+(tier 2) → `[FAIL]` naming the path tried (tier 5), each arm guarded by `[ -n ]`
+before it touches a path.
 
 There is no tier that guesses. Tier 5 is a real tier, and skipping it is what
 produced the `/lib/vendor/shell-common` defect below.
@@ -113,7 +130,9 @@ and anything the report quotes are hard; there is no third option.
 
 ## Canonical form — pasted block
 
-Hard stop. The shape every `github-target.md` site should converge on:
+Hard stop. The shape every `github-target.md` site should converge on. A skill
+that ships a single-skill variant puts a `$HERMES_SKILL_DIR` arm (skill-rooted)
+ahead of the tier-2 one — `skills/ai-context/SKILL.md` Step 2 is that form.
 
 ```sh
 _SC="${DOTFILES_ROOT:-$HOME/dotfiles}/shell-common"                                  # tier 1
@@ -447,10 +466,13 @@ snippets on this page behaving as it claims.
 | Gemini CLI | no | the extension dir it loaded `GEMINI.md` from | same |
 | Antigravity | no | shares Gemini CLI's `~/.gemini` install (`antigravity-tools.md`) | same |
 | Kimi CLI | no | the install dir named by `.kimi-plugin/plugin.json` | same |
-| Hermes | no | `~/.hermes/plugins/<repo>/` (`hermes-tools.md`) | same |
+| Hermes | no — but substitutes `${HERMES_SKILL_DIR}` into `SKILL.md` text | `~/.hermes/plugins/<repo>/` (`hermes-tools.md`); a single-skill install lands the skill dir alone | plugin install: export `CLAUDE_PLUGIN_ROOT`, else tier 5. Single-skill install: a skill that documents `$HERMES_SKILL_DIR` resolves at tier 1, skill-rooted (`$HERMES_SKILL_DIR/scripts/...`) |
 | OpenCode | no | OpenCode's plugin manager dir | same |
 
 No non-Claude harness exports an equivalent variable, and none is expected to.
+Hermes' `${HERMES_SKILL_DIR}` is not one: it is text substitution into `SKILL.md`,
+it names a skill directory rather than a plugin root, and it reaches a block only
+through a skill that documents it as its tier-1 override.
 That is the whole reason tier 5 exists rather than a sixth clever fallback.
 
 ## Not this question
