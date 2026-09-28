@@ -43,12 +43,16 @@ examples in two ways:
 
 - **It is rooted at the skill, not the plugin.** It points at the one skill
   directory of a single-skill install, so a block looks under
-  `$HERMES_SKILL_DIR/scripts/...` — never `$HERMES_SKILL_DIR/../..` to climb back
+  `${HERMES_SKILL_DIR}/scripts/...` — never `${HERMES_SKILL_DIR}/../..` to climb back
   to a plugin root. A single-skill install has no `../..` that belongs to it.
 - **It is text, not an environment variable.** Hermes substitutes
   `${HERMES_SKILL_DIR}` into the `SKILL.md` body before the agent reads it; it
   exports nothing. Any other single-skill install (`npx skills add` and the like)
-  gets the same tier only if the user exports it by hand.
+  gets the same tier only if the user exports it by hand. Hermes rewrites only
+  the exact token `${HERMES_SKILL_DIR}`, so spell it that way every time — a
+  bare `$HERMES_SKILL_DIR` or a defaulted form is left untouched and reads an
+  unset variable. The `[ -n ]` guard still comes first, so an unsubstituted,
+  unexported token falls through to tier 2.
 
 The reference implementation is `skills/ai-context/SKILL.md` Step 2
 (`harness-skills#64`): `$HERMES_SKILL_DIR` (tier 1) → `$CLAUDE_PLUGIN_ROOT`
@@ -466,7 +470,7 @@ snippets on this page behaving as it claims.
 | Gemini CLI | no | the extension dir it loaded `GEMINI.md` from | same |
 | Antigravity | no | shares Gemini CLI's `~/.gemini` install (`antigravity-tools.md`) | same |
 | Kimi CLI | no | the install dir named by `.kimi-plugin/plugin.json` | same |
-| Hermes | no — but substitutes `${HERMES_SKILL_DIR}` into `SKILL.md` text | `~/.hermes/plugins/<repo>/` (`hermes-tools.md`); a single-skill install lands the skill dir alone | plugin install: export `CLAUDE_PLUGIN_ROOT`, else tier 5. Single-skill install: a skill that documents `$HERMES_SKILL_DIR` resolves at tier 1, skill-rooted (`$HERMES_SKILL_DIR/scripts/...`) |
+| Hermes | no — but substitutes `${HERMES_SKILL_DIR}` into `SKILL.md` text | `~/.hermes/plugins/<repo>/` (`hermes-tools.md`); a single-skill install lands the skill dir alone | plugin install: export `CLAUDE_PLUGIN_ROOT`, else tier 5. Single-skill install: a skill that documents `$HERMES_SKILL_DIR` resolves at tier 1, skill-rooted (`${HERMES_SKILL_DIR}/scripts/...`) |
 | OpenCode | no | OpenCode's plugin manager dir | same |
 
 No non-Claude harness exports an equivalent variable, and none is expected to.
