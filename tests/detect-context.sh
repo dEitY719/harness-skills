@@ -231,7 +231,7 @@ esac
 #    and it never resolves from the cwd, even when the cwd is this checkout.
 block=$work/step2.sh
 awk '/^```bash$/ { f = 1; next } /^```$/ { if (f) exit } f' "$root/skills/ai-context/SKILL.md" |
-  sed 's/ \[--file PATH\] \[--type TYPE\]//; s/\[--file PATH\] \[--type TYPE\]//' > "$block"
+  sed 's/ \[--file PATH\] \[--type TYPE\]//' > "$block"
 rc=0; msg=$(cd "$root" && env -u CLAUDE_PLUGIN_ROOT -u HERMES_SKILL_DIR bash "$block" 2>&1) || rc=$?
 case "$rc:$msg" in
   1:'[FAIL]'*) printf 'ok    step 2 block stops with [FAIL] when unresolved\n' ;;
