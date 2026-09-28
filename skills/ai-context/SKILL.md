@@ -35,13 +35,17 @@ Run the deterministic half — auto-detection, alias collapse, `line_count` /
 `c7`, and `size_class`:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/ai-context/scripts/detect-context.sh" \
-  [--file PATH] [--type TYPE]
+_dc=""
+if [ -n "${HERMES_SKILL_DIR:-}" ]; then _dc="$HERMES_SKILL_DIR/scripts/detect-context.sh"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then _dc="$CLAUDE_PLUGIN_ROOT/skills/ai-context/scripts/detect-context.sh"
+fi
+[ -n "$_dc" ] && [ -f "$_dc" ] || { printf '[FAIL] plugin root unresolved (tried: %s). On any other harness export CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' "${_dc:-nothing}" >&2; return 1 2>/dev/null || exit 1; }
+bash "$_dc" [--file PATH] [--type TYPE]
 ```
 
 Read its `path` / `kind` / `other_candidates`. Output fields, the
-multiple-file and no-file matrix, and the by-hand fallback when
-`${CLAUDE_PLUGIN_ROOT}` cannot be resolved: `references/target-resolution.md`.
+multiple-file and no-file matrix, and the by-hand fallback after a `[FAIL]`
+(root unresolved): `references/target-resolution.md`.
 
 ## Step 3: Dispatch by Action
 
