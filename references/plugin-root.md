@@ -33,7 +33,7 @@ you want — proved by loading it, not by checking that something is there.
 
 | # | Tier | Available to |
 |---|------|--------------|
-| 1 | An override the skill documents by name (`$DOTFILES_ROOT`, `$GH_VERIFY_ROOT`, `$HERMES_SKILL_DIR` — the last names the **skill** directory, not the plugin root) | everything |
+| 1 | An override the skill documents by name (`$DOTFILES_ROOT`, `$GH_VERIFY_ROOT`, `$HERMES_SKILL_DIR` — skill-rooted, see below) | everything |
 | 2 | `$CLAUDE_PLUGIN_ROOT`, when non-empty | everything |
 | 3 | The asking file's own directory, trimmed by its known suffix | a file on disk only |
 | 5 | **Stop, naming the path tried and the way out** | everything |
