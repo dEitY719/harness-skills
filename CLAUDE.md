@@ -118,7 +118,9 @@ harness-skills#14). The banner in all 24 vendored files across the five `gh-*`
 repos names this path; before it existed nothing kept a copy in sync with
 `dEitY719/dotfiles` and nothing detected drift. `--check` is the detector; the
 SSOT checkout is an argument, so it runs outside the author's `$HOME`. It
-refreshes only what a consumer already vendors and never adds a file.
+scans `lib/vendor/` and the per-skill mirrors under `skills/*/lib/vendor/`; a
+mirror must stay byte-identical to its root copy (#70). It refreshes only what
+a consumer already vendors and never adds a file.
 
 Because a change here lands in fourteen other repos, treat this file as an API:
 

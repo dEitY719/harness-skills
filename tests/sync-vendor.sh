@@ -384,5 +384,54 @@ t "...and says what it could not check" grep -q '^note  .*no upstream' <<<"$out"
 t "a non-git SSOT says what it cannot check, rather than reporting green" \
   grep -q '^note  .*not a git checkout' <<<"$(run --check 2>&1 || true)"
 
+# #70: a consumer may also ship byte-identical per-skill mirrors of its root
+# vendor tree at skills/*/lib/vendor/ (gh-issue-skills#47), each carrying the
+# same banner. Scanning lib/vendor alone reported `ok` while 11 mirrors were
+# stale. A mirror is checked against its ROOT copy, byte for byte, because the
+# consumer's own guard demands byte identity: rendering it from the SSOT again
+# would give it a newer stamp than the root copy and fail that guard.
+mrepo=$work/mirrored
+mroot=$mrepo/lib/vendor/shell-common/functions
+mmir=$mrepo/skills/s1/lib/vendor/shell-common/functions
+mkdir -p "$mroot" "$mmir" "$mrepo/skills/s2/lib/vendor"
+stub shell-common/functions/noshebang.sh "$mroot/m.sh"
+mrun() { "$sync" --ssot "$work/dotfiles" "$@" "$mrepo"; }
+mrun >/dev/null
+cp -p "$mroot/m.sh" "$mmir/m.sh"
+out=$(mrun --check 2>&1) && rc=0 || rc=$?
+t "a fresh per-skill mirror is clean" [ "$rc" = 0 ]
+t "...and is actually checked, not silently passed over" \
+  grep -q '^ok    .*skills/s1/lib/vendor/.*m\.sh' <<<"$out"
+t "...so the summary counts it" grep -q '^ok    2 vendored file(s)' <<<"$out"
+
+printf 'STALE\n' >> "$mmir/m.sh"
+out=$(mrun --check 2>&1) && rc=0 || rc=$?
+t "a stale per-skill mirror turns --check red" [ "$rc" = 1 ]
+t "...naming the mirror that drifted" grep -q '^DRIFT .*skills/s1/lib/vendor/.*m\.sh' <<<"$out"
+t "--check writes nothing to a mirror" [ "$(tail -n 1 "$mmir/m.sh")" = STALE ]
+
+# The root copy's stamp is old but its content current, so write mode leaves it
+# alone -- and the mirror must then match THAT file, not a fresh render.
+sed -i 's/^# Synced [^ ]* /# Synced 2000-01-01T00:00Z /' "$mroot/m.sh"
+mrun >/dev/null
+t "write mode makes a stale mirror byte-identical to its root copy" cmp -s "$mroot/m.sh" "$mmir/m.sh"
+t "...and the next check is clean" [ "$(rc_of mrun --check)" = 0 ]
+
+# A mirror with no root counterpart still has its own banner, so it is checked
+# against the SSOT like any other copy rather than skipped.
+stub shell-common/functions/noshebang.sh "$mmir/orphan.sh"
+out=$(mrun --check 2>&1) && rc=0 || rc=$?
+t "a mirror with no root copy is checked against its SSOT" \
+  grep -q '^DRIFT .*skills/s1/lib/vendor/.*orphan\.sh' <<<"$out"
+mrun >/dev/null
+t "...and write mode renders it from there" grep -q '^B=2$' "$mmir/orphan.sh"
+
+# A repo with no vendor tree anywhere is reported exactly as before.
+mkdir -p "$work/bare/skills/s1"
+t "a repo with neither lib/vendor nor mirrors keeps its skip note" \
+  [ "$("$sync" --ssot "$work/dotfiles" --check "$work/bare" 2>&1 | grep -v 'not a git checkout')" = \
+    "note  $work/bare has no lib/vendor -- skipped
+ok    0 vendored file(s) match their SSOT, 0 skipped" ]
+
 [ "$fail" -eq 0 ] || exit 1
 echo "ok    sync-shell-common-vendor behaves"

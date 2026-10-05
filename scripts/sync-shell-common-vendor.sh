@@ -36,6 +36,11 @@
 # makes NO network call -- `origin/main` is only as fresh as the last fetch, and
 # refreshing it is the operator's job, not a sync tool's silent side effect.
 #
+# Two trees are scanned per repo: lib/vendor/ and every per-skill mirror at
+# skills/*/lib/vendor/ (#70). A mirror whose lib/vendor/<same path> exists is
+# compared to -- and in write mode re-copied from -- that root copy, byte for
+# byte; any other bannered mirror is checked against the SSOT like a root copy.
+#
 # Only files that already carry the banner are refreshed. This never adds one:
 # what a repo vendors is that repo's decision, not this script's.
 #
@@ -200,20 +205,53 @@ fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
 
 fail=0 checked=0 stale=0 skipped=0
 for repo in "${repos[@]}"; do
-  dir=$repo/$VENDOR_ROOT
-  if [ ! -d "$dir" ]; then
+  # The root tree first, then any per-skill mirrors (#70): grep lists files in
+  # argument order, so a mirror is compared only after its root copy is final.
+  dirs=()
+  [ ! -d "$repo/$VENDOR_ROOT" ] || dirs+=("$repo/$VENDOR_ROOT")
+  for d in "$repo"/skills/*/"$VENDOR_ROOT"; do
+    [ ! -d "$d" ] || dirs+=("$d")
+  done
+  if [ "${#dirs[@]}" -eq 0 ]; then
     echo "note  $repo has no $VENDOR_ROOT -- skipped"
     continue
   fi
   rc=0
-  grep -rl -- "^$BANNER_SSOT" "$dir" > "$tmp/dests" || rc=$?
+  grep -rl -- "^$BANNER_SSOT" "${dirs[@]}" > "$tmp/dests" || rc=$?
   if [ "$rc" -gt 1 ]; then          # 1 is "no matches"; anything above is an error
-    echo "FAIL  cannot scan $dir"
+    echo "FAIL  cannot scan ${dirs[*]}"
     fail=1
     continue
   fi
   while IFS= read -r dest; do
     [ -n "$dest" ] || continue
+
+    # A per-skill mirror (skills/<name>/lib/vendor/<p>) of a root copy
+    # (lib/vendor/<p>) is that root copy, byte for byte -- the consumer's own
+    # guard says so (gh-issue-skills#47). Rendering it from the SSOT instead
+    # would stamp it newer than a root copy that was already current, and break
+    # that guard. A mirror with no root copy falls through to the SSOT checks.
+    mirror_of=
+    case $dest in
+      "$repo"/skills/*/"$VENDOR_ROOT"/*)
+        mirror_of=$repo/$VENDOR_ROOT/${dest#"$repo"/skills/*/"$VENDOR_ROOT"/} ;;
+    esac
+    if [ -n "$mirror_of" ] && [ -f "$mirror_of" ]; then
+      checked=$((checked + 1))
+      if cmp -s "$mirror_of" "$dest"; then
+        echo "ok    $dest -- mirror of $mirror_of"
+      else
+        stale=$((stale + 1))
+        if [ "$check_only" -eq 1 ]; then
+          echo "DRIFT $dest differs from its root copy $mirror_of"
+          fail=1
+        else
+          cat "$mirror_of" > "$dest"
+          echo "sync  $dest -- from $mirror_of"
+        fi
+      fi
+      continue
+    fi
     # `$rest` is the banner's tail: "<path>" or "<path> (qualifier)". `$1=$1`
     # re-splits on any whitespace and rejoins on single spaces, so a tab or a
     # trailing space parses the same as awk's own `$4` did. awk, not grep -m1:
