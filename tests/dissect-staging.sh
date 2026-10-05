@@ -5,8 +5,10 @@
 # Step 2 writes both outputs to a staging directory and Step 3 publishes them
 # into docs/built-in-skills/<skill-name>/ only once both exist. That is what
 # stops a failed re-run of an already-documented skill from destroying the
-# previous README.md/PROMPT.md. The rule lives in prose, so this asserts the
-# prose still says it — the same shape as the A-CL5 guard in
+# previous README.md/PROMPT.md. Since harness-skills#69 the publish half is
+# lib/promote-staging.sh, whose --self-test (tests/dissect-builtin-lib.sh)
+# proves the behavior; this asserts SKILL.md still routes through it and the
+# script still states the rule -- the same shape as the A-CL5 guard in
 # gh-pr-skills' tests/pmv-dispatch-resolves.sh.
 #
 #   sh tests/dissect-staging.sh
@@ -15,6 +17,7 @@ set -eu
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 SKILL=$ROOT/skills/dissect-builtin/SKILL.md
 BRIEF=$ROOT/skills/dissect-builtin/references/readme-template.md
+PROMOTE=$ROOT/skills/dissect-builtin/lib/promote-staging.sh
 fail=0
 
 # 1. The staging directory is NAMED. "a temp directory" is not actionable: the
@@ -26,14 +29,19 @@ grep -qF '.<skill-name>.staging/' "$SKILL" || {
 
 # 2. Publishing copies the two FILES. Moving the staging DIRECTORY onto an
 #    existing output directory nests inside it instead of replacing it.
-grep -q '디렉터리째 `mv` 하면' "$SKILL" || {
-	printf 'FAIL  %s no longer warns against moving the staging directory itself\n' "$SKILL"
+#    SKILL.md must publish through the script, not by hand.
+grep -qF 'promote-staging.sh' "$SKILL" || {
+	printf 'FAIL  %s no longer publishes through lib/promote-staging.sh\n' "$SKILL"
+	fail=1
+}
+grep -q '디렉터리째 `mv` 하면' "$PROMOTE" || {
+	printf 'FAIL  %s no longer warns against moving the staging directory itself\n' "$PROMOTE"
 	fail=1
 }
 
 # 3. Failure removes staging only, leaving the published outputs untouched.
-grep -q '실패 시 — 스테이징만 지운다' "$SKILL" || {
-	printf 'FAIL  %s no longer scopes the failure cleanup to staging\n' "$SKILL"
+grep -q '실패 시 — 스테이징만 지운다' "$PROMOTE" || {
+	printf 'FAIL  %s no longer scopes the failure cleanup to staging\n' "$PROMOTE"
 	fail=1
 }
 

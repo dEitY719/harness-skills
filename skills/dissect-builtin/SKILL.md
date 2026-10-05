@@ -20,37 +20,24 @@ metadata:
 
 If args is `-h`/`--help`/`help`, read `references/help.md` verbatim and stop.
 
-Analyze a Claude Code built-in skill and produce structured documentation in Korean.
-
 ## Usage
 
-```
-/harness:dissect-builtin <skill-name>
-```
+`/harness:dissect-builtin <skill-name>`
 
 ## Workflow
 
-Run these steps in order. Stop immediately on any error (skill load failure, agent failure, write error) and emit a `[FAIL]` verdict.
+Run these steps in order. Stop immediately on any error (skill load failure, agent failure, write error): clean up with Step 3's `--abort`, then emit a `[FAIL]` verdict.
 
 ### Step 1: Load the skill prompt
 
-Use the Skill tool to load the target built-in skill:
-
-```
-Skill(skill: "<skill-name>")
-```
-
+Load the target built-in skill with `Skill(skill: "<skill-name>")`.
 The raw prompt is injected into your context — that is the source Step 2 copies `PROMPT.md` from.
 The `Skill` tool and Claude Code built-ins are Claude-Code-only; other harnesses cannot reach them - see the repo-root `references/*-tools.md`.
 
 ### Step 2: Write the two outputs
 
-Output directory: `docs/built-in-skills/<skill-name>/` (relative to the project root).
-
-| Output    | Path                                          | Format    |
-|-----------|-----------------------------------------------|-----------|
-| README.md | docs/built-in-skills/<skill-name>/README.md | Korean MD |
-| PROMPT.md | docs/built-in-skills/<skill-name>/PROMPT.md | Verbatim  |
+Outputs: `README.md` (Korean) and `PROMPT.md` (verbatim), published by Step 3 to
+`docs/built-in-skills/<skill-name>/` (relative to the project root).
 
 **두 산출물 모두 `docs/built-in-skills/.<skill-name>.staging/` 에 먼저 쓴다**
 (에이전트에게도 이 경로를 준다). 최종 경로에 바로 쓰면 실패했을 때 덮어쓴 기존
@@ -66,12 +53,23 @@ prompt Step 1 loaded, so put **both** in its prompt: the brief you just read and
 the raw prompt text. Sending it to find either leaves it analyzing nothing — a
 repo-relative path resolves against the caller's project, not the plugin.
 
-### Step 3: Confirm with user
+### Step 3: Promote + verdict
 
-Wait for the agent to finish. **두 파일이 모두 스테이징에 있을 때에만** 옮긴다.
-디렉터리째 `mv` 하면 대상이 이미 있을 때 그 안으로 중첩되므로,
-`docs/built-in-skills/<skill-name>/` 를 만든 뒤 두 **파일**을 각각 덮어쓰고
-스테이징을 지운다. 그 뒤 판정:
+Wait for the agent, then publish with the bundled script. It promotes only when
+**both** files are staged (file by file, never the directory); otherwise it removes
+staging and leaves `docs/built-in-skills/<skill-name>/` untouched. On a Step 1/2
+failure run it with `--abort` instead (staging removed, nothing published):
+
+```bash
+_ps=""
+if [ -n "${HERMES_SKILL_DIR}" ]; then _ps="${HERMES_SKILL_DIR}/lib/promote-staging.sh"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then _ps="$CLAUDE_PLUGIN_ROOT/skills/dissect-builtin/lib/promote-staging.sh"
+fi
+[ -n "$_ps" ] && [ -f "$_ps" ] || { printf '[FAIL] plugin root unresolved (tried: %s). Export HERMES_SKILL_DIR=<this skill dir> (single-skill install) or CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' "${_ps:-nothing}" >&2; return 1 2>/dev/null || exit 1; }
+sh "$_ps" <skill-name> [--abort]
+```
+
+Relay its result: `[OK] promoted` →
 
 ```
 [OK] harness:dissect-builtin
@@ -81,13 +79,12 @@ Wait for the agent to finish. **두 파일이 모두 스테이징에 있을 때�
   Next:     /gh-pr:commit
 ```
 
-실패 시 — 스테이징만 지운다. 최종 경로는 건드린 적이 없으므로 기존 문서가 그대로
-보존되고 반쪽짜리 디렉터리도 없다:
+`[FAIL] staging incomplete: missing <file>` (exit 1), or any earlier failure →
 
 ```
 [FAIL] harness:dissect-builtin
-  Step:    <Step 1 load | Step 2 agent | Step 2 write>
-  Detail:  <error or skill not built-in>
+  Step:    <Step 1 load | Step 2 agent | Step 2 write | Step 3 promote>
+  Detail:  <error, the script's [FAIL] line, or skill not built-in>
 ```
 
 ## Constraints

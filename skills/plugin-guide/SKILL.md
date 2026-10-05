@@ -39,27 +39,30 @@ Set `OUT` = `[output-root]` (create it if absent).
 
 ## Step 2: Verify Installed (F-2)
 
-Resolve `MARKETPLACE` by exact-matching `PLUGIN@` against `claude plugin list --json`'s
-`id` field — **never** substring `grep` (a plugin named `skills` would falsely match
-`example-skills@...`). Zero, one, or 2+ matches are each handled per
-`references/marketplace-resolution.md`, which also binds `INSTALL_PATH` from the
-matched entry for Step 3 and covers the not-installed case when `MARKETPLACE` itself
-is unknown.
+Resolve with the bundled script — an exact `id` match via `jq`, never a substring `grep`:
+
+```bash
+_lib=""
+if [ -n "${HERMES_SKILL_DIR}" ]; then _lib="${HERMES_SKILL_DIR}/lib"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then _lib="$CLAUDE_PLUGIN_ROOT/skills/plugin-guide/lib"
+fi
+[ -n "$_lib" ] && [ -f "$_lib/resolve-plugin.sh" ] || { printf '[FAIL] plugin root unresolved (tried: %s). Export HERMES_SKILL_DIR=<this skill dir> (single-skill install) or CLAUDE_PLUGIN_ROOT=<plugin dir> first.\n' "${_lib:-nothing}" >&2; return 1 2>/dev/null || exit 1; }
+sh "$_lib/resolve-plugin.sh" "<plugin-name>"
+```
+
+Exit 0 → bind `MARKETPLACE` / `INSTALL_PATH` from its stdout. Exit 1 (not installed),
+2 (ambiguous: relay the ids, ask for `<plugin>@<marketplace>`) and 3 (`jq` or the
+Claude-Code-only CLI unavailable — never "not installed"; other harnesses: repo-root
+`references/*-tools.md`) stop with the messages in `references/marketplace-resolution.md`.
 
 ## Step 3: Enumerate Skills (F-3)
 
-`INSTALL_PATH` (bound in Step 2) is already the resolved version — no
-further version lookup needed:
-
-```bash
-find "$INSTALL_PATH" -maxdepth 4 -iname SKILL.md
-```
+Run `find "$INSTALL_PATH" -maxdepth 4 -iname SKILL.md` (already the resolved version).
 
 Zero `SKILL.md` found → this is the **no-skills error case**: print `[FAIL]
-harness:plugin-guide — 스킬 없음, 문서화 대상 아님 (Step 3 skills)` and stop. `claude
-plugin list` is Claude-Code-only; for every other harness see the repo-root
-`references/*-tools.md`. If skill count > 10, print ONE warning line (`스킬 N개
-(>10) — YAGNI: 단일 파일로 생성`) and continue with a single file.
+harness:plugin-guide — 스킬 없음, 문서화 대상 아님 (Step 3 skills)` and stop. If skill
+count > 10, print ONE warning line (`스킬 N개 (>10) — YAGNI: 단일 파일로 생성`) and
+continue with a single file.
 
 For each `SKILL.md`, read frontmatter `name`/`description` and skim the body for
 its one core rule → a 1-2 line "하는 일" summary (see `references/doc-template.md`).
@@ -78,12 +81,9 @@ Write `$OUT/<PLUGIN>.md` in **Korean**, following the exact
 
 ## Step 6: Update Index (F-5)
 
-Insert one line inside the `## Index` list in `$OUT/README.md` — after the last
-existing `- [...]` item and **before** the next `## ` header (e.g. `## 문서 구성`);
-never blindly append to end-of-file:
-`- [<PLUGIN>](./<PLUGIN>.md) — <one-line Korean summary>`. **Idempotent**: if a
-line already links `./<PLUGIN>.md`, skip. Create `$OUT/README.md` with an
-`## Index` heading if it does not exist yet.
+Re-run Step 2's locator (Bash calls share no variables), then relay its one word
+(`added` | `skipped`; idempotent, inserts inside `## Index` before the next `## `):
+`sh "$_lib/index-insert.sh" "$OUT/README.md" "<PLUGIN>" "<one-line Korean summary>"`
 
 ## Step 7: Report
 
