@@ -1,5 +1,9 @@
 # Marketplace Resolution — Step 2 detail
 
+`lib/resolve-plugin.sh` implements the lookup below (`--self-test` proves each
+case); its exit 1 / 2 / 3 map to the not-installed, two-or-more and CLI-failure
+cases. This page keeps the rules and the user-facing messages.
+
 Exact-match lookup for `PLUGIN` (and optional `MARKETPLACE`) against
 `claude plugin list --json`'s entries — Claude Code's own installed-plugin
 inventory, each entry's `id` shaped `"<plugin>@<marketplace>"`. Never
