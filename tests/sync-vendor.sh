@@ -433,5 +433,32 @@ t "a repo with neither lib/vendor nor mirrors keeps its skip note" \
     "note  $work/bare has no lib/vendor -- skipped
 ok    0 vendored file(s) match their SSOT, 0 skipped" ]
 
+# Source-path mapping (dotfiles#2154): a library moved to shell-common/lib/
+# leaves a re-source stub at functions/. The copy keeps its vendored path and
+# banner, but its content must come from the lib/ twin -- vendoring the stub
+# would hand every consumer a file that sources a path it does not have.
+lrepo=$work/libmoved
+lvend=$lrepo/lib/vendor/shell-common/functions
+mkdir -p "$lvend" "$dots/shell-common/lib"
+printf '#!/bin/sh\nMOVED=1\n' > "$dots/shell-common/lib/moved.sh"
+printf '#!/bin/sh\ncase $- in *i*) return 0 ;; esac\n. "$SHELL_COMMON/lib/moved.sh"\n' \
+  > "$ssot/moved.sh"
+printf '_moved_fn() {\n    echo lib\n}\n' > "$dots/shell-common/lib/moved_fn.sh"
+printf '. "$SHELL_COMMON/lib/moved_fn.sh"\n' > "$ssot/moved_fn.sh"
+stub shell-common/functions/moved.sh "$lvend/moved.sh"
+{ printf '# SSOT: dEitY719/dotfiles shell-common/functions/moved_fn.sh (_moved_fn)\n'
+  printf '_moved_fn() {\n    echo old\n}\n'; } > "$lvend/extract.sh"
+lrun() { "$sync" --ssot "$work/dotfiles" "$@" "$lrepo"; }
+out=$(lrun --check 2>&1) && rc=0 || rc=$?
+t "a copy of a moved file reads as drifted against its lib/ twin" [ "$rc" = 1 ]
+lrun >/dev/null || :   # a refused write still lets the asserts below label it
+t "write mode renders the lib/ twin's content, not the stub" \
+  grep -q '^MOVED=1$' "$lvend/moved.sh"
+t "...never the stub's re-source line" no grep -q 'lib/moved.sh' "$lvend/moved.sh"
+t "...and the banner keeps the vendored functions/ path" \
+  grep -qF 'SSOT: dEitY719/dotfiles shell-common/functions/moved.sh' "$lvend/moved.sh"
+t "an extraction is read from the lib/ twin too" grep -q 'echo lib' "$lvend/extract.sh"
+t "...and the next check is clean" [ "$(rc_of lrun --check)" = 0 ]
+
 [ "$fail" -eq 0 ] || exit 1
 echo "ok    sync-shell-common-vendor behaves"
