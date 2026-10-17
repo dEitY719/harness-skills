@@ -120,7 +120,10 @@ repos names this path; before it existed nothing kept a copy in sync with
 SSOT checkout is an argument, so it runs outside the author's `$HOME`. It
 scans `lib/vendor/` and the per-skill mirrors under `skills/*/lib/vendor/`; a
 mirror must stay byte-identical to its root copy (#70). It refreshes only what
-a consumer already vendors and never adds a file.
+a consumer already vendors and never adds a file. A banner naming
+`shell-common/functions/X` reads its content from `shell-common/lib/X` when
+that twin exists (dotfiles#2154 moved the pure libraries there and left
+re-source stubs), so a consumer's vendored path and banner never change.
 
 Because a change here lands in fourteen other repos, treat this file as an API:
 

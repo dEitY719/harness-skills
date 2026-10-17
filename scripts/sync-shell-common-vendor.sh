@@ -66,6 +66,13 @@
 #      promised. Scraped prose cannot carry a contract; the field is how a stub
 #      says which names it actually owes, so tightening one means adding it.
 #      Find them with: grep -rn '^# Bridge only' lib/vendor
+#
+# Source-path mapping (dotfiles#2154): the guard-free libraries moved from
+# shell-common/functions/X to shell-common/lib/X, leaving a re-source stub at
+# the old path. A copy keeps its vendored path AND its banner path; only its
+# content is read from the new home, so no consumer repo has to move a file.
+# What moved is read off the SSOT itself (a lib/ twin exists), not a list kept
+# here, and a checkout from before the move still resolves to functions/.
 set -euo pipefail
 
 VENDOR_ROOT=lib/vendor
@@ -201,6 +208,19 @@ extract_fn() {  # extract_fn <file> <name>
   ' "$1"
 }
 
+# ssot_src <banner-relpath> -- the SSOT file a banner path is read from (see
+# "Source-path mapping" above): the lib/ twin of a moved functions/ file, else
+# the path itself.
+ssot_src() {
+  local moved
+  case $1 in
+    shell-common/functions/*)
+      moved=$ssot/shell-common/lib/${1#shell-common/functions/}
+      if [ -f "$moved" ]; then printf '%s\n' "$moved"; return; fi ;;
+  esac
+  printf '%s\n' "$ssot/$1"
+}
+
 fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
 
 fail=0 checked=0 stale=0 skipped=0
@@ -264,7 +284,7 @@ for repo in "${repos[@]}"; do
 
     # Hoisted above the two narrow checks: they read the SSOT too, so a missing
     # one is now a FAIL for every shape rather than only for whole-file copies.
-    src=$ssot/$rel
+    src=$(ssot_src "$rel")
     if [ ! -f "$src" ]; then
       echo "FAIL  $dest names an SSOT that does not exist: $src"
       fail=1
