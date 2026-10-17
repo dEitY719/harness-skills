@@ -433,32 +433,57 @@ t "a repo with neither lib/vendor nor mirrors keeps its skip note" \
     "note  $work/bare has no lib/vendor -- skipped
 ok    0 vendored file(s) match their SSOT, 0 skipped" ]
 
-# Source-path mapping (dotfiles#2154): a library moved to shell-common/lib/
-# leaves a re-source stub at functions/. The copy keeps its vendored path and
-# banner, but its content must come from the lib/ twin -- vendoring the stub
-# would hand every consumer a file that sources a path it does not have.
+# Source-path mapping (dotfiles#2154, dotfiles#2225): a library moved to
+# shell-common/lib/ leaves a re-source stub at functions/. A copy whose banner
+# still names functions/X is a FAIL with a move hint, in both modes -- never
+# rendered from the stub (it sources a path the consumer does not have) and
+# never silently read from the twin (the stubs are being deleted).
 lrepo=$work/libmoved
 lvend=$lrepo/lib/vendor/shell-common/functions
-mkdir -p "$lvend" "$dots/shell-common/lib"
+lmir=$lrepo/skills/s1/lib/vendor/shell-common/functions
+mkdir -p "$lvend" "$lmir" "$dots/shell-common/lib"
 printf '#!/bin/sh\nMOVED=1\n' > "$dots/shell-common/lib/moved.sh"
 printf '#!/bin/sh\ncase $- in *i*) return 0 ;; esac\n. "$SHELL_COMMON/lib/moved.sh"\n' \
   > "$ssot/moved.sh"
 printf '_moved_fn() {\n    echo lib\n}\n' > "$dots/shell-common/lib/moved_fn.sh"
 printf '. "$SHELL_COMMON/lib/moved_fn.sh"\n' > "$ssot/moved_fn.sh"
 stub shell-common/functions/moved.sh "$lvend/moved.sh"
+stub shell-common/functions/moved.sh "$lmir/orphan_moved.sh"
 { printf '# SSOT: dEitY719/dotfiles shell-common/functions/moved_fn.sh (_moved_fn)\n'
   printf '_moved_fn() {\n    echo old\n}\n'; } > "$lvend/extract.sh"
+cp "$lvend/moved.sh" "$work/moved.before"
+cp "$lvend/extract.sh" "$work/extract.before"
 lrun() { "$sync" --ssot "$work/dotfiles" "$@" "$lrepo"; }
 out=$(lrun --check 2>&1) && rc=0 || rc=$?
-t "a copy of a moved file reads as drifted against its lib/ twin" [ "$rc" = 1 ]
-lrun >/dev/null || :   # a refused write still lets the asserts below label it
-t "write mode renders the lib/ twin's content, not the stub" \
-  grep -q '^MOVED=1$' "$lvend/moved.sh"
-t "...never the stub's re-source line" no grep -q 'lib/moved.sh' "$lvend/moved.sh"
-t "...and the banner keeps the vendored functions/ path" \
-  grep -qF 'SSOT: dEitY719/dotfiles shell-common/functions/moved.sh' "$lvend/moved.sh"
-t "an extraction is read from the lib/ twin too" grep -q 'echo lib' "$lvend/extract.sh"
-t "...and the next check is clean" [ "$(rc_of lrun --check)" = 0 ]
+t "--check fails a copy whose banner names a moved functions/ file" [ "$rc" = 1 ]
+t "...with the move hint for a whole-file copy" grep -qF \
+  "FAIL  $lvend/moved.sh names shell-common/functions/moved.sh, which moved to shell-common/lib/moved.sh -- move the copy to $lrepo/lib/vendor/shell-common/lib/moved.sh and update its banner" \
+  <<<"$out"
+t "...and for an extraction" grep -qF \
+  "FAIL  $lvend/extract.sh names shell-common/functions/moved_fn.sh, which moved to shell-common/lib/moved_fn.sh" \
+  <<<"$out"
+t "...and a per-skill mirror's hint names its own vendor root" grep -qF \
+  "move the copy to $lrepo/skills/s1/lib/vendor/shell-common/lib/moved.sh" <<<"$out"
+out=$(lrun 2>&1) && rc=0 || rc=$?
+t "write mode fails the same way" [ "$rc" = 1 ]
+t "...with the same hint" grep -qF "$lvend/moved.sh names shell-common/functions/moved.sh, which moved" <<<"$out"
+t "...and never rewrites the copy from the stub or the twin" cmp -s "$work/moved.before" "$lvend/moved.sh"
+t "...nor the extraction" cmp -s "$work/extract.before" "$lvend/extract.sh"
+
+# A copy moved as the hint says -- lib/ path, lib/ banner -- is an ordinary one.
+nrepo=$work/libnew
+nvend=$nrepo/lib/vendor/shell-common/lib
+mkdir -p "$nvend"
+stub shell-common/lib/moved.sh "$nvend/moved.sh"
+{ printf '# SSOT: dEitY719/dotfiles shell-common/lib/moved_fn.sh (_moved_fn)\n'
+  printf '_moved_fn() {\n    echo old\n}\n'; } > "$nvend/extract.sh"
+nrun() { "$sync" --ssot "$work/dotfiles" "$@" "$nrepo"; }
+t "a lib/ banner reads as drifted through the ordinary path" [ "$(rc_of nrun --check)" = 1 ]
+"$sync" --ssot "$work/dotfiles" "$nrepo" >/dev/null
+t "write mode renders the lib/ file" grep -q '^MOVED=1$' "$nvend/moved.sh"
+t "...keeping the lib/ banner" grep -qF 'SSOT: dEitY719/dotfiles shell-common/lib/moved.sh' "$nvend/moved.sh"
+t "a lib/ extraction syncs too" grep -q 'echo lib' "$nvend/extract.sh"
+t "...and the next check is clean" [ "$(rc_of nrun --check)" = 0 ]
 
 [ "$fail" -eq 0 ] || exit 1
 echo "ok    sync-shell-common-vendor behaves"
