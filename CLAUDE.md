@@ -121,9 +121,11 @@ SSOT checkout is an argument, so it runs outside the author's `$HOME`. It
 scans `lib/vendor/` and the per-skill mirrors under `skills/*/lib/vendor/`; a
 mirror must stay byte-identical to its root copy (#70). It refreshes only what
 a consumer already vendors and never adds a file. A banner naming
-`shell-common/functions/X` reads its content from `shell-common/lib/X` when
-that twin exists (dotfiles#2154 moved the pure libraries there and left
-re-source stubs), so a consumer's vendored path and banner never change.
+`shell-common/functions/X` when the SSOT has a `shell-common/lib/X` twin is a
+FAIL in both modes, with a hint to move the copy to
+`<vendor-root>/shell-common/lib/X` and update its banner (dotfiles#2154 moved
+the pure libraries there; dotfiles#2225 moved every consumer and deletes the
+`functions/` re-source stubs). A `shell-common/lib/X` banner syncs normally.
 
 Because a change here lands in fourteen other repos, treat this file as an API:
 

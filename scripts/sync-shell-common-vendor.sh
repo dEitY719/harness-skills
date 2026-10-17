@@ -67,11 +67,17 @@
 #      says which names it actually owes, so tightening one means adding it.
 #      Find them with: grep -rn '^# Bridge only' lib/vendor
 #
-# Source-path mapping (dotfiles#2154): the guard-free libraries moved from
-# shell-common/functions/X to shell-common/lib/X, leaving a re-source stub at
-# the old path. A copy keeps its vendored path AND its banner path; only its
-# content is read from the new home, so no consumer repo has to move a file.
-# What moved is read off the SSOT itself (a lib/ twin exists), not a list kept
+# Source-path mapping (dotfiles#2154, dotfiles#2225): the guard-free libraries
+# moved from shell-common/functions/X to shell-common/lib/X, leaving a
+# re-source stub at the old path. A copy whose banner still names
+# shell-common/functions/X while the SSOT has the shell-common/lib/X twin is a
+# FAIL in both modes, with a hint to move the copy to
+# <vendor-root>/shell-common/lib/X and update its banner. It is never rendered
+# from the stub (that would hand the consumer a file sourcing a path it does
+# not have) and no longer silently read from the twin either: dotfiles#2225
+# moved every consumer and deletes the functions/ stubs, so an old banner would
+# soon name a file that does not exist. A banner naming shell-common/lib/X is
+# an ordinary path. What moved is read off the SSOT itself, not a list kept
 # here, and a checkout from before the move still resolves to functions/.
 set -euo pipefail
 
@@ -208,19 +214,6 @@ extract_fn() {  # extract_fn <file> <name>
   ' "$1"
 }
 
-# ssot_src <banner-relpath> -- the SSOT file a banner path is read from (see
-# "Source-path mapping" above): the lib/ twin of a moved functions/ file, else
-# the path itself.
-ssot_src() {
-  local moved
-  case $1 in
-    shell-common/functions/*)
-      moved=$ssot/shell-common/lib/${1#shell-common/functions/}
-      if [ -f "$moved" ]; then printf '%s\n' "$moved"; return; fi ;;
-  esac
-  printf '%s\n' "$ssot/$1"
-}
-
 fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
 
 fail=0 checked=0 stale=0 skipped=0
@@ -284,7 +277,16 @@ for repo in "${repos[@]}"; do
 
     # Hoisted above the two narrow checks: they read the SSOT too, so a missing
     # one is now a FAIL for every shape rather than only for whole-file copies.
-    src=$(ssot_src "$rel")
+    case $rel in
+      shell-common/functions/*)
+        if [ -f "$ssot/shell-common/lib/${rel#shell-common/functions/}" ]; then
+          lib=shell-common/lib/${rel#shell-common/functions/}
+          echo "FAIL  $dest names $rel, which moved to $lib -- move the copy to ${dest%%/"$VENDOR_ROOT"/*}/$VENDOR_ROOT/$lib and update its banner"
+          fail=1
+          continue
+        fi ;;
+    esac
+    src=$ssot/$rel
     if [ ! -f "$src" ]; then
       echo "FAIL  $dest names an SSOT that does not exist: $src"
       fail=1
