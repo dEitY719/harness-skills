@@ -501,10 +501,17 @@ for item in \
   . "$item"
 done
 if true; then . "$SHELL_COMMON/lib/inline.sh"; fi # "$SHELL_COMMON/lib/comment-only.sh"
-for item in "$SHELL_COMMON/lib/oneline.sh"; do . "$item"; done
+for item in "$SHELL_COMMON/lib/oneline.sh"
+do
+  . "$item"
+done
+optional_later="$SHELL_COMMON/lib/optional-later.sh"
+. \
+  "$SHELL_COMMON/lib/continued.sh"
 EOF
 : > "$cvendor/lib/inline.sh"
 : > "$cvendor/lib/oneline.sh"
+: > "$cvendor/lib/continued.sh"
 stub shell-common/functions/closure.sh "$cvendor/functions/closure.sh"
 : > "$cvendor/lib/one.sh"
 crun() { "$sync" --ssot "$work/dotfiles" "$@" "$crepo"; }
@@ -525,6 +532,10 @@ mv "$cvendor/lib/oneline.sh" "$work/oneline-held"
 out=$(crun --check 2>&1) && rc=0 || rc=$?
 t "closure finds a path on the for line" grep -qF "$cvendor/lib/oneline.sh" <<<"$out"
 mv "$work/oneline-held" "$cvendor/lib/oneline.sh"
+mv "$cvendor/lib/continued.sh" "$work/continued-held"
+out=$(crun --check 2>&1) && rc=0 || rc=$?
+t "closure finds a continued source command" grep -qF "$cvendor/lib/continued.sh" <<<"$out"
+mv "$work/continued-held" "$cvendor/lib/continued.sh"
 crun >/dev/null
 t "closure passes with all required paths, excluding optional and fallback paths" [ "$(rc_of crun --check)" = 0 ]
 

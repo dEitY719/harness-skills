@@ -228,13 +228,15 @@ closure_paths() {
       begins_list = (line ~ /^[[:space:]]*for[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]+in([[:space:]]|$)/)
       if (begins_list) in_list = 1
       is_source = (line ~ /(^|[;[:space:]])(\.|source)[[:space:]]/)
-      if ((in_list || is_source) && line ~ /SHELL_COMMON/) {
+      source_line = (is_source || source_continued)
+      source_continued = (source_line && line ~ /\\[[:space:]]*$/)
+      if ((in_list || source_line) && line ~ /SHELL_COMMON/) {
         while (match(line, /\/lib\/[A-Za-z0-9_.-]+\.sh/)) {
           print "shell-common" substr(line, RSTART, RLENGTH)
           line = substr(line, RSTART + RLENGTH)
         }
       }
-      if ($0 ~ /;[[:space:]]*do([[:space:]]|$)/) in_list = 0
+      if ($0 ~ /;[[:space:]]*do([[:space:]]|$)/ || $0 ~ /^[[:space:]]*do([[:space:]]|$)/) in_list = 0
     }
   ' "$1" | sort -u
 }
