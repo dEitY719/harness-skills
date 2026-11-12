@@ -216,6 +216,23 @@ extract_fn() {  # extract_fn <file> <name>
 
 fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
 
+# Discover literal shell-common library paths in source commands and continued
+# path lists. Assignments (such as optional bootstrap helpers), comments and
+# the dynamically computed fallback directory are not mandatory dependencies.
+closure_paths() {
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*(\.|source)[[:space:]]/ || /^[[:space:]]*["\047]/ {
+      line = $0
+      if (line !~ /SHELL_COMMON/) next
+      while (match(line, /\/lib\/[A-Za-z0-9_.-]+\.sh/)) {
+        print "shell-common" substr(line, RSTART, RLENGTH)
+        line = substr(line, RSTART + RLENGTH)
+      }
+    }
+  ' "$1" | sort -u
+}
+
 fail=0 checked=0 stale=0 skipped=0
 for repo in "${repos[@]}"; do
   # The root tree first, then any per-skill mirrors (#70): grep lists files in
@@ -239,32 +256,6 @@ for repo in "${repos[@]}"; do
   while IFS= read -r dest; do
     [ -n "$dest" ] || continue
 
-    # A per-skill mirror (skills/<name>/lib/vendor/<p>) of a root copy
-    # (lib/vendor/<p>) is that root copy, byte for byte -- the consumer's own
-    # guard says so (gh-issue-skills#47). Rendering it from the SSOT instead
-    # would stamp it newer than a root copy that was already current, and break
-    # that guard. A mirror with no root copy falls through to the SSOT checks.
-    mirror_of=
-    case $dest in
-      "$repo"/skills/*/"$VENDOR_ROOT"/*)
-        mirror_of=$repo/$VENDOR_ROOT/${dest#"$repo"/skills/*/"$VENDOR_ROOT"/} ;;
-    esac
-    if [ -n "$mirror_of" ] && [ -f "$mirror_of" ]; then
-      checked=$((checked + 1))
-      if cmp -s "$mirror_of" "$dest"; then
-        echo "ok    $dest -- mirror of $mirror_of"
-      else
-        stale=$((stale + 1))
-        if [ "$check_only" -eq 1 ]; then
-          echo "DRIFT $dest differs from its root copy $mirror_of"
-          fail=1
-        else
-          cat "$mirror_of" > "$dest"
-          echo "sync  $dest -- from $mirror_of"
-        fi
-      fi
-      continue
-    fi
     # `$rest` is the banner's tail: "<path>" or "<path> (qualifier)". `$1=$1`
     # re-splits on any whitespace and rejoins on single spaces, so a tab or a
     # trailing space parses the same as awk's own `$4` did. awk, not grep -m1:
@@ -293,6 +284,46 @@ for repo in "${repos[@]}"; do
       continue
     fi
 
+    # Check the SSOT, never the potentially stale copy. Partial extractions and
+    # hand-written bridges do not promise to ship the whole source file.
+    hdr=$(sed -n '/^[^#]/q;p' "$dest")
+    if [ -z "$qual" ] && ! grep -q -- "$OPT_OUT" <<<"$hdr"; then
+      vendor_dir=${dest%%/"$VENDOR_ROOT"/*}/$VENDOR_ROOT
+      while IFS= read -r dependency; do
+        [ -n "$dependency" ] || continue
+        if [ ! -f "$vendor_dir/$dependency" ]; then
+          echo "FAIL  $vendor_dir/$dependency -- $src references it but the vendor tree lacks it; add it manually or revert the SSOT"
+          fail=1
+        fi
+      done < <(closure_paths "$src")
+    fi
+
+    # A per-skill mirror (skills/<name>/lib/vendor/<p>) of a root copy
+    # (lib/vendor/<p>) is that root copy, byte for byte -- the consumer's own
+    # guard says so (gh-issue-skills#47). Rendering it from the SSOT instead
+    # would stamp it newer than a root copy that was already current, and break
+    # that guard. A mirror with no root copy falls through to the SSOT checks.
+    mirror_of=
+    case $dest in
+      "$repo"/skills/*/"$VENDOR_ROOT"/*)
+        mirror_of=$repo/$VENDOR_ROOT/${dest#"$repo"/skills/*/"$VENDOR_ROOT"/} ;;
+    esac
+    if [ -n "$mirror_of" ] && [ -f "$mirror_of" ]; then
+      checked=$((checked + 1))
+      if cmp -s "$mirror_of" "$dest"; then
+        echo "ok    $dest -- mirror of $mirror_of"
+      else
+        stale=$((stale + 1))
+        if [ "$check_only" -eq 1 ]; then
+          echo "DRIFT $dest differs from its root copy $mirror_of"
+          fail=1
+        else
+          cat "$mirror_of" > "$dest"
+          echo "sync  $dest -- from $mirror_of"
+        fi
+      fi
+      continue
+    fi
     # A partial extraction: compare only the function the qualifier names.
     if [ -n "$qual" ]; then
       name=${qual#(}; name=${name%)}
