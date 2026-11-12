@@ -500,9 +500,11 @@ for item in \
   [ -z "$_gpr_lib_dir" ] || item="$_gpr_lib_dir/${item##*/}"
   . "$item"
 done
-if true; then . "$SHELL_COMMON/lib/inline.sh"; fi
+if true; then . "$SHELL_COMMON/lib/inline.sh"; fi # "$SHELL_COMMON/lib/comment-only.sh"
+for item in "$SHELL_COMMON/lib/oneline.sh"; do . "$item"; done
 EOF
 : > "$cvendor/lib/inline.sh"
+: > "$cvendor/lib/oneline.sh"
 stub shell-common/functions/closure.sh "$cvendor/functions/closure.sh"
 : > "$cvendor/lib/one.sh"
 crun() { "$sync" --ssot "$work/dotfiles" "$@" "$crepo"; }
@@ -519,6 +521,10 @@ mv "$cvendor/lib/inline.sh" "$work/inline-held"
 out=$(crun --check 2>&1) && rc=0 || rc=$?
 t "closure finds sources after shell syntax on the same line" grep -qF "$cvendor/lib/inline.sh" <<<"$out"
 mv "$work/inline-held" "$cvendor/lib/inline.sh"
+mv "$cvendor/lib/oneline.sh" "$work/oneline-held"
+out=$(crun --check 2>&1) && rc=0 || rc=$?
+t "closure finds a path on the for line" grep -qF "$cvendor/lib/oneline.sh" <<<"$out"
+mv "$work/oneline-held" "$cvendor/lib/oneline.sh"
 crun >/dev/null
 t "closure passes with all required paths, excluding optional and fallback paths" [ "$(rc_of crun --check)" = 0 ]
 

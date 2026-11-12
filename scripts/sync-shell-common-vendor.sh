@@ -221,14 +221,20 @@ fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
 # the dynamically computed fallback directory are not mandatory dependencies.
 closure_paths() {
   awk '
-    /^[[:space:]]*#/ { next }
-    /(^|[;[:space:]])(\.|source)[[:space:]]/ || /^[[:space:]]*["\047]/ {
+    {
       line = $0
-      if (line !~ /SHELL_COMMON/) next
-      while (match(line, /\/lib\/[A-Za-z0-9_.-]+\.sh/)) {
-        print "shell-common" substr(line, RSTART, RLENGTH)
-        line = substr(line, RSTART + RLENGTH)
+      sub(/[[:space:]]+#.*/, "", line)
+      if (line ~ /^[[:space:]]*#/) next
+      begins_list = (line ~ /^[[:space:]]*for[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]+in([[:space:]]|$)/)
+      if (begins_list) in_list = 1
+      is_source = (line ~ /(^|[;[:space:]])(\.|source)[[:space:]]/)
+      if ((in_list || is_source) && line ~ /SHELL_COMMON/) {
+        while (match(line, /\/lib\/[A-Za-z0-9_.-]+\.sh/)) {
+          print "shell-common" substr(line, RSTART, RLENGTH)
+          line = substr(line, RSTART + RLENGTH)
+        }
       }
+      if ($0 ~ /;[[:space:]]*do([[:space:]]|$)/) in_list = 0
     }
   ' "$1" | sort -u
 }
