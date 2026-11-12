@@ -485,5 +485,33 @@ t "...keeping the lib/ banner" grep -qF 'SSOT: dEitY719/dotfiles shell-common/li
 t "a lib/ extraction syncs too" grep -q 'echo lib' "$nvend/extract.sh"
 t "...and the next check is clean" [ "$(rc_of nrun --check)" = 0 ]
 
+# #76: literal library paths in the SSOT path list must all be present in
+# the same vendor tree, including in check mode when the copy is stale.
+crepo=$work/closure
+cvendor=$crepo/lib/vendor/shell-common
+mkdir -p "$cvendor/functions" "$cvendor/lib" "$dots/shell-common/lib"
+cat > "$ssot/closure.sh" <<'EOF'
+#!/bin/sh
+# "${SHELL_COMMON:-$HOME/dotfiles/shell-common}/lib/comment-only.sh"
+optional="${SHELL_COMMON:-$HOME/dotfiles/shell-common}/lib/optional.sh"
+for item in \
+  "${SHELL_COMMON:-$HOME/dotfiles/shell-common}/lib/one.sh" \
+  "${SHELL_COMMON:-$HOME/dotfiles/shell-common}/lib/two.sh"; do
+  [ -z "$_gpr_lib_dir" ] || item="$_gpr_lib_dir/${item##*/}"
+  . "$item"
+done
+EOF
+stub shell-common/functions/closure.sh "$cvendor/functions/closure.sh"
+: > "$cvendor/lib/one.sh"
+crun() { "$sync" --ssot "$work/dotfiles" "$@" "$crepo"; }
+out=$(crun --check 2>&1) && rc=0 || rc=$?
+t "closure fails --check for a missing SSOT dependency" [ "$rc" = 1 ]
+t "closure names the missing vendor path and remedy" grep -qF "$cvendor/lib/two.sh" <<<"$out"
+t "closure describes how to resolve the missing dependency" grep -qF 'add it manually or revert the SSOT' <<<"$out"
+out=$(crun 2>&1) && rc=0 || rc=$?
+t "closure fails in write mode too" [ "$rc" = 1 ]
+: > "$cvendor/lib/two.sh"
+t "closure passes with all required paths, excluding optional and fallback paths" [ "$(rc_of crun --check)" = 0 ]
+
 [ "$fail" -eq 0 ] || exit 1
 echo "ok    sync-shell-common-vendor behaves"
