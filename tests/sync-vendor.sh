@@ -500,7 +500,9 @@ for item in \
   [ -z "$_gpr_lib_dir" ] || item="$_gpr_lib_dir/${item##*/}"
   . "$item"
 done
+if true; then . "$SHELL_COMMON/lib/inline.sh"; fi
 EOF
+: > "$cvendor/lib/inline.sh"
 stub shell-common/functions/closure.sh "$cvendor/functions/closure.sh"
 : > "$cvendor/lib/one.sh"
 crun() { "$sync" --ssot "$work/dotfiles" "$@" "$crepo"; }
@@ -508,9 +510,16 @@ out=$(crun --check 2>&1) && rc=0 || rc=$?
 t "closure fails --check for a missing SSOT dependency" [ "$rc" = 1 ]
 t "closure names the missing vendor path and remedy" grep -qF "$cvendor/lib/two.sh" <<<"$out"
 t "closure describes how to resolve the missing dependency" grep -qF 'add it manually or revert the SSOT' <<<"$out"
+cp "$cvendor/functions/closure.sh" "$work/closure.before"
 out=$(crun 2>&1) && rc=0 || rc=$?
 t "closure fails in write mode too" [ "$rc" = 1 ]
+t "closure failure never overwrites the affected copy" cmp -s "$work/closure.before" "$cvendor/functions/closure.sh"
 : > "$cvendor/lib/two.sh"
+mv "$cvendor/lib/inline.sh" "$work/inline-held"
+out=$(crun --check 2>&1) && rc=0 || rc=$?
+t "closure finds sources after shell syntax on the same line" grep -qF "$cvendor/lib/inline.sh" <<<"$out"
+mv "$work/inline-held" "$cvendor/lib/inline.sh"
+crun >/dev/null
 t "closure passes with all required paths, excluding optional and fallback paths" [ "$(rc_of crun --check)" = 0 ]
 
 [ "$fail" -eq 0 ] || exit 1

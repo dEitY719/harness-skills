@@ -222,7 +222,7 @@ fn_line() { awk -v n="$2" '$0 ~ "^" n "[ \t]*\\(\\)" {print NR; exit}' "$1"; }
 closure_paths() {
   awk '
     /^[[:space:]]*#/ { next }
-    /^[[:space:]]*(\.|source)[[:space:]]/ || /^[[:space:]]*["\047]/ {
+    /(^|[;[:space:]])(\.|source)[[:space:]]/ || /^[[:space:]]*["\047]/ {
       line = $0
       if (line !~ /SHELL_COMMON/) next
       while (match(line, /\/lib\/[A-Za-z0-9_.-]+\.sh/)) {
@@ -289,13 +289,16 @@ for repo in "${repos[@]}"; do
     hdr=$(sed -n '/^[^#]/q;p' "$dest")
     if [ -z "$qual" ] && ! grep -q -- "$OPT_OUT" <<<"$hdr"; then
       vendor_dir=${dest%%/"$VENDOR_ROOT"/*}/$VENDOR_ROOT
+      closure_missing=0
       while IFS= read -r dependency; do
         [ -n "$dependency" ] || continue
         if [ ! -f "$vendor_dir/$dependency" ]; then
           echo "FAIL  $vendor_dir/$dependency -- $src references it but the vendor tree lacks it; add it manually or revert the SSOT"
           fail=1
+          closure_missing=1
         fi
       done < <(closure_paths "$src")
+      [ "$closure_missing" -eq 0 ] || continue
     fi
 
     # A per-skill mirror (skills/<name>/lib/vendor/<p>) of a root copy
